@@ -1,0 +1,67 @@
+# StyleSync Dataset Configuration
+
+version: "1.0.0"
+dataset_name: "StyleSync-DeepFashion-Subset"
+source: "DeepFashion (Category and Attribute Prediction Benchmark)"
+random_seed: 42
+
+target_size: 800
+
+split_ratios:
+  train: 0.70
+  validation: 0.15
+  test: 0.15
+
+filtering_rules:
+  min_resolution_width: 224
+  min_resolution_height: 224
+  max_images_per_class: 100
+
+categories:
+  - "dress"
+  - "top"
+  - "shirt"
+  - "t-shirt"
+  - "skirt"
+  - "trousers"
+  - "jeans"
+  - "jacket"
+  - "coat"
+  - "shorts"
+
+attributes:
+  pattern:
+    - "solid"
+    - "floral"
+    - "striped"
+    - "checked"
+    - "plaid"
+    - "polka dot"
+    - "graphic"
+    - "animal print"
+  sleeve_type:
+    - "sleeveless"
+    - "short_sleeve"
+    - "long_sleeve"
+    - "three_quarter"
+
+# Derived via OpenCV
+color_families:
+  - "blue"
+  - "white"
+  - "black"
+  - "green"
+  - "red"
+  - "pink"
+  - "yellow"
+  - "beige"
+  - "navy"
+  - "grey"
+  - "brown"
+  - "purple"
+  - "orange"
+
+# Manual Annotation Required (DeepFashion does not explicitly provide these)
+manual_attributes:
+  - "season"
+  - "occasion"
