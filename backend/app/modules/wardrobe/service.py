@@ -11,6 +11,27 @@ from app.modules.wardrobe.repository import wardrobe_repository
 logger = logging.getLogger("stylesync.wardrobe.service")
 
 
+from datetime import datetime, date, timezone
+
+def _parse_datetime(val: Any) -> datetime | None:
+    if not val:
+        return None
+    if isinstance(val, datetime):
+        return val
+    if isinstance(val, date):
+        return datetime.combine(val, datetime.min.time(), tzinfo=timezone.utc)
+    if isinstance(val, str) and val.strip():
+        try:
+            val_str = val.strip().replace("Z", "+00:00")
+            if "T" in val_str:
+                return datetime.fromisoformat(val_str)
+            d = date.fromisoformat(val_str)
+            return datetime.combine(d, datetime.min.time(), tzinfo=timezone.utc)
+        except Exception:
+            return None
+    return None
+
+
 class WardrobeService:
     async def get_user_items(self, user_id: str, item_type: str | None = None) -> list[dict[str, Any]]:
         """Retrieve user wardrobe items, ensuring initial demo items exist for new accounts."""
@@ -33,6 +54,12 @@ class WardrobeService:
         filename: str = "wardrobe-item.jpg",
         file_bytes: bytes | None = None,
         name: str | None = None,
+        color: str | None = None,
+        pattern: str | None = None,
+        brand: str | None = None,
+        purchase_date: str | datetime | None = None,
+        occasion: str | list[str] | None = None,
+        last_worn_date: str | datetime | None = None,
         image_url: str = "",
         content_type: str | None = None,
     ) -> dict[str, Any]:
@@ -41,7 +68,7 @@ class WardrobeService:
         1. If file_bytes provided: validate, optimize, and upload to Cloudinary
         2. If file_bytes not provided: use provided image_url or fallback
         3. Infer apparel metadata
-        4. Save item document with Cloudinary URLs & dimensions in MongoDB
+        4. Save item record with Cloudinary URLs & dimensions in database
         5. Generate and persist vector embedding
         """
         if file_bytes is not None:
@@ -75,8 +102,23 @@ class WardrobeService:
             metadata = infer_metadata(filename)
 
         item_name = name.strip() if name and name.strip() else filename.rsplit(".", 1)[0].replace("-", " ").replace("_", " ").title()
+        primary_color = color.strip() if color and color.strip() else metadata["primary_color"]
+        item_pattern = pattern.strip() if pattern and pattern.strip() else metadata["pattern"]
+        item_brand = brand.strip() if brand and brand.strip() else None
+        item_purchase_date = _parse_datetime(purchase_date)
+        item_last_worn_at = _parse_datetime(last_worn_date)
 
-        # 3. Create document in MongoDB (includes embedding_id reference)
+        if occasion:
+            if isinstance(occasion, str):
+                item_occasion = [occasion.strip()] if occasion.strip() else metadata["occasion"]
+            elif isinstance(occasion, list):
+                item_occasion = [o.strip() for o in occasion if o and o.strip()]
+            else:
+                item_occasion = metadata["occasion"]
+        else:
+            item_occasion = metadata["occasion"]
+
+        # 3. Create record in database (includes embedding_id reference)
         item_doc = {
             "user_id": user_id,
             "name": item_name,
@@ -88,19 +130,21 @@ class WardrobeService:
             "width": resolved_width,
             "height": resolved_height,
             "bytes": resolved_bytes,
-            "type": metadata["type"],
-            "category": metadata["category"],
-            "primary_color": metadata["primary_color"],
+            "type": metadata.get("type", "dress"),
+            "category": metadata.get("category", "dresses"),
+            "primary_color": primary_color,
             "secondary_colors": metadata.get("secondary_colors", []),
-            "pattern": metadata["pattern"],
+            "pattern": item_pattern,
             "sleeve_type": metadata.get("sleeve_type", "short_sleeve"),
             "fabric": metadata.get("fabric", "user_review_needed"),
-            "season": metadata["season"],
-            "occasion": metadata["occasion"],
-            "tags": metadata.get("tags", [metadata["pattern"], metadata["primary_color"]]),
+            "season": metadata.get("season", ["all_season"]),
+            "occasion": item_occasion,
+            "tags": metadata.get("tags", [item_pattern, primary_color]),
             "confidence": metadata.get("confidence", {}),
+            "brand": item_brand,
+            "purchase_date": item_purchase_date,
             "wear_count": 0,
-            "last_worn_at": None,
+            "last_worn_at": item_last_worn_at,
             "embedding_id": None,
         }
 
@@ -128,6 +172,47 @@ class WardrobeService:
         logger.info("Created wardrobe item id=%s for user_id=%s with public_id=%s", item_id, user_id, resolved_public_id)
         return created_item
 
+    async def update_wardrobe_item_metadata(
+        self,
+        user_id: str,
+        item_id: str,
+        name: str | None = None,
+        color: str | None = None,
+        pattern: str | None = None,
+        brand: str | None = None,
+        purchase_date: str | datetime | None = None,
+        occasion: str | list[str] | None = None,
+        last_worn_date: str | datetime | None = None,
+    ) -> dict[str, Any]:
+        """Update metadata of an existing wardrobe item after verifying ownership."""
+        await self.get_item_by_id(item_id, user_id)
+        updates: dict[str, Any] = {}
+        if name is not None and name.strip():
+            updates["name"] = name.strip()
+        if color is not None and color.strip():
+            updates["primary_color"] = color.strip()
+        if pattern is not None and pattern.strip():
+            updates["pattern"] = pattern.strip()
+        if brand is not None:
+            updates["brand"] = brand.strip() if brand.strip() else None
+        if purchase_date is not None:
+            updates["purchase_date"] = _parse_datetime(purchase_date)
+        if occasion is not None:
+            if isinstance(occasion, str):
+                updates["occasion"] = [occasion.strip()] if occasion.strip() else []
+            elif isinstance(occasion, list):
+                updates["occasion"] = [o.strip() for o in occasion if o and o.strip()]
+        if last_worn_date is not None:
+            updates["last_worn_at"] = _parse_datetime(last_worn_date)
+
+        updated_item = await wardrobe_repository.update_item(item_id, user_id, updates)
+        if not updated_item:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Wardrobe item '{item_id}' could not be updated.",
+            )
+        return updated_item
+
     async def replace_item_image(
         self,
         user_id: str,
@@ -141,7 +226,7 @@ class WardrobeService:
         1. Verify item ownership
         2. Upload new image and safely destroy previous Cloudinary asset
         3. Re-extract AI metadata and re-generate vector embedding
-        4. Update MongoDB document with new image references and metadata
+        4. Update database record with new image references and metadata
         """
         item = await self.get_item_by_id(item_id, user_id)
         old_public_id = item.get("public_id")
@@ -169,12 +254,12 @@ class WardrobeService:
             "bytes": media.bytes,
             "type": metadata["type"],
             "category": metadata["category"],
-            "primary_color": metadata["primary_color"],
+            "primary_color": item.get("primary_color") or metadata["primary_color"],
             "secondary_colors": metadata.get("secondary_colors", []),
-            "pattern": metadata["pattern"],
+            "pattern": item.get("pattern") or metadata["pattern"],
             "sleeve_type": metadata.get("sleeve_type", "short_sleeve"),
             "season": metadata["season"],
-            "occasion": metadata["occasion"],
+            "occasion": item.get("occasion") or metadata["occasion"],
             "confidence": metadata.get("confidence", {}),
         }
 
@@ -205,7 +290,7 @@ class WardrobeService:
         Delete wardrobe item:
         1. Verify ownership
         2. Delete Cloudinary image asset
-        3. Delete MongoDB item document and embedding record
+        3. Delete database item record and embedding record
         """
         item = await self.get_item_by_id(item_id, user_id)
 
@@ -233,3 +318,4 @@ class WardrobeService:
 
 
 wardrobe_service = WardrobeService()
+

@@ -6,9 +6,9 @@ interface PasswordInputProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: string
 }
 
-export function PasswordInput({ label = 'Password', error, id, className = '', ...props }: PasswordInputProps) {
+export function PasswordInput({ label = 'Password', error, id, name = 'password', className = '', ...props }: PasswordInputProps) {
   const [showPassword, setShowPassword] = useState(false)
-  const inputId = id || 'auth-password-input'
+  const inputId = id || name || 'password'
 
   return (
     <div className="space-y-1.5 text-left">
@@ -20,6 +20,7 @@ export function PasswordInput({ label = 'Password', error, id, className = '', .
       <div className="relative flex items-center">
         <input
           id={inputId}
+          name={name}
           type={showPassword ? 'text' : 'password'}
           className={`w-full rounded-none border border-white/10 bg-[#141412] pl-4 pr-11 py-3.5 text-sm text-[#F5F2EB] placeholder-[#62605A] transition-all duration-200 focus:border-[#E8E0D0] focus:bg-[#1A1A17] focus:outline-none focus:ring-1 focus:ring-[#E8E0D0]/30 disabled:opacity-50 ${
             error ? 'border-amber-600/60 focus:border-amber-500' : ''

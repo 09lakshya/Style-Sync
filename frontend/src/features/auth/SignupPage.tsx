@@ -19,7 +19,7 @@ export function SignupPage({ onSessionSuccess, onNavigateToLogin }: SignupPagePr
   const [errors, setErrors] = useState<FormErrors>({})
 
   const registerMutation = useMutation({
-    mutationFn: () => registerApi({ name, email, password }),
+    mutationFn: (payload: { name: string; email: string; password: string }) => registerApi(payload),
     onSuccess: (session) => {
       setErrors({})
       onSessionSuccess(session)
@@ -31,26 +31,26 @@ export function SignupPage({ onSessionSuccess, onNavigateToLogin }: SignupPagePr
     },
   })
 
-  function validateForm(): boolean {
+  function validateFormWithValues(nameVal: string, emailVal: string, passwordVal: string): boolean {
     const newErrors: FormErrors = {}
 
-    const trimmedName = name.trim()
+    const trimmedName = nameVal.trim()
     if (!trimmedName) {
       newErrors.name = 'Full name is required.'
     } else if (trimmedName.length < 2) {
       newErrors.name = 'Name must be at least 2 characters.'
     }
 
-    const trimmedEmail = email.trim()
+    const trimmedEmail = emailVal.trim()
     if (!trimmedEmail) {
       newErrors.email = 'Email address is required.'
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
       newErrors.email = 'Please enter a valid email address.'
     }
 
-    if (!password) {
+    if (!passwordVal) {
       newErrors.password = 'Password is required.'
-    } else if (password.length < 8) {
+    } else if (passwordVal.length < 8) {
       newErrors.password = 'Password must be at least 8 characters long.'
     }
 
@@ -60,8 +60,18 @@ export function SignupPage({ onSessionSuccess, onNavigateToLogin }: SignupPagePr
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    if (validateForm()) {
-      registerMutation.mutate()
+
+    const formData = new FormData(e.currentTarget)
+    const formName = ((formData.get('name') as string) || name).trim()
+    const formEmail = ((formData.get('email') as string) || email).trim()
+    const formPassword = (formData.get('password') as string) || password
+
+    if (formName !== name) setName(formName)
+    if (formEmail !== email) setEmail(formEmail)
+    if (formPassword !== password) setPassword(formPassword)
+
+    if (validateFormWithValues(formName, formEmail, formPassword)) {
+      registerMutation.mutate({ name: formName, email: formEmail, password: formPassword })
     }
   }
 
@@ -113,6 +123,8 @@ export function SignupPage({ onSessionSuccess, onNavigateToLogin }: SignupPagePr
             <AuthInput
               label="Full Name"
               type="text"
+              name="name"
+              id="name"
               placeholder="E.g. Elena Rostova"
               value={name}
               onChange={(e) => {
@@ -127,6 +139,8 @@ export function SignupPage({ onSessionSuccess, onNavigateToLogin }: SignupPagePr
             <AuthInput
               label="Email Address"
               type="email"
+              name="email"
+              id="email"
               placeholder="name@example.com"
               value={email}
               onChange={(e) => {
@@ -140,6 +154,8 @@ export function SignupPage({ onSessionSuccess, onNavigateToLogin }: SignupPagePr
 
             <PasswordInput
               label="Password (min. 8 characters)"
+              name="password"
+              id="password"
               placeholder="••••••••"
               value={password}
               onChange={(e) => {

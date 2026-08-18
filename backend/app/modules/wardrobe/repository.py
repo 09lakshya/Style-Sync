@@ -8,9 +8,14 @@ from app.core.database import get_session_maker, serialize_model
 from app.core.models import WardrobeItem
 
 
+import asyncio
+
+_seed_lock = asyncio.Lock()
+
+
 class WardrobeRepository:
     async def list_items(self, user_id: str, item_type: str | None = None) -> list[dict[str, Any]]:
-        """List wardrobe items for a user, optionally filtered by clothing type."""
+        """List wardrobe items for a user, optionally filtered by clothing type, eliminating duplicate items."""
         maker = get_session_maker()
         async with maker() as session:
             stmt = select(WardrobeItem).where(WardrobeItem.user_id == user_id)
@@ -20,7 +25,17 @@ class WardrobeRepository:
             
             result = await session.execute(stmt)
             items = result.scalars().all()
-            return [serialize_model(item) for item in items]
+            
+            seen_names = set()
+            unique_items = []
+            for item in items:
+                norm_name = (item.name or "").strip().lower()
+                if norm_name and norm_name in seen_names:
+                    continue
+                if norm_name:
+                    seen_names.add(norm_name)
+                unique_items.append(serialize_model(item))
+            return unique_items
 
     async def get_item_by_id(self, item_id: str, user_id: str) -> dict[str, Any] | None:
         """Find a specific wardrobe item belonging to a user."""
@@ -96,50 +111,9 @@ class WardrobeRepository:
             return serialize_model(item)
 
     async def seed_initial_demo_items_if_empty(self, user_id: str) -> None:
-        """Seed initial demo wardrobe items for new accounts so the workspace is immediately usable."""
-        maker = get_session_maker()
-        async with maker() as session:
-            stmt = select(WardrobeItem).where(WardrobeItem.user_id == user_id)
-            result = await session.execute(stmt)
-            count = len(result.scalars().all())
-            
-        if count == 0:
-            from app.modules.ai.service import generate_embedding
-            demo_items = [
-                {
-                    "user_id": user_id,
-                    "name": "Blue floral midi dress",
-                    "image_url": "https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&w=800&q=80",
-                    "type": "dress",
-                    "category": "one_piece",
-                    "primary_color": "blue",
-                    "secondary_colors": ["white"],
-                    "pattern": "floral",
-                    "fabric": "cotton",
-                    "season": ["summer", "spring"],
-                    "occasion": ["casual", "day_out"],
-                    "wear_count": 2,
-                },
-                {
-                    "user_id": user_id,
-                    "name": "Ivory linen shirt",
-                    "image_url": "https://images.unsplash.com/photo-1598032895397-b9472444bf93?auto=format&fit=crop&w=800&q=80",
-                    "type": "top",
-                    "category": "separates",
-                    "primary_color": "white",
-                    "secondary_colors": [],
-                    "pattern": "solid",
-                    "fabric": "linen",
-                    "season": ["summer"],
-                    "occasion": ["college", "work"],
-                    "wear_count": 8,
-                },
-            ]
-            for item in demo_items:
-                created = await self.create_item(item)
-                from app.modules.ai.repository import embedding_repository
-                emb = generate_embedding(f"{created['name']}")
-                await embedding_repository.save_embedding(created["id"], user_id, emb)
+        """No-op: allow users to maintain an empty digital wardrobe when all items are cleared."""
+        pass
+
 
 
 wardrobe_repository = WardrobeRepository()

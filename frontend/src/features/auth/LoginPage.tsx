@@ -18,7 +18,7 @@ export function LoginPage({ onSessionSuccess, onNavigateToSignup }: LoginPagePro
   const [errors, setErrors] = useState<FormErrors>({})
 
   const loginMutation = useMutation({
-    mutationFn: () => loginApi({ email, password }),
+    mutationFn: (credentials: { email: string; password: string }) => loginApi(credentials),
     onSuccess: (session) => {
       setErrors({})
       onSessionSuccess(session)
@@ -30,17 +30,17 @@ export function LoginPage({ onSessionSuccess, onNavigateToSignup }: LoginPagePro
     },
   })
 
-  function validateForm(): boolean {
+  function validateFormWithValues(emailVal: string, passwordVal: string): boolean {
     const newErrors: FormErrors = {}
 
-    const trimmedEmail = email.trim()
+    const trimmedEmail = emailVal.trim()
     if (!trimmedEmail) {
       newErrors.email = 'Email address is required.'
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
       newErrors.email = 'Please enter a valid email address.'
     }
 
-    if (!password) {
+    if (!passwordVal) {
       newErrors.password = 'Password is required.'
     }
 
@@ -50,8 +50,17 @@ export function LoginPage({ onSessionSuccess, onNavigateToSignup }: LoginPagePro
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    if (validateForm()) {
-      loginMutation.mutate()
+
+    // Extract values directly from form DOM elements in case browser autofill did not trigger React onChange
+    const formData = new FormData(e.currentTarget)
+    const formEmail = ((formData.get('email') as string) || email).trim()
+    const formPassword = (formData.get('password') as string) || password
+
+    if (formEmail !== email) setEmail(formEmail)
+    if (formPassword !== password) setPassword(formPassword)
+
+    if (validateFormWithValues(formEmail, formPassword)) {
+      loginMutation.mutate({ email: formEmail, password: formPassword })
     }
   }
 
@@ -92,10 +101,23 @@ export function LoginPage({ onSessionSuccess, onNavigateToSignup }: LoginPagePro
 
           {errors.general && (
             <div
-              className="mb-6 border border-amber-500/30 bg-amber-950/20 px-4 py-3 text-xs text-amber-300 animate-fade-in font-sans-ui"
+              className="mb-6 border border-amber-500/30 bg-amber-950/20 px-4 py-3 text-xs text-amber-300 animate-fade-in font-sans-ui flex flex-col gap-1"
               role="alert"
             >
-              {errors.general}
+              <span>{errors.general}</span>
+              {errors.general.includes('Incorrect email or password') && (
+                <span className="text-[11px] text-amber-200/70 pt-1">
+                  If you haven&apos;t created a StyleSync account yet with this email, please{' '}
+                  <button
+                    type="button"
+                    onClick={onNavigateToSignup}
+                    className="underline text-[#E8E0D0] hover:text-white font-medium focus:outline-none"
+                  >
+                    Sign Up first
+                  </button>
+                  .
+                </span>
+              )}
             </div>
           )}
 
@@ -103,6 +125,8 @@ export function LoginPage({ onSessionSuccess, onNavigateToSignup }: LoginPagePro
             <AuthInput
               label="Email Address"
               type="email"
+              name="email"
+              id="email"
               placeholder="name@example.com"
               value={email}
               onChange={(e) => {
@@ -116,6 +140,8 @@ export function LoginPage({ onSessionSuccess, onNavigateToSignup }: LoginPagePro
 
             <PasswordInput
               label="Password"
+              name="password"
+              id="password"
               placeholder="••••••••"
               value={password}
               onChange={(e) => {

@@ -1,9 +1,8 @@
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
-from mongomock_motor import AsyncMongoMockClient
-
-from app.core.database import db_manager
+from app.core.database import connect_db, db_manager
+from app.core.models import Base
 from app.main import app
 from app.modules.ai.repository import embedding_repository
 from app.modules.auth.repository import user_repository
@@ -15,14 +14,14 @@ from app.modules.wardrobe.service import wardrobe_service
 
 
 @pytest_asyncio.fixture(autouse=True)
-async def mock_db():
-    """Setup in-memory mock MongoDB database for isolated testing."""
-    mock_client = AsyncMongoMockClient()
-    mock_database = mock_client["stylesync_test"]
-    db_manager.client = mock_client
-    db_manager.db = mock_database
-    yield mock_database
-    mock_client.close()
+async def setup_db():
+    """Initialize SQLAlchemy engine and recreate fresh tables for test isolation."""
+    await connect_db()
+    if db_manager.engine is not None:
+        async with db_manager.engine.begin() as conn:
+            await conn.run_sync(Base.metadata.drop_all)
+            await conn.run_sync(Base.metadata.create_all)
+    yield
 
 
 @pytest.mark.asyncio
@@ -69,7 +68,7 @@ async def test_jwt_token_lifecycle():
 
 @pytest.mark.asyncio
 async def test_wardrobe_persistence_and_embeddings():
-    """Verify wardrobe items and item embeddings are saved to MongoDB."""
+    """Verify wardrobe items and item embeddings are saved to database."""
     user_id = "usr-test-wardrobe"
 
     # Create item

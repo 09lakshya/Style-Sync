@@ -63,7 +63,7 @@ class ShoppingService:
 
         top_matches = matches[:5]
 
-        # Log audit trail to MongoDB
+        # Log audit trail to database
         await shopping_repository.log_check(
             user_id=user_id,
             query_image_url=image_url,

@@ -56,6 +56,8 @@ class WardrobeItem(Base):
     tags = Column(JSON, default=list)
     confidence = Column(JSON, default=dict)
     
+    brand = Column(String, nullable=True)
+    purchase_date = Column(DateTime(timezone=True), nullable=True)
     wear_count = Column(Integer, default=0, index=True)
     last_worn_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), default=utc_now, index=True)

@@ -3,10 +3,9 @@ import pytest
 import pytest_asyncio
 from PIL import Image
 from httpx import ASGITransport, AsyncClient
-from mongomock_motor import AsyncMongoMockClient
-
 from app.core.config import settings
-from app.core.database import db_manager
+from app.core.database import connect_db, db_manager
+from app.core.models import Base
 from app.main import app
 from app.modules.auth.service import create_access_token, register_user
 from app.modules.media.cloudinary_service import cloudinary_service
@@ -24,14 +23,14 @@ def create_test_image_bytes(format: str = "JPEG", size: tuple[int, int] = (200, 
 
 
 @pytest_asyncio.fixture(autouse=True)
-async def mock_db():
-    """Setup in-memory mock MongoDB database for isolated testing."""
-    mock_client = AsyncMongoMockClient()
-    mock_database = mock_client["stylesync_cloudinary_test"]
-    db_manager.client = mock_client
-    db_manager.db = mock_database
-    yield mock_database
-    mock_client.close()
+async def setup_db():
+    """Initialize SQLAlchemy engine and recreate fresh tables for test isolation."""
+    await connect_db()
+    if db_manager.engine is not None:
+        async with db_manager.engine.begin() as conn:
+            await conn.run_sync(Base.metadata.drop_all)
+            await conn.run_sync(Base.metadata.create_all)
+    yield
 
 
 @pytest.mark.asyncio
@@ -58,7 +57,7 @@ async def test_successful_image_upload_and_metadata():
     assert item["bytes"] == len(image_bytes)
     assert item["format"] == "jpg"
 
-    # Verify saved in MongoDB
+    # Verify saved in database
     saved = await wardrobe_repository.get_item_by_id(item["id"], user_id)
     assert saved is not None
     assert saved["public_id"] == item["public_id"]

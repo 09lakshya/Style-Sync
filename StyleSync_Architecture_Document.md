@@ -12,11 +12,10 @@ The recommended architecture is a **modular monolith**:
 
 - One React frontend.
 - One FastAPI backend split into clear modules.
-- MongoDB Atlas for application data.
+- SQLAlchemy (AsyncSession) with SQLite (`aiosqlite`) / MySQL (`aiomysql`) for application data.
 - Cloudinary for image storage.
 - CLIP embeddings for visual similarity.
-- FAISS for fast local vector search.
-- Rule-based recommendation logic for the first production version.
+- Rule-based recommendation logic for the production version.
 
 This approach gives the team clean separation of concerns without the operational cost of microservices. It is suitable for a final-year B.Tech project because each module can be owned by a small subgroup, tested independently, and deployed on free or low-cost platforms.
 
@@ -34,7 +33,7 @@ This approach gives the team clean separation of concerns without the operationa
 
 - Free-tier deployment should be possible, but free tiers change over time and often include limits on compute, storage, bandwidth, cold starts, or sleeping services.
 - Render free web services may sleep when inactive, so first requests can be slow.
-- If FAISS index files are stored only on an ephemeral filesystem, they can disappear after redeploys or restarts. The design therefore stores canonical embedding data in MongoDB and rebuilds the FAISS index at startup.
+- The database stores canonical embedding vectors in SQLAlchemy JSON fields for persistence across backend restarts.
 - CLIP gives strong general image embeddings, but it does not reliably classify domain-specific attributes such as exact fabric or sleeve type without additional rules or fine-tuning.
 
 ## 3. Architecture Recommendation
@@ -76,15 +75,12 @@ flowchart TD
     UP --> IMG[OpenCV + Pillow Processing]
     IMG --> AI[CLIP Embedding Service]
     UP --> CLD[Cloudinary Image Storage]
-    API --> DB[(MongoDB Atlas)]
-    AI --> VEC[FAISS Vector Index]
+    API --> DB[(SQLAlchemy AsyncSession - SQLite / MySQL)]
+    AI --> DB
     API --> REC[Recommendation Engine]
     API --> ANA[Analytics Service]
-    API --> SCH[APScheduler Notifications]
     REC --> DB
-    REC --> VEC
     ANA --> DB
-    API --> TREND[Trend Suggestion Provider]
 ```
 
 ASCII view:
@@ -99,11 +95,10 @@ React Frontend
 FastAPI Backend
   |-- Auth Module -> JWT + password hashing
   |-- Upload Module -> validation -> image processing -> Cloudinary
-  |-- AI Module -> CLIP embeddings -> FAISS index
-  |-- Wardrobe Module -> MongoDB item records
+  |-- AI Module -> CLIP embeddings -> SQLAlchemy storage
+  |-- Wardrobe Module -> SQLAlchemy relational item records (SQLite / MySQL)
   |-- Recommendation Module -> rules + similarity + color logic
   |-- Analytics Module -> usage, duplicates, category distribution
-  |-- Notification Module -> long-unused reminders
 ```
 
 ## 5. Technology Stack
@@ -113,7 +108,7 @@ FastAPI Backend
 | Frontend | React + Vite | Fast development, component-based UI, easy deployment on Vercel/Netlify | Requires frontend state discipline |
 | Styling | Tailwind CSS + shadcn/ui | Fast, consistent UI with accessible primitives | Team must avoid inconsistent custom styling |
 | Backend | FastAPI | Python-native, strong typing, automatic OpenAPI docs, ideal for ML integration | Async/sync boundaries need care |
-| Database | MongoDB Atlas | Flexible clothing metadata, quick iteration, free cluster option | Complex joins are weaker than SQL |
+| Database | SQLAlchemy + SQLite / MySQL | Relational data integrity, typed schemas, async queries via `aiosqlite` / `aiomysql` | Requires schema migrations |
 | Auth | JWT + bcrypt/Argon2 | Stateless auth, easy frontend integration | Token expiry and refresh flow must be handled carefully |
 | Image Storage | Cloudinary | Upload transformations, CDN delivery, image optimization | Free tier storage/bandwidth limits |
 | Image Processing | OpenCV + Pillow | Practical preprocessing, resizing, cropping, color extraction | Background removal may need extra model/library |

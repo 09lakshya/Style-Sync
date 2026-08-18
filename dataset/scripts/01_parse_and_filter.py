@@ -56,8 +56,10 @@ def main():
     category_mapping = load_deepfashion_categories()
     candidates = []
     
-    # 1. Read list_category_img.txt
+    # 1. Check standard Anno file or Kaggle dataset directories
     anno_file = RAW_DIR / "Anno" / "list_category_img.txt"
+    kaggle_dirs = [RAW_DIR / "datasets" / "train_images", RAW_DIR / "datasets" / "test_images"]
+    
     if anno_file.exists():
         with open(anno_file, "r") as f:
             lines = f.readlines()[2:] # Skip header
@@ -65,16 +67,11 @@ def main():
                 parts = line.strip().split()
                 img_path = parts[0]
                 cat_idx = int(parts[1])
-                
-                # In full implementation, map cat_idx to string via list_category_cloth.txt
-                # Then map to StyleSync category
-                # For this pipeline skeleton, we assume we got a mapped_category
-                mapped_category = "dress" # Placeholder for parsed mapping
+                mapped_category = "dress"
                 
                 if mapped_category in TARGET_CATEGORIES:
                     full_path = RAW_DIR / img_path
                     if full_path.exists():
-                        # 2. Check Resolution
                         img = cv2.imread(str(full_path))
                         if img is not None:
                             h, w, _ = img.shape
@@ -86,6 +83,44 @@ def main():
                                     "width": w,
                                     "height": h
                                 })
+    elif any(d.exists() for d in kaggle_dirs):
+        print("Detected Kaggle DeepFashion directory structure.")
+        kaggle_cat_map = {
+            "Dresses": "dress",
+            "Tees_Tanks": "t-shirt",
+            "Blouses_Shirts": "top",
+            "Sweaters": "top",
+            "Shorts": "shorts",
+            "Pants": "trousers",
+            "Denim": "jeans",
+            "Skirts": "skirt",
+            "Jackets_Coats": "coat",
+            "Jackets_Vests": "jacket",
+            "Cardigans": "top",
+            "Sweatshirts_Hoodies": "top",
+            "Graphic_Tees": "t-shirt",
+            "Shirts_Polos": "shirt",
+            "Rompers_Jumpsuits": "dress"
+        }
+        for k_dir in kaggle_dirs:
+            if not k_dir.exists():
+                continue
+            for img_file in k_dir.glob("*.png"):
+                filename = img_file.name
+                raw_cat = filename.split("-")[1] if "-" in filename else ""
+                mapped_cat = kaggle_cat_map.get(raw_cat, None)
+                if mapped_cat and mapped_cat in TARGET_CATEGORIES:
+                    img = cv2.imread(str(img_file))
+                    if img is not None:
+                        h, w, _ = img.shape
+                        if w >= MIN_WIDTH and h >= MIN_HEIGHT:
+                            candidates.append({
+                                "image_id": str(uuid.uuid4()),
+                                "source_image_path": str(img_file),
+                                "category": mapped_cat,
+                                "width": w,
+                                "height": h
+                            })
     
     # Write output
     with open(out_csv, "w", newline="") as f:

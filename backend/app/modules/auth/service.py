@@ -21,7 +21,7 @@ def hash_password(password: str) -> str:
 
 def check_password(password: str, hashed_password: str, password_salt: str = "") -> bool:
     """Verify password against bcrypt hash or legacy PBKDF2 hash."""
-    if hashed_password.startswith("$2b$") or hashed_password.startswith("$2a$"):
+    if hashed_password.startswith("$2b$") or hashed_password.startswith("$2a$") or hashed_password.startswith("$2y$"):
         try:
             return bcrypt.checkpw(password.encode("utf-8"), hashed_password.encode("utf-8"))
         except Exception:

@@ -5,10 +5,9 @@ import pytest
 import pytest_asyncio
 from PIL import Image
 from httpx import ASGITransport, AsyncClient
-from mongomock_motor import AsyncMongoMockClient
-
 from app.core.config import settings
-from app.core.database import db_manager
+from app.core.database import connect_db, db_manager
+from app.core.models import Base
 from app.main import app
 from app.modules.ai.clip_manager import clip_manager
 from app.modules.ai.preprocessor import preprocessor
@@ -32,14 +31,14 @@ def create_synthetic_image_bytes(
 
 
 @pytest_asyncio.fixture(autouse=True)
-async def mock_db():
-    """Setup isolated in-memory MongoDB mock database."""
-    mock_client = AsyncMongoMockClient()
-    mock_database = mock_client["stylesync_ai_test"]
-    db_manager.client = mock_client
-    db_manager.db = mock_database
-    yield mock_database
-    mock_client.close()
+async def setup_db():
+    """Initialize SQLAlchemy engine and recreate fresh tables for test isolation."""
+    await connect_db()
+    if db_manager.engine is not None:
+        async with db_manager.engine.begin() as conn:
+            await conn.run_sync(Base.metadata.drop_all)
+            await conn.run_sync(Base.metadata.create_all)
+    yield
 
 
 def test_preprocessor_decoding_and_clahe():
@@ -160,12 +159,12 @@ async def test_wardrobe_upload_end_to_end_ai_pipeline():
     assert "confidence" in item
     assert "embedding_id" in item and item["embedding_id"] is not None
 
-    # Verify item persisted in MongoDB wardrobe_items
+    # Verify item persisted in database wardrobe_items
     saved_item = await wardrobe_repository.get_item_by_id(item_id, user_id)
     assert saved_item is not None
     assert saved_item["embedding_id"] == item["embedding_id"]
 
-    # Verify vector embedding persisted in MongoDB item_embeddings
+    # Verify vector embedding persisted in database item_embeddings
     embedding_doc = await embedding_repository.get_by_item_id(item_id)
     assert embedding_doc is not None
     assert embedding_doc["user_id"] == user_id

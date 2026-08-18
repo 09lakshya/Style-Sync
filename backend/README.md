@@ -15,4 +15,4 @@ The API will be available at `http://localhost:8000`.
 
 ## Current Scope
 
-This first milestone uses in-memory storage and deterministic AI placeholders. The route structure is intentionally aligned with the final architecture so MongoDB, Cloudinary, CLIP, and FAISS can be added module by module without changing frontend flows.
+The backend is built as a **FastAPI modular monolith** with async SQLAlchemy persistence (`sqlite+aiosqlite` for local development/testing, compatible with `mysql+aiomysql`), JWT authentication, Cloudinary media processing/storage, and OpenAI CLIP PyTorch vector embeddings for visual similarity and duplicate purchase detection.
