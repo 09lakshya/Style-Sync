@@ -7,8 +7,7 @@ import type {
 } from '../types/wardrobe'
 
 const API_BASE_URL =
-  (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') ||
-  'http://localhost:8000/api/v1'
+  (import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1').replace(/\/$/, '')
 
 export function toWardrobeItem(item: ApiWardrobeItem): WardrobeItem {
   const primaryImg = item.image_url || 'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=800&q=80'
@@ -69,7 +68,9 @@ export async function createWardrobeItem(
   token: string
 ): Promise<WardrobeItem> {
   const formData = new FormData()
-  formData.append('image', input.file)
+  if (input.file) {
+    formData.append('image', input.file)
+  }
   if (input.name.trim()) formData.append('name', input.name.trim())
   if (input.color.trim()) formData.append('color', input.color.trim())
   if (input.pattern.trim()) formData.append('pattern', input.pattern.trim())

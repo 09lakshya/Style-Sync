@@ -26,15 +26,12 @@ class WardrobeRepository:
             result = await session.execute(stmt)
             items = result.scalars().all()
             
-            seen_names = set()
+            seen_ids = set()
             unique_items = []
             for item in items:
-                norm_name = (item.name or "").strip().lower()
-                if norm_name and norm_name in seen_names:
-                    continue
-                if norm_name:
-                    seen_names.add(norm_name)
-                unique_items.append(serialize_model(item))
+                if item.id not in seen_ids:
+                    seen_ids.add(item.id)
+                    unique_items.append(serialize_model(item))
             return unique_items
 
     async def get_item_by_id(self, item_id: str, user_id: str) -> dict[str, Any] | None:

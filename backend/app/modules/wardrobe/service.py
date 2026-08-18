@@ -148,29 +148,38 @@ class WardrobeService:
             "embedding_id": None,
         }
 
-        created_item = await wardrobe_repository.create_item(item_doc)
-        item_id = str(created_item["id"])
+        try:
+            created_item = await wardrobe_repository.create_item(item_doc)
+            item_id = str(created_item["id"])
 
-        # 4. Generate and save vector embedding in item_embeddings collection
-        if file_bytes is not None:
-            embedding = ai_service.generate_image_embedding(file_bytes)
-        else:
-            embedding = ai_service.generate_text_embedding(f"{filename}:{item_name}")
+            # 4. Generate and save vector embedding in item_embeddings collection
+            if file_bytes is not None:
+                embedding = ai_service.generate_image_embedding(file_bytes)
+            else:
+                embedding = ai_service.generate_text_embedding(f"{filename}:{item_name}")
 
-        embedding_record = await embedding_repository.save_embedding(
-            item_id=item_id,
-            user_id=user_id,
-            embedding=embedding,
-            model_name=settings.clip_model_name,
-        )
+            embedding_record = await embedding_repository.save_embedding(
+                item_id=item_id,
+                user_id=user_id,
+                embedding=embedding,
+                model_name=settings.clip_model_name,
+            )
 
-        # Update item with embedding_id reference
-        if embedding_record and "id" in embedding_record:
-            await wardrobe_repository.update_item(item_id, user_id, {"embedding_id": embedding_record["id"]})
-            created_item["embedding_id"] = embedding_record["id"]
+            # Update item with embedding_id reference
+            if embedding_record and "id" in embedding_record:
+                await wardrobe_repository.update_item(item_id, user_id, {"embedding_id": embedding_record["id"]})
+                created_item["embedding_id"] = embedding_record["id"]
 
-        logger.info("Created wardrobe item id=%s for user_id=%s with public_id=%s", item_id, user_id, resolved_public_id)
-        return created_item
+            logger.info("Created wardrobe item id=%s for user_id=%s with public_id=%s", item_id, user_id, resolved_public_id)
+            return created_item
+        except HTTPException:
+            raise
+        except Exception as exc:
+            logger.error("Failed to persist wardrobe item for user_id=%s: %s", user_id, exc, exc_info=True)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Database or storage error while saving wardrobe item: {str(exc)}",
+            )
 
     async def update_wardrobe_item_metadata(
         self,

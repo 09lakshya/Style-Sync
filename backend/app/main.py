@@ -25,13 +25,58 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan)
 
+allowed_origins = [
+    settings.frontend_origin,
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5174",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.frontend_origin, "http://localhost:5173"],
+    allow_origins=allowed_origins,
+    allow_origin_regex=r"http://(localhost|127\.0\.0\.1)(:\d+)?",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+from fastapi import Request
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import HTTPException
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    origin = request.headers.get("origin", "*")
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+        headers={
+            "Access-Control-Allow-Origin": origin if origin != "*" else "*",
+            "Access-Control-Allow-Credentials": "true",
+        },
+    )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    origin = request.headers.get("origin", "*")
+    import logging
+    logging.getLogger("stylesync.server").error("Unhandled exception: %s", exc, exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"Internal Server Error: {str(exc)}"},
+        headers={
+            "Access-Control-Allow-Origin": origin if origin != "*" else "*",
+            "Access-Control-Allow-Credentials": "true",
+        },
+    )
+
 
 
 @app.get("/health")

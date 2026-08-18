@@ -15,6 +15,26 @@ class DatabaseManager:
 
 db_manager = DatabaseManager()
 
+async def _migrate_sqlite_columns(conn) -> None:
+    """Ensure all columns defined in SQLAlchemy models exist in SQLite tables."""
+    for table_name, table in Base.metadata.tables.items():
+        res = await conn.exec_driver_sql(f"PRAGMA table_info('{table_name}')")
+        existing_cols = {row[1] for row in res.fetchall()}
+        if not existing_cols:
+            continue
+        for col in table.columns:
+            if col.name not in existing_cols:
+                col_type = "TEXT"
+                type_str = str(col.type).upper()
+                if "INT" in type_str:
+                    col_type = "INTEGER"
+                elif "FLOAT" in type_str or "NUMERIC" in type_str or "REAL" in type_str:
+                    col_type = "FLOAT"
+                elif "JSON" in type_str:
+                    col_type = "JSON"
+                logger.info("Auto-migrating SQLite table '%s': adding column '%s' (%s)", table_name, col.name, col_type)
+                await conn.exec_driver_sql(f"ALTER TABLE {table_name} ADD COLUMN {col.name} {col_type}")
+
 async def connect_db() -> None:
     """Initialize SQLAlchemy AsyncEngine and create tables."""
     try:
@@ -31,9 +51,10 @@ async def connect_db() -> None:
             expire_on_commit=False,
         )
         
-        # Initialize tables
+        # Initialize tables & auto-migrate missing columns
         async with db_manager.engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+            await _migrate_sqlite_columns(conn)
             
         logger.info("Successfully connected to SQL database and initialized tables.")
     except Exception as exc:

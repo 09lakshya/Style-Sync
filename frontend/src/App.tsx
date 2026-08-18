@@ -140,10 +140,18 @@ export function App() {
     onSuccess: (item) => {
       setIsAddModalOpen(false)
       setNotice(`Added "${item.name}" to your digital wardrobe.`)
+      setFilters((prev) => ({
+        ...prev,
+        searchQuery: '',
+        color: 'All',
+        pattern: 'All',
+        occasion: 'All',
+      }))
       queryClient.setQueryData<WardrobeItem[]>(
         ['wardrobe-items', session?.token],
         (current = []) => [item, ...current]
       )
+      void queryClient.invalidateQueries({ queryKey: ['wardrobe-items', session?.token] })
       void queryClient.invalidateQueries({ queryKey: ['wardrobe-analytics', session?.token] })
       void queryClient.invalidateQueries({ queryKey: ['outfit-recommendations', session?.token] })
     },
@@ -499,6 +507,7 @@ export function App() {
         onClose={() => setIsAddModalOpen(false)}
         onSubmit={(data) => addDressMutation.mutate(data)}
         isSubmitting={addDressMutation.isPending}
+        error={addDressMutation.error}
       />
 
       <DressDetailModal

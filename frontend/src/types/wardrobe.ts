@@ -48,7 +48,7 @@ export interface WardrobeItem {
 }
 
 export interface CreateDressInput {
-  file: File
+  file?: File | null
   name: string
   color: string
   pattern: string

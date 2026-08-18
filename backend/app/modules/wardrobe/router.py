@@ -39,7 +39,7 @@ async def get_wardrobe_item(
 
 @router.post("/items", status_code=status.HTTP_201_CREATED)
 async def upload_wardrobe_item(
-    image: UploadFile = File(...),
+    image: UploadFile | None = File(default=None),
     name: str | None = Form(default=None),
     color: str | None = Form(default=None),
     pattern: str | None = Form(default=None),
@@ -50,11 +50,15 @@ async def upload_wardrobe_item(
     user_id: str = Depends(require_user),
 ) -> dict[str, object]:
     """Upload a new wardrobe item image, validate, store in Cloudinary, and save metadata to database."""
-    file_bytes = await image.read()
+    file_bytes = await image.read() if image else None
+    if file_bytes is not None and len(file_bytes) == 0:
+        file_bytes = None
+    filename = (image.filename if image and image.filename else "wardrobe-item.jpg")
+    content_type = image.content_type if image else None
     item = await wardrobe_service.create_item_from_upload(
         user_id=user_id,
         file_bytes=file_bytes,
-        filename=image.filename or "wardrobe-item.jpg",
+        filename=filename,
         name=name,
         color=color,
         pattern=pattern,
@@ -62,9 +66,10 @@ async def upload_wardrobe_item(
         purchase_date=purchase_date,
         occasion=occasion,
         last_worn_date=last_worn_date,
-        content_type=image.content_type,
+        content_type=content_type,
     )
     return {"item": _public_item(item)}
+
 
 
 @router.put("/items/{item_id}")

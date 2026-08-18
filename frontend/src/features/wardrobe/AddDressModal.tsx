@@ -7,6 +7,7 @@ interface AddDressModalProps {
   onClose: () => void
   onSubmit: (data: CreateDressInput) => void
   isSubmitting: boolean
+  error?: Error | null
 }
 
 const COLOR_OPTIONS = [
@@ -49,7 +50,7 @@ const OCCASION_OPTIONS = [
   'Other',
 ]
 
-export function AddDressModal({ isOpen, onClose, onSubmit, isSubmitting }: AddDressModalProps) {
+export function AddDressModal({ isOpen, onClose, onSubmit, isSubmitting, error }: AddDressModalProps) {
   const [file, setFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [name, setName] = useState('')
@@ -61,7 +62,27 @@ export function AddDressModal({ isOpen, onClose, onSubmit, isSubmitting }: AddDr
   const [lastWornDate, setLastWornDate] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
+  React.useEffect(() => {
+    if (!isOpen) {
+      setFile(null)
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl)
+        setPreviewUrl(null)
+      }
+      setName('')
+      setColor('Blue')
+      setPattern('Solid')
+      setBrand('')
+      setPurchaseDate('')
+      setOccasion('Casual')
+      setLastWornDate('')
+      setErrorMessage(null)
+    }
+  }, [isOpen])
+
   if (!isOpen) return null
+
+  const displayedError = errorMessage || (error ? error.message : null)
 
   function handleFileSelect(selected: File | null) {
     if (!selected) return
@@ -102,15 +123,12 @@ export function AddDressModal({ isOpen, onClose, onSubmit, isSubmitting }: AddDr
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!file) {
-      setErrorMessage('Please select a dress image.')
-      return
-    }
     if (!name.trim()) {
       setErrorMessage('Please enter a dress name.')
       return
     }
 
+    setErrorMessage(null)
     onSubmit({
       file,
       name: name.trim(),
@@ -141,10 +159,10 @@ export function AddDressModal({ isOpen, onClose, onSubmit, isSubmitting }: AddDr
           </p>
         </div>
 
-        {errorMessage && (
+        {displayedError && (
           <div className="mb-6 flex items-center gap-2 rounded-lg border border-rose-900/50 bg-rose-950/30 p-3 text-sm text-rose-300">
             <AlertCircle className="h-4 w-4 shrink-0" />
-            <span>{errorMessage}</span>
+            <span>{displayedError}</span>
           </div>
         )}
 
@@ -152,7 +170,7 @@ export function AddDressModal({ isOpen, onClose, onSubmit, isSubmitting }: AddDr
           {/* Image Dropzone & Preview */}
           <div>
             <label className="block text-xs font-medium uppercase tracking-wider text-stone-400 mb-2">
-              Dress Image *
+              Dress Image (Optional)
             </label>
             {previewUrl ? (
               <div className="relative h-64 w-full overflow-hidden rounded-lg border border-[#38332c] bg-stone-900">
