@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
-import { X, Edit2, RefreshCw, Trash2, Calendar, Tag, Activity, AlertTriangle, Loader2 } from 'lucide-react'
+import { X, Edit2, RefreshCw, Trash2, Calendar, Tag, Activity, AlertTriangle, Loader2, Sparkles } from 'lucide-react'
 import type { WardrobeItem } from '../../types/wardrobe'
+import { formatScore } from '../../lib/utils'
 
 interface DressDetailModalProps {
   item: WardrobeItem | null
@@ -114,6 +115,37 @@ export function DressDetailModal({
                       {item.wearCount} times
                     </p>
                   </div>
+                </div>
+
+                <div className="mt-4 rounded-lg border border-[#a15c38]/30 bg-[#241a14]/50 p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Sparkles className="h-4 w-4 text-[#d99b77]" />
+                    <h4 className="text-sm font-semibold text-[#d99b77]">AI Classification</h4>
+                  </div>
+                  {item.predictedCategory ? (
+                    <div className="grid grid-cols-2 gap-4 text-xs">
+                      <div>
+                        <span className="text-stone-400">Predicted Category</span>
+                        <p className="mt-0.5 font-medium capitalize text-stone-200">
+                          {item.predictedCategory}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-stone-400">Confidence Score</span>
+                        <p className="mt-0.5 font-medium text-stone-200">
+                          {formatScore(item.predictionConfidence, 1) ?? 'Not available'}
+                        </p>
+                      </div>
+                      {item.modelVersion && (
+                        <div>
+                          <span className="text-stone-400">Model</span>
+                          <p className="mt-0.5 font-medium text-stone-200">{item.modelVersion}</p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-stone-400">Not available</p>
+                  )}
                 </div>
 
                 {/* Dates Section */}

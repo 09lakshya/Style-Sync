@@ -33,6 +33,8 @@ import { DressDetailModal } from './features/wardrobe/DressDetailModal'
 import { EditDressModal } from './features/wardrobe/EditDressModal'
 import { WardrobeFilterBar } from './features/wardrobe/WardrobeFilterBar'
 import { WardrobeGrid } from './features/wardrobe/WardrobeGrid'
+import { DuplicateAlertModal } from './features/shopping/DuplicateAlertModal'
+import type { DuplicateCheckResult, DuplicateDecision, SimilarItem } from './types/shopping'
 import type {
   CreateDressInput,
   UpdateDressMetadataInput,
@@ -50,14 +52,6 @@ type Recommendation = {
   items: { id: string; name: string }[]
   score: number
   reasons: string[]
-}
-
-type SimilarItem = {
-  id: string
-  name: string
-  imageUrl: string
-  similarity: number
-  reason: string
 }
 
 const API_BASE_URL =
@@ -92,7 +86,10 @@ export function App() {
 
   // Duplicate Check State
   const [shoppingFile, setShoppingFile] = useState<File | null>(null)
+  const [shoppingPreviewUrl, setShoppingPreviewUrl] = useState<string | null>(null)
   const [similarItems, setSimilarItems] = useState<SimilarItem[]>([])
+  const [duplicateDecision, setDuplicateDecision] = useState<DuplicateDecision | null>(null)
+  const [isDuplicateAlertOpen, setIsDuplicateAlertOpen] = useState(false)
   const [duplicateChecks, setDuplicateChecks] = useState<number>(0)
   const [notice, setNotice] = useState<string>(
     'Upload clothing photos or check new shopping finds for duplicates.'
@@ -107,6 +104,17 @@ export function App() {
     window.addEventListener('popstate', handlePopState)
     return () => window.removeEventListener('popstate', handlePopState)
   }, [])
+
+  // Local preview of the intent-to-buy image, shown beside the wardrobe match.
+  useEffect(() => {
+    if (!shoppingFile) {
+      setShoppingPreviewUrl(null)
+      return
+    }
+    const objectUrl = URL.createObjectURL(shoppingFile)
+    setShoppingPreviewUrl(objectUrl)
+    return () => URL.revokeObjectURL(objectUrl)
+  }, [shoppingFile])
 
   function navigate(path: string) {
     if (window.location.pathname !== path) {
@@ -214,14 +222,29 @@ export function App() {
     mutationFn: (file: File) => checkShoppingImage(file, session?.token ?? ''),
     onSuccess: (result) => {
       setSimilarItems(result.similarItems)
+      setDuplicateDecision(result.decision)
       setDuplicateChecks((count) => count + 1)
+
+      const hasMatch = result.decision !== 'no_strong_duplicate' && result.similarItems.length > 0
+      setIsDuplicateAlertOpen(hasMatch)
       setNotice(
-        result.highestSimilarity >= 0.85
+        result.decision === 'similar_found'
           ? 'Strong duplicate risk found. Review your wardrobe before buying.'
-          : 'No exact duplicate found, but these are the closest wardrobe matches.'
+          : hasMatch
+            ? 'A similar wardrobe item turned up. Review the comparison before buying.'
+            : 'No similar item found in your wardrobe.'
       )
     },
-    onError: (error) => setNotice(error instanceof Error ? error.message : 'Duplicate check failed.'),
+    onError: (error) => {
+      setIsDuplicateAlertOpen(false)
+      setDuplicateDecision(null)
+      setSimilarItems([])
+      setNotice(
+        error instanceof Error
+          ? error.message
+          : 'Unable to check for similar items. Please try again.'
+      )
+    },
   })
 
   const items = wardrobeQuery.data ?? []
@@ -294,6 +317,7 @@ export function App() {
       setNotice('Upload a shopping image to run the duplicate check.')
       return
     }
+    if (duplicateMutation.isPending) return
     duplicateMutation.mutate(shoppingFile)
   }
 
@@ -308,6 +332,9 @@ export function App() {
     removeStoredSession()
     setSession(null)
     setSimilarItems([])
+    setDuplicateDecision(null)
+    setIsDuplicateAlertOpen(false)
+    setShoppingFile(null)
     queryClient.clear()
     navigate('/login')
   }
@@ -392,7 +419,7 @@ export function App() {
                   disabled={duplicateMutation.isPending}
                 >
                   <Search className="h-4 w-4" />
-                  {duplicateMutation.isPending ? 'Checking...' : 'Check similarity'}
+                  {duplicateMutation.isPending ? 'Checking your wardrobe...' : 'Check similarity'}
                 </button>
               </form>
             </WorkflowCard>
@@ -470,7 +497,7 @@ export function App() {
         {similarItems.length > 0 && (
           <section className="rounded-xl border border-[#ded8ce] bg-[#fbfaf7] p-5">
             <div className="mb-4 flex items-center gap-2">
-              {similarItems[0].similarity >= 0.85 ? (
+              {duplicateDecision === 'similar_found' ? (
                 <AlertCircle className="h-5 w-5 text-[#a15c38]" />
               ) : (
                 <CheckCircle2 className="h-5 w-5 text-[#557660]" />
@@ -526,6 +553,25 @@ export function App() {
         isDeleting={deleteItemMutation.isPending}
       />
 
+      <DuplicateAlertModal
+        isOpen={isDuplicateAlertOpen}
+        onClose={() => setIsDuplicateAlertOpen(false)}
+        purchaseImageUrl={shoppingPreviewUrl}
+        match={similarItems[0] ?? null}
+        otherMatches={similarItems.slice(1)}
+        decision={duplicateDecision ?? undefined}
+        onViewItem={
+          items.some((item) => item.id === similarItems[0]?.id)
+            ? (itemId) => {
+                const matchedItem = items.find((item) => item.id === itemId)
+                if (!matchedItem) return
+                setIsDuplicateAlertOpen(false)
+                setSelectedDetailItem(matchedItem)
+              }
+            : undefined
+        }
+      />
+
       <EditDressModal
         item={editingItem}
         isOpen={Boolean(editingItem)}
@@ -552,7 +598,7 @@ async function fetchRecommendations(token: string) {
   return payload.recommendations
 }
 
-async function checkShoppingImage(file: File, token: string) {
+async function checkShoppingImage(file: File, token: string): Promise<DuplicateCheckResult> {
   const formData = new FormData()
   formData.append('image', file)
 
@@ -562,6 +608,7 @@ async function checkShoppingImage(file: File, token: string) {
     body: formData,
   })
   const payload = await parseResponse<{
+    decision: DuplicateDecision
     highest_similarity: number
     similar_items: Array<{
       id: string
@@ -573,6 +620,7 @@ async function checkShoppingImage(file: File, token: string) {
   }>(response)
 
   return {
+    decision: payload.decision,
     highestSimilarity: payload.highest_similarity,
     similarItems: payload.similar_items.map((item) => ({
       id: item.id,

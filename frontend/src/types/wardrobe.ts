@@ -23,6 +23,9 @@ export interface ApiWardrobeItem {
   last_worn_date?: string
   created_at?: string
   updated_at?: string
+  predicted_category?: string
+  prediction_confidence?: number
+  model_version?: string
 }
 
 export interface WardrobeItem {
@@ -45,6 +48,9 @@ export interface WardrobeItem {
   wearCount: number
   lastWornDate: string
   createdAt?: string
+  predictedCategory?: string
+  predictionConfidence?: number
+  modelVersion?: string
 }
 
 export interface CreateDressInput {

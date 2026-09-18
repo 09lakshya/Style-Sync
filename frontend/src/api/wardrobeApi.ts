@@ -36,6 +36,12 @@ export function toWardrobeItem(item: ApiWardrobeItem): WardrobeItem {
     wearCount: item.wear_count || 0,
     lastWornDate: item.last_worn_date || item.last_worn_at ? (item.last_worn_date || item.last_worn_at)!.split('T')[0] : 'Not worn yet',
     createdAt: item.created_at,
+    predictedCategory: item.predicted_category
+      ? item.predicted_category.replace(/_/g, ' ')
+      : undefined,
+    predictionConfidence:
+      typeof item.prediction_confidence === 'number' ? item.prediction_confidence : undefined,
+    modelVersion: item.model_version || undefined,
   }
 }
 

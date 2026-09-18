@@ -1,5 +1,6 @@
 import { Plus, Calendar, Activity, Sparkles } from 'lucide-react'
 import type { WardrobeItem } from '../../types/wardrobe'
+import { formatScore } from '../../lib/utils'
 
 interface WardrobeGridProps {
   items: WardrobeItem[]
@@ -72,6 +73,21 @@ export function WardrobeGrid({ items, isLoading, onSelectItem, onAddDressClick }
             {item.brand && (
               <span className="absolute left-3 top-3 rounded-md bg-black/70 px-2.5 py-1 text-xs font-medium text-stone-200 backdrop-blur-md">
                 {item.brand}
+              </span>
+            )}
+            
+            {item.predictedCategory && (
+              <span
+                className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-md border border-[#a15c38]/50 bg-[#241a14]/80 px-2.5 py-1 text-xs font-medium text-[#d99b77] backdrop-blur-md"
+                title={`AI classified as ${item.predictedCategory}`}
+              >
+                <Sparkles className="h-3 w-3" />
+                <span className="capitalize">{item.predictedCategory}</span>
+                {formatScore(item.predictionConfidence) && (
+                  <span className="text-[11px] text-[#d99b77]/70">
+                    {formatScore(item.predictionConfidence)}
+                  </span>
+                )}
               </span>
             )}
           </div>
