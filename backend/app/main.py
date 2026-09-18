@@ -6,6 +6,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import close_db, connect_db
 from app.modules.ai.clip_manager import clip_manager
+from app.modules.ai.classifier_manager import classifier_manager
+from app.modules.ai.router import router as ai_router
 from app.modules.analytics.router import router as analytics_router
 from app.modules.auth.router import router as auth_router
 from app.modules.recommendations.router import router as recommendations_router
@@ -15,9 +17,10 @@ from app.modules.wardrobe.router import router as wardrobe_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Initialize DB and load pretrained CLIP model once
+    # Startup: Initialize DB and load AI models
     await connect_db()
     clip_manager.load_model()
+    classifier_manager.load_model()
     yield
     # Shutdown
     await close_db()
@@ -89,3 +92,4 @@ app.include_router(wardrobe_router, prefix=settings.api_v1_prefix)
 app.include_router(shopping_router, prefix=settings.api_v1_prefix)
 app.include_router(recommendations_router, prefix=settings.api_v1_prefix)
 app.include_router(analytics_router, prefix=settings.api_v1_prefix)
+app.include_router(ai_router, prefix=settings.api_v1_prefix)

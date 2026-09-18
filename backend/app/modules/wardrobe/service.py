@@ -101,6 +101,22 @@ class WardrobeService:
         else:
             metadata = infer_metadata(filename)
 
+        # 2.5 Run Custom Classification Model
+        pred_cat, pred_conf = None, None
+        mod_ver = None
+        if file_bytes is not None:
+            try:
+                from PIL import Image
+                import io
+                from app.modules.ai.classifier_manager import classifier_manager
+                
+                if classifier_manager.is_loaded:
+                    pil_img = Image.open(io.BytesIO(file_bytes))
+                    pred_cat, pred_conf = classifier_manager.predict(pil_img)
+                    mod_ver = classifier_manager.model_version
+            except Exception as classify_exc:
+                logger.warning(f"Classification model error: {classify_exc}")
+
         item_name = name.strip() if name and name.strip() else filename.rsplit(".", 1)[0].replace("-", " ").replace("_", " ").title()
         primary_color = color.strip() if color and color.strip() else metadata["primary_color"]
         item_pattern = pattern.strip() if pattern and pattern.strip() else metadata["pattern"]
@@ -146,6 +162,9 @@ class WardrobeService:
             "wear_count": 0,
             "last_worn_at": item_last_worn_at,
             "embedding_id": None,
+            "predicted_category": pred_cat,
+            "prediction_confidence": pred_conf,
+            "model_version": mod_ver,
         }
 
         try:

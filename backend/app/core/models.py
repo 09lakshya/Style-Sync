@@ -63,6 +63,11 @@ class WardrobeItem(Base):
     created_at = Column(DateTime(timezone=True), default=utc_now, index=True)
     updated_at = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
     
+    # ML Classification
+    predicted_category = Column(String, nullable=True)
+    prediction_confidence = Column(Float, nullable=True)
+    model_version = Column(String, nullable=True)
+    
     embedding_id = Column(String, nullable=True) 
     
     user = relationship("User", back_populates="wardrobe_items")
