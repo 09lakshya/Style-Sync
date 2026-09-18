@@ -1,0 +1,34 @@
+{
+  "version": "mobilenetv2-1.0",
+  "architecture": "mobilenet_v2",
+  "input_size": 224,
+  "normalization": {
+    "mean": [
+      0.485,
+      0.456,
+      0.406
+    ],
+    "std": [
+      0.229,
+      0.224,
+      0.225
+    ]
+  },
+  "class_mapping": {
+    "0": "Casual",
+    "1": "Ethnic",
+    "2": "Formal",
+    "3": "Party",
+    "4": "Summer",
+    "5": "Western",
+    "6": "Winter"
+  },
+  "metrics": {
+    "split": "test",
+    "num_samples": 105,
+    "accuracy": 0.8667,
+    "macro_f1": 0.8671,
+    "weighted_f1": 0.8671
+  },
+  "generated_at": "2026-09-18T14:57:12.790881+00:00"
+}
