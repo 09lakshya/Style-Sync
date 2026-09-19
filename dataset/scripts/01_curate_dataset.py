@@ -26,7 +26,7 @@ OUT_DIR = r"C:\Users\Lakshya\Desktop\StyleSync\dataset\curated"
 splits = ['train', 'val', 'test']
 categories = ['Casual', 'Party', 'Formal', 'Ethnic', 'Western', 'Summer', 'Winter']
 
-IMAGES_PER_CATEGORY = 100
+IMAGES_PER_CATEGORY = int(os.environ.get("STYLESYNC_IMAGES_PER_CATEGORY", 100))
 
 
 def map_filename_to_category(filename):

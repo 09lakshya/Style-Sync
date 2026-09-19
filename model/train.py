@@ -43,22 +43,50 @@ def train_model():
     except:
         model = models.mobilenet_v2(pretrained=True)
         
+    num_classes = len(image_datasets['train'].classes)
     num_ftrs = model.classifier[1].in_features
-    # 7 classes
-    model.classifier[1] = nn.Linear(num_ftrs, 7)
-    
+    model.classifier[1] = nn.Linear(num_ftrs, num_classes)
+
     model = model.to(device)
-    
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
-    
-    num_epochs = int(os.environ.get("STYLESYNC_EPOCHS", 15))
+
+    criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
+
+    # Two-phase transfer learning. Fine-tuning every layer at 1e-3 from the start
+    # destroys the pretrained ImageNet features -- the backbone needs a much
+    # smaller step than a randomly initialised head.
+    #   phase 1: backbone frozen, train only the new classifier head
+    #   phase 2: unfreeze everything, fine-tune at a low learning rate
+    head_epochs = int(os.environ.get("STYLESYNC_HEAD_EPOCHS", 5))
+    finetune_epochs = int(os.environ.get("STYLESYNC_EPOCHS", 25))
+    num_epochs = head_epochs + finetune_epochs
+
+    for p in model.features.parameters():
+        p.requires_grad = False
+
+    optimizer = optim.Adam(model.classifier.parameters(), lr=1e-3)
+    scheduler = None
+
     checkpoint_path = os.path.join(checkpoint_dir, 'mobilenetv2_fashion.pth')
 
     best_val_acc = 0.0
     best_epoch = -1
+    epochs_since_best = 0
+    patience = int(os.environ.get("STYLESYNC_PATIENCE", 8))
+
+    print(f"Phase 1: training classifier head for {head_epochs} epochs "
+          f"({num_classes} classes, {len(image_datasets['train'])} train images)")
 
     for epoch in range(num_epochs):
+        if epoch == head_epochs:
+            # Phase 2 -- unfreeze the backbone and drop the learning rate.
+            for p in model.features.parameters():
+                p.requires_grad = True
+            optimizer = optim.Adam(model.parameters(), lr=1e-4)
+            scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+                optimizer, mode='max', factor=0.5, patience=2
+            )
+            print(f"\nPhase 2: fine-tuning all layers at lr=1e-4 for {finetune_epochs} epochs")
+
         print(f'Epoch {epoch}/{num_epochs - 1}')
         print('-' * 10)
 
@@ -94,12 +122,23 @@ def train_model():
             
             print(f'{phase} Loss: {epoch_loss:.4f} Acc: {epoch_acc:.4f}')
 
-            # Keep the best-validating weights, not whichever epoch happens to be last.
-            if phase == 'val' and float(epoch_acc) > best_val_acc:
-                best_val_acc = float(epoch_acc)
-                best_epoch = epoch
-                torch.save(model.state_dict(), checkpoint_path)
-                print(f'  -> new best val acc {best_val_acc:.4f}, checkpoint saved')
+            if phase == 'val':
+                if scheduler is not None:
+                    scheduler.step(float(epoch_acc))
+
+                # Keep the best-validating weights, not whichever epoch is last.
+                if float(epoch_acc) > best_val_acc:
+                    best_val_acc = float(epoch_acc)
+                    best_epoch = epoch
+                    epochs_since_best = 0
+                    torch.save(model.state_dict(), checkpoint_path)
+                    print(f'  -> new best val acc {best_val_acc:.4f}, checkpoint saved')
+                else:
+                    epochs_since_best += 1
+
+        if epochs_since_best >= patience:
+            print(f"\nNo improvement for {patience} epochs; stopping early at epoch {epoch}.")
+            break
 
     print("Training complete")
 
