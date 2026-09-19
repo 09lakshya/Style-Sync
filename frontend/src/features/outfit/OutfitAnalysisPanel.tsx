@@ -3,15 +3,14 @@ import { CloudUpload, Loader2, Sparkles, WandSparkles } from 'lucide-react'
 import { analyzeOutfit } from '../../api/outfitApi'
 import type { OutfitAnalysis, OutfitGender } from '../../types/outfit'
 import { STYLING_SLOTS } from '../../types/outfit'
-import { formatScore } from '../../lib/utils'
 
 interface OutfitAnalysisPanelProps {
   token: string
 }
 
 const GENDER_LABELS: Record<OutfitGender, string> = {
-  female: 'Womenswear',
-  male: 'Menswear',
+  female: 'Female',
+  male: 'Male',
   unisex: 'Unisex',
 }
 
@@ -46,10 +45,8 @@ export function OutfitAnalysisPanel({ token }: OutfitAnalysisPanelProps) {
     }
   }
 
-  const confidence = formatScore(result?.classification.prediction_confidence, 1)
   // Optional-chained: a backend older than gender detection omits the field.
   const gender = result?.gender
-  const genderConfidence = formatScore(gender?.confidence, 0)
 
   return (
     <section
@@ -130,19 +127,9 @@ export function OutfitAnalysisPanel({ token }: OutfitAnalysisPanelProps) {
                 </p>
 
                 {result.classification.available ? (
-                  <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                    <span className="text-xl font-semibold capitalize text-[#1f2328]">
-                      {result.classification.predicted_category}
-                    </span>
-                    {confidence && (
-                      <span className="text-sm text-[#687068]">{confidence} confidence</span>
-                    )}
-                    {result.classification.model_version && (
-                      <span className="text-xs text-[#8a918a]">
-                        model {result.classification.model_version}
-                      </span>
-                    )}
-                  </div>
+                  <p className="mt-2 text-xl font-semibold capitalize text-[#1f2328]">
+                    {result.classification.predicted_category}
+                  </p>
                 ) : (
                   <p className="mt-2 text-sm text-[#687068]">Classification unavailable.</p>
                 )}
@@ -154,15 +141,10 @@ export function OutfitAnalysisPanel({ token }: OutfitAnalysisPanelProps) {
                   <Attribute label="Sleeves" value={result.attributes.sleeve_type} />
                   <Attribute label="Season" value={result.attributes.season.join(', ')} />
                   <Attribute label="Occasion" value={result.attributes.occasion.join(', ')} />
-                  {gender && (
-                    <Attribute
-                      label="Styled as"
-                      value={
-                        (GENDER_LABELS[gender.value] ?? gender.value) +
-                        (gender.value !== 'unisex' && genderConfidence ? ` (${genderConfidence})` : '')
-                      }
-                    />
-                  )}
+                  <Attribute
+                    label="Gender"
+                    value={gender && (GENDER_LABELS[gender.value] ?? gender.value)}
+                  />
                 </dl>
 
                 {result.attributes.secondary_colors.length > 0 && (
@@ -171,19 +153,6 @@ export function OutfitAnalysisPanel({ token }: OutfitAnalysisPanelProps) {
                   </p>
                 )}
               </div>
-
-              {result.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {result.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="rounded-full border border-[#e1dbd0] bg-[#f0e8dd] px-2.5 py-0.5 text-[11px] font-medium text-[#7f4b2f]"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              )}
 
               {/* Rule-based styling */}
               <div className="rounded-lg border border-[#e2dcd1] bg-white p-4">
