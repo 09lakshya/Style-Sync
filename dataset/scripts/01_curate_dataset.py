@@ -96,7 +96,35 @@ def generate_synthetic_image(cat, dest_path):
             
     img.save(dest_path)
 
-def curate(raw_dir, allow_synthetic=False):
+def collect_extra_sources(extra_sources):
+    """Load categories supplied from directories outside the DeepFashion tree.
+
+    DeepFashion is a Western fashion catalogue and contains no ethnic wear, so
+    'Ethnic' has to come from a separately labelled source. Each entry is
+    CATEGORY=PATH; every image in PATH is taken as labelled with CATEGORY.
+    """
+    collected = {}
+    for entry in extra_sources:
+        if "=" not in entry:
+            sys.exit(f"ERROR: --extra-source expects CATEGORY=PATH, got: {entry}")
+        cat, path = entry.split("=", 1)
+        if cat not in categories:
+            sys.exit(f"ERROR: unknown category '{cat}'. Expected one of: {', '.join(categories)}")
+        if not os.path.isdir(path):
+            sys.exit(f"ERROR: --extra-source directory not found for {cat}:\n  {path}")
+
+        found = []
+        for ext in ("*.png", "*.jpg", "*.jpeg", "*.webp"):
+            found.extend(glob.glob(os.path.join(path, ext)))
+        if not found:
+            sys.exit(f"ERROR: no images found for {cat} in:\n  {path}")
+
+        print(f"Extra source: {cat} <- {len(found)} images from {path}")
+        collected.setdefault(cat, []).extend(found)
+    return collected
+
+
+def curate(raw_dir, allow_synthetic=False, extra_sources=()):
     TRAIN_IMAGES_DIR = os.path.join(raw_dir, "train_images")
     TEST_IMAGES_DIR = os.path.join(raw_dir, "test_images")
 
@@ -130,7 +158,11 @@ def curate(raw_dir, allow_synthetic=False):
         cat = map_filename_to_category(filename)
         if cat and cat in categorized:
             categorized[cat].append(img_path)
-            
+
+    # Categories supplied from outside DeepFashion (notably Ethnic).
+    for cat, paths in collect_extra_sources(extra_sources).items():
+        categorized[cat].extend(paths)
+
     # Fail before writing anything if the real data cannot fill every category.
     shortfalls = {
         cat: IMAGES_PER_CATEGORY - len(categorized[cat])
@@ -196,11 +228,14 @@ if __name__ == '__main__':
     parser.add_argument("--allow-synthetic", action="store_true",
                         help="Permit generated placeholder images when real data is missing "
                              "(smoke testing only -- never for reported results)")
+    parser.add_argument("--extra-source", action="append", default=[], metavar="CATEGORY=PATH",
+                        help="Supply a category from a directory outside DeepFashion, e.g. "
+                             "--extra-source Ethnic=C:\\data\\ethnic_wear. Repeatable.")
     args = parser.parse_args()
 
     if args.allow_synthetic:
         print("!! --allow-synthetic is set: output may contain generated placeholder "
               "images and must not be used for reported results.\n")
 
-    curate(args.raw_dir, allow_synthetic=args.allow_synthetic)
+    curate(args.raw_dir, allow_synthetic=args.allow_synthetic, extra_sources=args.extra_source)
     print("Curation complete.")
