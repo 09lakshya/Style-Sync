@@ -6,6 +6,7 @@ from app.modules.shopping.service import (
     REVIEW_THRESHOLD,
     VISUAL_DUPLICATE_GATE,
     decide_outcome,
+    matching_attributes,
     score_match,
 )
 
@@ -76,3 +77,14 @@ def test_ranking_prefers_the_visually_closer_item():
     close_visual = score_match(visual_cosine=0.97, metadata_score=0.0)
     far_visual_same_metadata = score_match(visual_cosine=0.50, metadata_score=MAX_METADATA_SCORE)
     assert close_visual > far_visual_same_metadata
+
+
+def test_metadata_match_ignores_case_of_edited_labels():
+    # Hand-edited wardrobe metadata ("White", "Solid") must still match model labels.
+    item = {"primary_color": "White", "type": "Blouse ", "pattern": "Solid"}
+    query = {"primary_color": "white", "type": "blouse", "pattern": "striped"}
+    assert matching_attributes(item, query) == ["color", "type"]
+
+
+def test_missing_metadata_never_counts_as_a_match():
+    assert matching_attributes({}, {"primary_color": "", "type": None, "pattern": ""}) == []

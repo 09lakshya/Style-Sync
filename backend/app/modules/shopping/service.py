@@ -29,6 +29,7 @@ COLOR_MATCH_SCORE = 0.28
 TYPE_MATCH_SCORE = 0.28
 PATTERN_MATCH_SCORE = 0.16
 MAX_METADATA_SCORE = COLOR_MATCH_SCORE + TYPE_MATCH_SCORE + PATTERN_MATCH_SCORE
+ATTRIBUTE_MATCH_SCORES = {"color": COLOR_MATCH_SCORE, "type": TYPE_MATCH_SCORE, "pattern": PATTERN_MATCH_SCORE}
 
 VISUAL_WEIGHT = 0.75
 METADATA_WEIGHT = 0.25
@@ -54,6 +55,23 @@ def score_match(visual_cosine: float, metadata_score: float) -> float:
     metadata_norm = max(0.0, min(1.0, metadata_score / MAX_METADATA_SCORE)) if MAX_METADATA_SCORE else 0.0
     combined = VISUAL_WEIGHT * visual + METADATA_WEIGHT * metadata_norm
     return max(0.0, min(MAX_REPORTED_SIMILARITY, combined))
+
+
+def _normalise_label(value: Any) -> str:
+    return str(value or "").strip().lower().replace(" ", "_")
+
+
+def matching_attributes(item: dict[str, Any], query_metadata: dict[str, Any]) -> list[str]:
+    """Metadata fields on which the wardrobe item agrees with the query.
+
+    Compared case-insensitively: wardrobe metadata can be edited by hand
+    ("White", "Solid") while the model emits lowercase labels.
+    """
+    return [
+        name
+        for name, field in (("color", "primary_color"), ("type", "type"), ("pattern", "pattern"))
+        if _normalise_label(item.get(field)) and _normalise_label(item.get(field)) == _normalise_label(query_metadata.get(field))
+    ]
 
 
 def decide_outcome(highest_similarity: float, highest_visual: float) -> str:
@@ -91,13 +109,8 @@ class ShoppingService:
             embedding = embedding_map.get(item_id, item.get("embedding", []))
             visual_score = cosine_similarity(query_embedding, embedding if isinstance(embedding, list) else [])
 
-            metadata_score = 0.0
-            if item.get("primary_color") == query_metadata["primary_color"]:
-                metadata_score += COLOR_MATCH_SCORE
-            if item.get("type") == query_metadata["type"]:
-                metadata_score += TYPE_MATCH_SCORE
-            if item.get("pattern") == query_metadata["pattern"]:
-                metadata_score += PATTERN_MATCH_SCORE
+            matched = matching_attributes(item, query_metadata)
+            metadata_score = sum(ATTRIBUTE_MATCH_SCORES[name] for name in matched)
 
             similarity = score_match(visual_score, metadata_score)
             matches.append(
@@ -107,7 +120,7 @@ class ShoppingService:
                     "image_url": item.get("image_url", ""),
                     "similarity": round(similarity, 3),
                     "visual_similarity": round(max(0.0, min(1.0, visual_score)), 3),
-                    "reason": self._build_reason(item, query_metadata),
+                    "reason": self._build_reason(matched),
                 }
             )
 
@@ -134,14 +147,7 @@ class ShoppingService:
             "similar_items": top_matches,
         }
 
-    def _build_reason(self, item: dict[str, Any], query_metadata: dict[str, Any]) -> str:
-        reasons = []
-        if item.get("primary_color") == query_metadata["primary_color"]:
-            reasons.append("color")
-        if item.get("type") == query_metadata["type"]:
-            reasons.append("type")
-        if item.get("pattern") == query_metadata["pattern"]:
-            reasons.append("pattern")
+    def _build_reason(self, reasons: list[str]) -> str:
         return f"Matched on {', '.join(reasons)}." if reasons else "Closest vector match in the wardrobe."
 
 
