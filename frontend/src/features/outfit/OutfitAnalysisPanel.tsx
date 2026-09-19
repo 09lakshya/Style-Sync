@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { CloudUpload, Info, Loader2, Sparkles, WandSparkles } from 'lucide-react'
+import { CloudUpload, Loader2, Sparkles, WandSparkles } from 'lucide-react'
 import { analyzeOutfit } from '../../api/outfitApi'
 import type { OutfitAnalysis, OutfitGender } from '../../types/outfit'
 import { STYLING_SLOTS } from '../../types/outfit'
@@ -47,7 +47,9 @@ export function OutfitAnalysisPanel({ token }: OutfitAnalysisPanelProps) {
   }
 
   const confidence = formatScore(result?.classification.prediction_confidence, 1)
-  const genderConfidence = formatScore(result?.gender.confidence, 0)
+  // Optional-chained: a backend older than gender detection omits the field.
+  const gender = result?.gender
+  const genderConfidence = formatScore(gender?.confidence, 0)
 
   return (
     <section
@@ -152,13 +154,15 @@ export function OutfitAnalysisPanel({ token }: OutfitAnalysisPanelProps) {
                   <Attribute label="Sleeves" value={result.attributes.sleeve_type} />
                   <Attribute label="Season" value={result.attributes.season.join(', ')} />
                   <Attribute label="Occasion" value={result.attributes.occasion.join(', ')} />
-                  <Attribute
-                    label="Styled as"
-                    value={
-                      GENDER_LABELS[result.gender.value] +
-                      (result.gender.value !== 'unisex' && genderConfidence ? ` (${genderConfidence})` : '')
-                    }
-                  />
+                  {gender && (
+                    <Attribute
+                      label="Styled as"
+                      value={
+                        (GENDER_LABELS[gender.value] ?? gender.value) +
+                        (gender.value !== 'unisex' && genderConfidence ? ` (${genderConfidence})` : '')
+                      }
+                    />
+                  )}
                 </dl>
 
                 {result.attributes.secondary_colors.length > 0 && (
@@ -183,15 +187,9 @@ export function OutfitAnalysisPanel({ token }: OutfitAnalysisPanelProps) {
 
               {/* Rule-based styling */}
               <div className="rounded-lg border border-[#e2dcd1] bg-white p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-[#5e645e]">
-                    Styling suggestions
-                  </p>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[#eceff3] px-2 py-0.5 text-[10px] font-medium text-[#4a5160]">
-                    <Info className="h-3 w-3" />
-                    Rule-based
-                  </span>
-                </div>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-[#5e645e]">
+                  Styling suggestions
+                </p>
 
                 {result.styling.available ? (
                   <>

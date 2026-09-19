@@ -22,7 +22,7 @@ export interface OutfitAnalysis {
   }
   /** Who the styling targets. Detected by CLIP unless the request overrode it;
    *  'unisex' when the detection was not confident. */
-  gender: {
+  gender?: {
     value: OutfitGender
     source: 'detected' | 'provided'
     confidence: number | null
