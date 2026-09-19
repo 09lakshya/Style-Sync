@@ -26,9 +26,9 @@
   "metrics": {
     "split": "test",
     "num_samples": 105,
-    "accuracy": 0.8667,
-    "macro_f1": 0.8671,
-    "weighted_f1": 0.8671
+    "accuracy": 0.5714,
+    "macro_f1": 0.5492,
+    "weighted_f1": 0.5492
   },
-  "generated_at": "2026-09-18T14:57:12.790881+00:00"
+  "generated_at": "2026-09-19T06:04:41.709848+00:00"
 }

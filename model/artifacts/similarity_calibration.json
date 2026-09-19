@@ -1,0 +1,52 @@
+{
+  "calibrated_at": "2026-09-19T06:05:13.783363+00:00",
+  "images_per_class": 8,
+  "classes": [
+    "Casual",
+    "Ethnic",
+    "Formal",
+    "Party",
+    "Summer",
+    "Western",
+    "Winter"
+  ],
+  "buckets": [
+    {
+      "name": "identical",
+      "n": 56,
+      "min": 1.0,
+      "p05": 1.0,
+      "median": 1.0,
+      "p95": 1.0,
+      "p99": 1.0,
+      "max": 1.0,
+      "mean": 1.0
+    },
+    {
+      "name": "same_class",
+      "n": 196,
+      "min": 0.553,
+      "p05": 0.6286,
+      "median": 0.7789,
+      "p95": 0.8688,
+      "p99": 0.8898,
+      "max": 0.9271,
+      "mean": 0.7636
+    },
+    {
+      "name": "diff_class",
+      "n": 1344,
+      "min": 0.416,
+      "p05": 0.5524,
+      "median": 0.7181,
+      "p95": 0.8517,
+      "p99": 0.8845,
+      "max": 0.9185,
+      "mean": 0.7116
+    }
+  ],
+  "recommended_visual_duplicate_gate": 0.8871,
+  "identical_min": 1.0,
+  "headroom": 0.1129,
+  "verdict": "separable"
+}

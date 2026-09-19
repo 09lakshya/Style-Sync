@@ -1,60 +1,60 @@
 {
-  "evaluated_at": "2026-09-18T14:57:12.790881+00:00",
+  "evaluated_at": "2026-09-19T06:04:41.709848+00:00",
   "split": "test",
   "num_samples": 105,
   "num_classes": 7,
-  "accuracy": 0.8667,
+  "accuracy": 0.5714,
   "macro": {
-    "precision": 0.8943,
-    "recall": 0.8667,
-    "f1": 0.8671
+    "precision": 0.5748,
+    "recall": 0.5714,
+    "f1": 0.5492
   },
   "weighted": {
-    "precision": 0.8943,
-    "recall": 0.8667,
-    "f1": 0.8671
+    "precision": 0.5748,
+    "recall": 0.5714,
+    "f1": 0.5492
   },
   "per_class": {
     "Casual": {
-      "precision": 0.8125,
-      "recall": 0.8667,
-      "f1": 0.8387,
+      "precision": 0.5,
+      "recall": 0.1333,
+      "f1": 0.2105,
       "support": 15
     },
     "Ethnic": {
-      "precision": 0.9286,
-      "recall": 0.8667,
-      "f1": 0.8966,
+      "precision": 0.9333,
+      "recall": 0.9333,
+      "f1": 0.9333,
       "support": 15
     },
     "Formal": {
-      "precision": 1.0,
-      "recall": 0.8667,
-      "f1": 0.9286,
+      "precision": 0.4706,
+      "recall": 0.5333,
+      "f1": 0.5,
       "support": 15
     },
     "Party": {
-      "precision": 1.0,
-      "recall": 0.6,
-      "f1": 0.75,
+      "precision": 0.5882,
+      "recall": 0.6667,
+      "f1": 0.625,
       "support": 15
     },
     "Summer": {
-      "precision": 0.8667,
-      "recall": 0.8667,
-      "f1": 0.8667,
+      "precision": 0.375,
+      "recall": 0.4,
+      "f1": 0.3871,
       "support": 15
     },
     "Western": {
-      "precision": 1.0,
-      "recall": 1.0,
-      "f1": 1.0,
+      "precision": 0.52,
+      "recall": 0.8667,
+      "f1": 0.65,
       "support": 15
     },
     "Winter": {
-      "precision": 0.6522,
-      "recall": 1.0,
-      "f1": 0.7895,
+      "precision": 0.6364,
+      "recall": 0.4667,
+      "f1": 0.5385,
       "support": 15
     }
   },
@@ -70,67 +70,67 @@
     ],
     "matrix": [
       [
-        13,
-        0,
-        0,
-        0,
-        0,
-        0,
-        2
-      ],
-      [
-        0,
-        13,
-        0,
-        0,
         2,
         0,
-        0
-      ],
-      [
-        2,
-        0,
-        13,
-        0,
-        0,
-        0,
+        3,
+        1,
+        6,
+        3,
         0
       ],
       [
         0,
+        14,
         0,
         0,
-        9,
         0,
         0,
-        6
+        1
+      ],
+      [
+        0,
+        0,
+        8,
+        2,
+        3,
+        2,
+        0
+      ],
+      [
+        0,
+        1,
+        2,
+        10,
+        0,
+        1,
+        1
       ],
       [
         1,
+        0,
+        3,
+        2,
+        6,
+        2,
+        1
+      ],
+      [
+        0,
+        0,
+        0,
         1,
         0,
-        0,
         13,
-        0,
-        0
+        1
       ],
       [
+        1,
         0,
-        0,
-        0,
-        0,
-        0,
-        15,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        15
+        1,
+        1,
+        1,
+        4,
+        7
       ]
     ]
   }
