@@ -8,4 +8,8 @@ __pycache__/
 .DS_Store
 
 *.db
+
+# Datasets are not redistributed -- see dataset/README.md. Both the raw
+# downloads and the curated split are rebuilt locally from the curation script.
 dataset/raw/
+dataset/curated/
