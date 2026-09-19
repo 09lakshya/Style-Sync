@@ -432,7 +432,7 @@ export function App() {
             </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-1">
+          <div className="flex flex-col gap-4">
             <WorkflowCard
               icon={Search}
               title="Duplicate purchase check"
@@ -449,6 +449,56 @@ export function App() {
                 </button>
               </form>
             </WorkflowCard>
+
+            {/* Fills the space under the check card; absolutely positioned on large
+                screens so a long report scrolls instead of stretching the hero. */}
+            <div className="lg:relative lg:min-h-0 lg:flex-1">
+              <section className="flex flex-col rounded-xl border border-[#ded8ce] bg-[#fbfaf7] p-4 lg:absolute lg:inset-0">
+                <div className="mb-3 flex items-center gap-2">
+                  {duplicateDecision === 'similar_found' ? (
+                    <AlertCircle className="h-5 w-5 text-[#a15c38]" />
+                  ) : (
+                    <CheckCircle2 className="h-5 w-5 text-[#557660]" />
+                  )}
+                  <h2 className="text-base font-semibold">Similarity report</h2>
+                  {duplicateDecision && (
+                    <span className="ml-auto rounded-full bg-[#f0e8dd] px-2 py-0.5 text-xs font-medium text-[#7f4b2f]">
+                      {decisionLabels[duplicateDecision]}
+                    </span>
+                  )}
+                </div>
+
+                {similarItems.length > 0 ? (
+                  <ul className="min-h-0 flex-1 space-y-2 overflow-y-auto">
+                    {similarItems.map((item) => (
+                      <li
+                        key={item.id}
+                        className="flex items-center gap-3 rounded-lg border border-[#e2dcd1] bg-white p-2"
+                      >
+                        <img
+                          className="h-14 w-14 shrink-0 rounded-md object-cover"
+                          src={item.imageUrl}
+                          alt={item.name}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">{item.name}</p>
+                          <p className="truncate text-xs text-[#687068]">{item.reason}</p>
+                        </div>
+                        <span className="shrink-0 rounded-full bg-[#f0e8dd] px-2 py-1 text-sm font-semibold text-[#7f4b2f]">
+                          {Math.round(item.similarity * 100)}%
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-[#ded8ce] p-4 text-center text-sm text-[#687068]">
+                    {duplicateMutation.isPending
+                      ? 'Checking your wardrobe...'
+                      : 'Run a similarity check to see the closest matches from your wardrobe here.'}
+                  </p>
+                )}
+              </section>
+            </div>
           </div>
         </section>
 
@@ -521,39 +571,6 @@ export function App() {
           </div>
         </section>
 
-        {/* Similarity Report Section */}
-        {similarItems.length > 0 && (
-          <section className="rounded-xl border border-[#ded8ce] bg-[#fbfaf7] p-5">
-            <div className="mb-4 flex items-center gap-2">
-              {duplicateDecision === 'similar_found' ? (
-                <AlertCircle className="h-5 w-5 text-[#a15c38]" />
-              ) : (
-                <CheckCircle2 className="h-5 w-5 text-[#557660]" />
-              )}
-              <h2 className="text-xl font-semibold">Similarity report</h2>
-            </div>
-            <div className="grid gap-4 md:grid-cols-3">
-              {similarItems.map((item) => (
-                <div key={item.id} className="rounded-lg border border-[#e2dcd1] bg-white p-3">
-                  <img
-                    className="h-40 w-full rounded-md object-cover"
-                    src={item.imageUrl}
-                    alt={item.name}
-                  />
-                  <div className="mt-3 flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-medium">{item.name}</p>
-                      <p className="mt-1 text-sm text-[#687068]">{item.reason}</p>
-                    </div>
-                    <span className="rounded-full bg-[#f0e8dd] px-2 py-1 text-sm font-semibold text-[#7f4b2f]">
-                      {Math.round(item.similarity * 100)}%
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
       </div>
 
       {/* Modals */}
@@ -726,6 +743,12 @@ function NavPill({
       {label}
     </button>
   )
+}
+
+const decisionLabels: Record<DuplicateDecision, string> = {
+  similar_found: 'Likely duplicate',
+  review_matches: 'Worth a look',
+  no_strong_duplicate: 'No strong duplicate',
 }
 
 function WorkflowCard({
