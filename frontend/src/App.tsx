@@ -321,6 +321,25 @@ export function App() {
     duplicateMutation.mutate(shoppingFile)
   }
 
+  function scrollTo(id: string) {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  function handleShowWardrobe() {
+    scrollTo('wardrobe')
+  }
+
+  function handleShowTrends() {
+    scrollTo('insights')
+  }
+
+  // Reminders surfaces what you own but rarely wear, using the existing sort.
+  function handleShowReminders() {
+    setFilters((prev) => ({ ...prev, sortBy: 'least_recently_worn' }))
+    setNotice('Showing your least-worn pieces first — these are worth planning an outfit around.')
+    scrollTo('wardrobe')
+  }
+
   function handleSessionChange(nextSession: AuthSession) {
     saveStoredSession(nextSession)
     setSession(nextSession)
@@ -364,7 +383,13 @@ export function App() {
   return (
     <main className="min-h-screen bg-[#f7f4ef] text-[#1f2328]">
       <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 px-4 py-4 sm:px-6 lg:px-8">
-        <TopBar user={session.user} onSignOut={handleSignOut} />
+        <TopBar
+          user={session.user}
+          onSignOut={handleSignOut}
+          onShowWardrobe={handleShowWardrobe}
+          onShowTrends={handleShowTrends}
+          onShowReminders={handleShowReminders}
+        />
 
         {/* Hero Section */}
         <section className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
@@ -434,7 +459,7 @@ export function App() {
         </div>
 
         {/* Wardrobe Section */}
-        <section className="space-y-6">
+        <section id="wardrobe" className="scroll-mt-4 space-y-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-2xl font-bold text-[#1f2328]">My Wardrobe</h2>
@@ -468,7 +493,7 @@ export function App() {
               onAddDressClick={() => setIsAddModalOpen(true)}
             />
 
-            <aside className="space-y-4">
+            <aside id="insights" className="scroll-mt-4 space-y-4">
               <Panel title="Recommendations" icon={WandSparkles}>
                 {recommendations.slice(0, 3).map((recommendation) => (
                   <RecommendationCard
@@ -640,7 +665,19 @@ async function parseResponse<T>(response: Response): Promise<T> {
   return payload as T
 }
 
-function TopBar({ user, onSignOut }: { user: AuthUser; onSignOut: () => void }) {
+function TopBar({
+  user,
+  onSignOut,
+  onShowWardrobe,
+  onShowTrends,
+  onShowReminders,
+}: {
+  user: AuthUser
+  onSignOut: () => void
+  onShowWardrobe: () => void
+  onShowTrends: () => void
+  onShowReminders: () => void
+}) {
   return (
     <header className="flex flex-col gap-3 rounded-xl border border-[#ded8ce] bg-white px-5 py-3 sm:flex-row sm:items-center sm:justify-between shadow-sm">
       <div className="flex items-center gap-3">
@@ -653,9 +690,9 @@ function TopBar({ user, onSignOut }: { user: AuthUser; onSignOut: () => void }) 
         </div>
       </div>
       <nav className="flex flex-wrap gap-2 text-sm text-[#4f574f]">
-        <NavPill icon={Layers3} label="My Wardrobe" />
-        <NavPill icon={TrendingUp} label="Trends" />
-        <NavPill icon={CalendarDays} label="Reminders" />
+        <NavPill icon={Layers3} label="My Wardrobe" onClick={onShowWardrobe} />
+        <NavPill icon={TrendingUp} label="Trends" onClick={onShowTrends} />
+        <NavPill icon={CalendarDays} label="Reminders" onClick={onShowReminders} />
         <button
           className="rounded-lg border border-[#e1dbd0] bg-[#fbfaf7] hover:bg-[#f0e8dd] transition-colors px-3.5 py-2 cursor-pointer font-medium text-xs text-[#1f2328]"
           onClick={onSignOut}
@@ -667,12 +704,24 @@ function TopBar({ user, onSignOut }: { user: AuthUser; onSignOut: () => void }) 
   )
 }
 
-function NavPill({ icon: Icon, label }: { icon: typeof Shirt; label: string }) {
+function NavPill({
+  icon: Icon,
+  label,
+  onClick,
+}: {
+  icon: typeof Shirt
+  label: string
+  onClick: () => void
+}) {
   return (
-    <span className="inline-flex items-center gap-2 rounded-lg border border-[#e1dbd0] bg-[#fbfaf7] px-3 py-2 text-xs font-medium">
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex items-center gap-2 rounded-lg border border-[#e1dbd0] bg-[#fbfaf7] px-3 py-2 text-xs font-medium text-[#4f574f] transition-colors hover:bg-[#f0e8dd] hover:text-[#1f2328] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#a15c38]"
+    >
       <Icon className="h-3.5 w-3.5 text-[#a15c38]" />
       {label}
-    </span>
+    </button>
   )
 }
 
