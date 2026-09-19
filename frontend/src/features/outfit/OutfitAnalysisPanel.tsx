@@ -9,16 +9,15 @@ interface OutfitAnalysisPanelProps {
   token: string
 }
 
-const GENDERS: { value: OutfitGender; label: string }[] = [
-  { value: 'unisex', label: 'Unisex' },
-  { value: 'female', label: 'Female' },
-  { value: 'male', label: 'Male' },
-]
+const GENDER_LABELS: Record<OutfitGender, string> = {
+  female: 'Womenswear',
+  male: 'Menswear',
+  unisex: 'Unisex',
+}
 
 export function OutfitAnalysisPanel({ token }: OutfitAnalysisPanelProps) {
   const [file, setFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-  const [gender, setGender] = useState<OutfitGender>('unisex')
   const [result, setResult] = useState<OutfitAnalysis | null>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -38,7 +37,7 @@ export function OutfitAnalysisPanel({ token }: OutfitAnalysisPanelProps) {
     setIsAnalyzing(true)
     setError(null)
     try {
-      setResult(await analyzeOutfit(file, gender, token))
+      setResult(await analyzeOutfit(file, token))
     } catch (err) {
       setResult(null)
       setError(err instanceof Error ? err.message : 'Unable to analyze this outfit. Please try again.')
@@ -48,6 +47,7 @@ export function OutfitAnalysisPanel({ token }: OutfitAnalysisPanelProps) {
   }
 
   const confidence = formatScore(result?.classification.prediction_confidence, 1)
+  const genderConfidence = formatScore(result?.gender.confidence, 0)
 
   return (
     <section
@@ -93,24 +93,6 @@ export function OutfitAnalysisPanel({ token }: OutfitAnalysisPanelProps) {
               className="max-h-64 w-full rounded-lg border border-[#e2dcd1] object-contain"
             />
           )}
-
-          <div>
-            <label htmlFor="outfit-gender" className="text-xs font-medium text-[#5e645e]">
-              Styling for
-            </label>
-            <select
-              id="outfit-gender"
-              value={gender}
-              onChange={(event) => setGender(event.target.value as OutfitGender)}
-              className="mt-1 w-full rounded-md border border-[#ded8ce] bg-white px-3 py-2 text-sm text-[#1f2328]"
-            >
-              {GENDERS.map((g) => (
-                <option key={g.value} value={g.value}>
-                  {g.label}
-                </option>
-              ))}
-            </select>
-          </div>
 
           <button
             type="button"
@@ -170,6 +152,13 @@ export function OutfitAnalysisPanel({ token }: OutfitAnalysisPanelProps) {
                   <Attribute label="Sleeves" value={result.attributes.sleeve_type} />
                   <Attribute label="Season" value={result.attributes.season.join(', ')} />
                   <Attribute label="Occasion" value={result.attributes.occasion.join(', ')} />
+                  <Attribute
+                    label="Styled as"
+                    value={
+                      GENDER_LABELS[result.gender.value] +
+                      (result.gender.value !== 'unisex' && genderConfidence ? ` (${genderConfidence})` : '')
+                    }
+                  />
                 </dl>
 
                 {result.attributes.secondary_colors.length > 0 && (

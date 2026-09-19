@@ -10,10 +10,13 @@ router = APIRouter(prefix="/recommendations", tags=["recommendations"])
 @router.post("/analyze-outfit")
 async def analyze_outfit(
     image: UploadFile = File(...),
-    gender: str = Form("unisex"),
+    gender: str | None = Form(None),
     user_id: str = Depends(require_user),
 ) -> dict[str, object]:
-    """Analyse one uploaded outfit image and return attributes plus styling advice."""
+    """Analyse one uploaded outfit image and return attributes plus styling advice.
+
+    Gender is detected from the image; pass it only to override the detection.
+    """
     file_bytes = await image.read()
     if not file_bytes:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empty image upload.")

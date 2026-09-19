@@ -50,6 +50,13 @@ CANDIDATE_OCCASIONS = ["casual", "formal", "party", "work", "day_out", "evening"
 
 CANDIDATE_SLEEVES = ["sleeveless", "short_sleeve", "long_sleeve", "three_quarter"]
 
+# Prompt -> styling gender. Phrased around the clothing rather than the wearer
+# so flat-lay and hanger photos are classifiable too.
+GENDER_PROMPTS = {
+    "women's clothing": "female",
+    "men's clothing": "male",
+}
+
 
 class AIService:
     """
@@ -65,13 +72,8 @@ class AIService:
         """Decode and enhance image with OpenCV."""
         return self.preprocessor.preprocess_for_clip(file_bytes)
 
-    def extract_clothing_metadata(self, file_bytes: bytes, filename: str = "") -> dict[str, Any]:
-        """
-        Analyze image with OpenCV and CLIP to extract comprehensive clothing attributes and confidence scores.
-        """
-        start_time = time.perf_counter()
-        logger.info("Starting AI metadata extraction (filename=%s)", filename)
-
+    def _crop_to_subject(self, file_bytes: bytes) -> bytes:
+        """Return the image bytes to analyse: cropped to the subject when needed."""
         # In a full-scene photo the background dominates what CLIP sees -- a room
         # portrait measured here put the person at 5.8% of the frame and the
         # colour came back as the carpet rather than the outfit. Crop to the
@@ -101,6 +103,47 @@ class AIService:
                 )
         except Exception as exc:
             logger.warning("Subject cropping skipped: %s", exc)
+        return analysis_bytes
+
+    def detect_styling_gender(self, file_bytes: bytes) -> tuple[str, float | None]:
+        """Guess whether the outfit is menswear or womenswear via CLIP zero-shot.
+
+        Returns ("female" | "male" | "unisex", confidence). Only a confident
+        call picks a side; anything close, or any failure, is "unisex" so the
+        styling never commits to options the image does not support. This reads
+        the clothing's styling, so it works on flat-lays as well as worn photos.
+        """
+        if not self.clip.is_loaded:
+            # The fallback classifier is uniform, so there is nothing to read.
+            return "unisex", None
+
+        try:
+            pil_image = self.preprocess_image(self._crop_to_subject(file_bytes))
+        except Exception as exc:
+            logger.warning("Gender detection skipped, preprocessing failed: %s", exc)
+            return "unisex", None
+
+        results = self.clip.zero_shot_classify(
+            pil_image,
+            list(GENDER_PROMPTS),
+            prompt_template="a photo of {}",
+        )
+        if not results:
+            return "unisex", None
+
+        top_label, top_conf = results[0]
+        gender = GENDER_PROMPTS[top_label] if top_conf >= settings.gender_confidence_threshold else "unisex"
+        logger.info("Styling gender: %s (%s at %.2f)", gender, top_label, top_conf)
+        return gender, round(float(top_conf), 2)
+
+    def extract_clothing_metadata(self, file_bytes: bytes, filename: str = "") -> dict[str, Any]:
+        """
+        Analyze image with OpenCV and CLIP to extract comprehensive clothing attributes and confidence scores.
+        """
+        start_time = time.perf_counter()
+        logger.info("Starting AI metadata extraction (filename=%s)", filename)
+
+        analysis_bytes = self._crop_to_subject(file_bytes)
 
         try:
             # CLAHE sharpens structure but shifts hue, so colour is read from the

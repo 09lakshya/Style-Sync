@@ -1,5 +1,5 @@
 import { getAuthHeader } from '../lib/auth'
-import type { OutfitAnalysis, OutfitGender } from '../types/outfit'
+import type { OutfitAnalysis } from '../types/outfit'
 
 const API_BASE_URL = (
   import.meta.env.VITE_API_URL ||
@@ -7,14 +7,9 @@ const API_BASE_URL = (
   'http://localhost:8000/api/v1'
 ).replace(/\/$/, '')
 
-export async function analyzeOutfit(
-  file: File,
-  gender: OutfitGender,
-  token: string
-): Promise<OutfitAnalysis> {
+export async function analyzeOutfit(file: File, token: string): Promise<OutfitAnalysis> {
   const formData = new FormData()
   formData.append('image', file)
-  formData.append('gender', gender)
 
   const response = await fetch(`${API_BASE_URL}/recommendations/analyze-outfit`, {
     method: 'POST',

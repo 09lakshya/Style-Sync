@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     max_image_dimension: int = 4096
     clip_model_name: str = "openai/clip-vit-base-patch32"
     clip_confidence_threshold: float = 0.22
+    # Two-way softmax (menswear vs womenswear): below this the result is too
+    # close to call and styling falls back to unisex.
+    gender_confidence_threshold: float = 0.70
     ai_device: str = "cpu"
     enable_clahe_preprocessing: bool = True
 

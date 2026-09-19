@@ -64,3 +64,74 @@ def test_reasoning_is_present_so_advice_is_explainable():
     result = style_rules.recommend_accessories("Formal", "male", "black", [])
     assert result["reasoning"]
     assert any("Metal tone" in r for r in result["reasoning"])
+
+
+# --- Styling gender detection -------------------------------------------------
+
+import asyncio
+import io
+
+import pytest
+from PIL import Image
+
+from app.core.config import settings
+from app.modules.ai.service import ai_service
+from app.modules.recommendations.service import outfit_analysis_service
+
+
+def _image_bytes() -> bytes:
+    buffer = io.BytesIO()
+    Image.new("RGB", (64, 64), color="red").save(buffer, format="PNG")
+    return buffer.getvalue()
+
+
+@pytest.fixture
+def clip_says(monkeypatch):
+    """Pretend CLIP is loaded and returns a fixed menswear/womenswear split."""
+
+    def _set(womens: float):
+        monkeypatch.setattr(type(ai_service.clip), "is_loaded", property(lambda self: True))
+        monkeypatch.setattr(
+            ai_service.clip,
+            "zero_shot_classify",
+            lambda image, labels, prompt_template="": sorted(
+                [("women's clothing", womens), ("men's clothing", 1 - womens)],
+                key=lambda r: r[1],
+                reverse=True,
+            ),
+        )
+
+    return _set
+
+
+def test_confident_detection_picks_a_side(clip_says):
+    clip_says(0.9)
+    assert ai_service.detect_styling_gender(_image_bytes()) == ("female", 0.9)
+    clip_says(0.1)
+    assert ai_service.detect_styling_gender(_image_bytes()) == ("male", 0.9)
+
+
+def test_uncertain_detection_falls_back_to_unisex(clip_says):
+    clip_says(settings.gender_confidence_threshold - 0.05)
+    gender, _ = ai_service.detect_styling_gender(_image_bytes())
+    assert gender == "unisex"
+
+
+def test_detection_without_clip_is_unisex(monkeypatch):
+    monkeypatch.setattr(type(ai_service.clip), "is_loaded", property(lambda self: False))
+    assert ai_service.detect_styling_gender(_image_bytes()) == ("unisex", None)
+
+
+def test_explicit_gender_overrides_detection(monkeypatch):
+    def fail(_):
+        raise AssertionError("detection should not run when gender is provided")
+
+    monkeypatch.setattr(ai_service, "detect_styling_gender", fail)
+    result = asyncio.run(outfit_analysis_service.analyze(_image_bytes(), "outfit.png", gender="male"))
+    assert result["gender"] == {"value": "male", "source": "provided", "confidence": None}
+
+
+def test_analysis_reports_detected_gender(monkeypatch):
+    monkeypatch.setattr(ai_service, "detect_styling_gender", lambda _: ("female", 0.88))
+    result = asyncio.run(outfit_analysis_service.analyze(_image_bytes(), "outfit.png"))
+    assert result["gender"] == {"value": "female", "source": "detected", "confidence": 0.88}

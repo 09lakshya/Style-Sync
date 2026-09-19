@@ -20,7 +20,7 @@ class OutfitAnalysisService:
     honestly. Nothing in the rule half is presented as a prediction.
     """
 
-    async def analyze(self, file_bytes: bytes, filename: str, gender: str = "unisex") -> dict[str, Any]:
+    async def analyze(self, file_bytes: bytes, filename: str, gender: str | None = None) -> dict[str, Any]:
         from app.modules.ai.service import ai_service
 
         # 1. Real CLIP attribute extraction (also performs the preprocessing).
@@ -47,11 +47,18 @@ class OutfitAnalysisService:
         pattern = attributes.get("pattern", "")
         seasons = attributes.get("season", []) or []
 
-        # 3. Rule-based styling. Only possible once a category is known.
+        # 3. Styling gender: an explicit override wins, otherwise CLIP decides.
+        if gender in style_rules.VALID_GENDERS:
+            gender_info = {"value": gender, "source": "provided", "confidence": None}
+        else:
+            detected, gender_conf = ai_service.detect_styling_gender(file_bytes)
+            gender_info = {"value": detected, "source": "detected", "confidence": gender_conf}
+
+        # 4. Rule-based styling. Only possible once a category is known.
         if predicted_category:
             styling = style_rules.recommend_accessories(
                 category=predicted_category,
-                gender=gender,
+                gender=gender_info["value"],
                 primary_color=primary_color,
                 secondary_colors=secondary_colors,
             )
@@ -81,6 +88,7 @@ class OutfitAnalysisService:
                 "occasion": attributes.get("occasion", []),
                 "confidence": attributes.get("confidence", {}),
             },
+            "gender": gender_info,
             "tags": tags,
             "styling": styling,
             "source_note": (

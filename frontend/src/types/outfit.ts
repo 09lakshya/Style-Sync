@@ -20,6 +20,13 @@ export interface OutfitAnalysis {
     occasion: string[]
     confidence: Record<string, number>
   }
+  /** Who the styling targets. Detected by CLIP unless the request overrode it;
+   *  'unisex' when the detection was not confident. */
+  gender: {
+    value: OutfitGender
+    source: 'detected' | 'provided'
+    confidence: number | null
+  }
   tags: string[]
   styling: {
     available: boolean
