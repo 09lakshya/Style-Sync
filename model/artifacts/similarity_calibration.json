@@ -1,5 +1,5 @@
 {
-  "calibrated_at": "2026-09-19T06:05:13.783363+00:00",
+  "calibrated_at": "2026-09-19T10:16:41.012354+00:00",
   "images_per_class": 8,
   "classes": [
     "Casual",
@@ -25,28 +25,28 @@
     {
       "name": "same_class",
       "n": 196,
-      "min": 0.553,
-      "p05": 0.6286,
-      "median": 0.7789,
-      "p95": 0.8688,
-      "p99": 0.8898,
-      "max": 0.9271,
-      "mean": 0.7636
+      "min": 0.5122,
+      "p05": 0.6568,
+      "median": 0.8048,
+      "p95": 0.8888,
+      "p99": 0.9199,
+      "max": 0.9265,
+      "mean": 0.7921
     },
     {
       "name": "diff_class",
       "n": 1344,
-      "min": 0.416,
-      "p05": 0.5524,
-      "median": 0.7181,
-      "p95": 0.8517,
-      "p99": 0.8845,
-      "max": 0.9185,
-      "mean": 0.7116
+      "min": 0.4217,
+      "p05": 0.5386,
+      "median": 0.7148,
+      "p95": 0.8533,
+      "p99": 0.8838,
+      "max": 0.9239,
+      "mean": 0.7057
     }
   ],
-  "recommended_visual_duplicate_gate": 0.8871,
+  "recommended_visual_duplicate_gate": 0.8938,
   "identical_min": 1.0,
-  "headroom": 0.1129,
+  "headroom": 0.1062,
   "verdict": "separable"
 }

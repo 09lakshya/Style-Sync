@@ -1,61 +1,61 @@
 {
-  "evaluated_at": "2026-09-19T06:04:41.709848+00:00",
+  "evaluated_at": "2026-09-19T10:16:11.646063+00:00",
   "split": "test",
-  "num_samples": 105,
+  "num_samples": 420,
   "num_classes": 7,
-  "accuracy": 0.5714,
+  "accuracy": 0.7262,
   "macro": {
-    "precision": 0.5748,
-    "recall": 0.5714,
-    "f1": 0.5492
+    "precision": 0.7275,
+    "recall": 0.7262,
+    "f1": 0.7222
   },
   "weighted": {
-    "precision": 0.5748,
-    "recall": 0.5714,
-    "f1": 0.5492
+    "precision": 0.7275,
+    "recall": 0.7262,
+    "f1": 0.7222
   },
   "per_class": {
     "Casual": {
-      "precision": 0.5,
-      "recall": 0.1333,
-      "f1": 0.2105,
-      "support": 15
+      "precision": 0.6226,
+      "recall": 0.55,
+      "f1": 0.5841,
+      "support": 60
     },
     "Ethnic": {
-      "precision": 0.9333,
-      "recall": 0.9333,
-      "f1": 0.9333,
-      "support": 15
+      "precision": 0.9836,
+      "recall": 1.0,
+      "f1": 0.9917,
+      "support": 60
     },
     "Formal": {
-      "precision": 0.4706,
-      "recall": 0.5333,
-      "f1": 0.5,
-      "support": 15
+      "precision": 0.6182,
+      "recall": 0.5667,
+      "f1": 0.5913,
+      "support": 60
     },
     "Party": {
-      "precision": 0.5882,
-      "recall": 0.6667,
-      "f1": 0.625,
-      "support": 15
+      "precision": 0.7606,
+      "recall": 0.9,
+      "f1": 0.8244,
+      "support": 60
     },
     "Summer": {
-      "precision": 0.375,
-      "recall": 0.4,
-      "f1": 0.3871,
-      "support": 15
+      "precision": 0.7018,
+      "recall": 0.6667,
+      "f1": 0.6838,
+      "support": 60
     },
     "Western": {
-      "precision": 0.52,
-      "recall": 0.8667,
-      "f1": 0.65,
-      "support": 15
+      "precision": 0.6234,
+      "recall": 0.8,
+      "f1": 0.7007,
+      "support": 60
     },
     "Winter": {
-      "precision": 0.6364,
-      "recall": 0.4667,
-      "f1": 0.5385,
-      "support": 15
+      "precision": 0.7826,
+      "recall": 0.6,
+      "f1": 0.6792,
+      "support": 60
     }
   },
   "confusion_matrix": {
@@ -70,67 +70,67 @@
     ],
     "matrix": [
       [
-        2,
-        0,
-        3,
+        33,
         1,
         6,
-        3,
+        5,
+        7,
+        5,
+        3
+      ],
+      [
+        0,
+        60,
+        0,
+        0,
+        0,
+        0,
         0
       ],
       [
-        0,
-        14,
-        0,
-        0,
-        0,
-        0,
-        1
-      ],
-      [
-        0,
-        0,
-        8,
-        2,
-        3,
-        2,
-        0
-      ],
-      [
-        0,
-        1,
-        2,
-        10,
-        0,
-        1,
-        1
-      ],
-      [
-        1,
-        0,
-        3,
-        2,
-        6,
-        2,
-        1
-      ],
-      [
-        0,
-        0,
-        0,
-        1,
-        0,
-        13,
-        1
-      ],
-      [
-        1,
-        0,
-        1,
-        1,
-        1,
         4,
-        7
+        0,
+        34,
+        5,
+        6,
+        7,
+        4
+      ],
+      [
+        2,
+        0,
+        2,
+        54,
+        0,
+        2,
+        0
+      ],
+      [
+        9,
+        0,
+        4,
+        2,
+        40,
+        4,
+        1
+      ],
+      [
+        0,
+        0,
+        4,
+        4,
+        2,
+        48,
+        2
+      ],
+      [
+        5,
+        0,
+        5,
+        1,
+        2,
+        11,
+        36
       ]
     ]
   }

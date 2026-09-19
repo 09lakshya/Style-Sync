@@ -25,10 +25,10 @@
   },
   "metrics": {
     "split": "test",
-    "num_samples": 105,
-    "accuracy": 0.5714,
-    "macro_f1": 0.5492,
-    "weighted_f1": 0.5492
+    "num_samples": 420,
+    "accuracy": 0.7262,
+    "macro_f1": 0.7222,
+    "weighted_f1": 0.7222
   },
-  "generated_at": "2026-09-19T06:04:41.709848+00:00"
+  "generated_at": "2026-09-19T10:16:11.646063+00:00"
 }
