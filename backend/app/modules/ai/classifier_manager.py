@@ -41,16 +41,31 @@ class ClassifierManager:
                 self._is_loaded = False
                 return
 
-            if metadata_path.exists():
-                with open(metadata_path, 'r') as f:
-                    metadata = json.load(f)
-                    self.class_mapping = {int(k): v for k, v in metadata.get("class_mapping", {}).items()}
-                    self.model_version = metadata.get("version", "v1")
-            else:
-                # Default mapping based on datasets.ImageFolder sorted order
-                categories = sorted(['Casual', 'Party', 'Formal', 'Ethnic', 'Western', 'Summer', 'Winter'])
-                self.class_mapping = {i: cat for i, cat in enumerate(categories)}
-                self.model_version = "v1"
+            if not metadata_path.exists():
+                # Guessing the class mapping would silently mislabel every prediction,
+                # so refuse to load rather than serve wrong categories.
+                logger.error(
+                    "Model metadata not found at %s. Classification is DISABLED. "
+                    "Run model/evaluate.py to regenerate it.",
+                    metadata_path,
+                )
+                self._is_loaded = False
+                return
+
+            with open(metadata_path, 'r') as f:
+                metadata = json.load(f)
+
+            self.class_mapping = {int(k): v for k, v in metadata.get("class_mapping", {}).items()}
+            self.model_version = metadata.get("version", "")
+
+            if not self.class_mapping or not self.model_version:
+                logger.error(
+                    "Model metadata at %s is missing class_mapping or version. "
+                    "Classification is DISABLED.",
+                    metadata_path,
+                )
+                self._is_loaded = False
+                return
 
             # Load the architecture (e.g., MobileNetV2) and weights
             from torchvision.models import mobilenet_v2

@@ -12,19 +12,17 @@ def train_model():
     
     train_dir = os.path.join(data_dir, 'train')
     val_dir = os.path.join(data_dir, 'val')
-    
-    # If the directories don't exist or are empty (because curation had no images), mock a tiny dataset for training script to run without crashing
-    if not os.path.exists(train_dir) or sum(len(files) for _, _, files in os.walk(train_dir)) == 0:
-        print("Warning: Train dataset not found. Generating dummy data for training.")
-        from PIL import Image
-        for split in ['train', 'val', 'test']:
-            for cat in ['Casual', 'Party', 'Formal', 'Ethnic', 'Western', 'Summer', 'Winter']:
-                cdir = os.path.join(data_dir, split, cat)
-                os.makedirs(cdir, exist_ok=True)
-                # create 2 dummy images
-                for i in range(2):
-                    Image.new('RGB', (224, 224), color = (73, 109, 137)).save(os.path.join(cdir, f"dummy_{i}.png"))
-    
+
+    # Never fabricate training data. An empty dataset is a setup error, not
+    # something to paper over -- training on placeholder images produces a model
+    # whose metrics mean nothing.
+    for split_name, split_dir in (('train', train_dir), ('val', val_dir)):
+        if not os.path.exists(split_dir) or sum(len(files) for _, _, files in os.walk(split_dir)) == 0:
+            raise SystemExit(
+                f"ERROR: {split_name} split is missing or empty:\n  {split_dir}\n\n"
+                "Run dataset/scripts/01_curate_dataset.py first."
+            )
+
     image_datasets = {
         'train': datasets.ImageFolder(train_dir, get_transforms(is_training=True)),
         'val': datasets.ImageFolder(val_dir, get_transforms(is_training=False))
@@ -54,11 +52,16 @@ def train_model():
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
     
-    num_epochs = 2 # Small number for demonstration
+    num_epochs = int(os.environ.get("STYLESYNC_EPOCHS", 15))
+    checkpoint_path = os.path.join(checkpoint_dir, 'mobilenetv2_fashion.pth')
+
+    best_val_acc = 0.0
+    best_epoch = -1
+
     for epoch in range(num_epochs):
         print(f'Epoch {epoch}/{num_epochs - 1}')
         print('-' * 10)
-        
+
         for phase in ['train', 'val']:
             if phase == 'train':
                 model.train()
@@ -90,13 +93,21 @@ def train_model():
             epoch_acc = running_corrects.double() / len(image_datasets[phase])
             
             print(f'{phase} Loss: {epoch_loss:.4f} Acc: {epoch_acc:.4f}')
-            
+
+            # Keep the best-validating weights, not whichever epoch happens to be last.
+            if phase == 'val' and float(epoch_acc) > best_val_acc:
+                best_val_acc = float(epoch_acc)
+                best_epoch = epoch
+                torch.save(model.state_dict(), checkpoint_path)
+                print(f'  -> new best val acc {best_val_acc:.4f}, checkpoint saved')
+
     print("Training complete")
-    
-    # Save checkpoint
-    checkpoint_path = os.path.join(checkpoint_dir, 'mobilenetv2_fashion.pth')
-    torch.save(model.state_dict(), checkpoint_path)
-    print(f"Model saved to {checkpoint_path}")
+
+    if best_epoch < 0:
+        raise SystemExit("ERROR: no epoch improved on validation accuracy; nothing was saved.")
+
+    print(f"Best checkpoint: epoch {best_epoch}, val acc {best_val_acc:.4f} -> {checkpoint_path}")
+    print("Now run model/evaluate.py to regenerate metrics and checkpoints/metadata.json.")
 
 if __name__ == '__main__':
     train_model()

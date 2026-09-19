@@ -1,29 +1,43 @@
+"""Curate a 7-class clothing dataset from DeepFashion raw images.
+
+By default this script REFUSES to invent data: if the raw image directory is
+missing, or a category cannot be filled from real images, it stops with a clear
+error instead of silently generating placeholder images. Pass --allow-synthetic
+to opt into placeholder generation, which is only ever appropriate for smoke
+testing the pipeline -- never for training a model you intend to report on.
+
+Set the raw image location with --raw-dir or the STYLESYNC_RAW_DIR environment
+variable.
+"""
+
+import argparse
 import os
 import shutil
 import random
 import glob
-from pathlib import Path
+import sys
 
 # Paths
-RAW_DIR = r"C:\Users\Lakshya\OneDrive\Desktop\StyleSync\dataset\raw\deepfashion\datasets"
-TRAIN_IMAGES_DIR = os.path.join(RAW_DIR, "train_images")
-TEST_IMAGES_DIR = os.path.join(RAW_DIR, "test_images")
+DEFAULT_RAW_DIR = r"C:\Users\Lakshya\OneDrive\Desktop\StyleSync\dataset\raw\deepfashion\datasets"
+RAW_DIR = os.environ.get("STYLESYNC_RAW_DIR", DEFAULT_RAW_DIR)
 OUT_DIR = r"C:\Users\Lakshya\Desktop\StyleSync\dataset\curated"
 
 # Ensure output directories exist
 splits = ['train', 'val', 'test']
 categories = ['Casual', 'Party', 'Formal', 'Ethnic', 'Western', 'Summer', 'Winter']
 
-for split in splits:
-    for cat in categories:
-        os.makedirs(os.path.join(OUT_DIR, split, cat), exist_ok=True)
+IMAGES_PER_CATEGORY = 100
+
 
 def map_filename_to_category(filename):
+    """Map a DeepFashion filename to one of the seven categories, or None.
+
+    Returning None is correct and expected for filenames the heuristic cannot
+    classify -- they are skipped rather than assigned a guessed label.
+    """
     name = filename.lower()
     # Party
     if 'dresses' in name and 'additional' not in name:
-        if random.random() < 0.2:
-            return 'Ethnic'
         return 'Party'
     if 'rompers_jumpsuits' in name or 'skirts' in name:
         return 'Party'
@@ -82,7 +96,22 @@ def generate_synthetic_image(cat, dest_path):
             
     img.save(dest_path)
 
-def curate():
+def curate(raw_dir, allow_synthetic=False):
+    TRAIN_IMAGES_DIR = os.path.join(raw_dir, "train_images")
+    TEST_IMAGES_DIR = os.path.join(raw_dir, "test_images")
+
+    if not os.path.isdir(raw_dir) and not allow_synthetic:
+        sys.exit(
+            f"ERROR: raw image directory not found:\n  {raw_dir}\n\n"
+            "Point at the DeepFashion images with --raw-dir or STYLESYNC_RAW_DIR.\n"
+            "Refusing to generate placeholder images. Re-run with --allow-synthetic\n"
+            "only if you explicitly want a throwaway dataset for smoke testing."
+        )
+
+    for split in splits:
+        for cat in categories:
+            os.makedirs(os.path.join(OUT_DIR, split, cat), exist_ok=True)
+
     images = []
     if os.path.exists(TRAIN_IMAGES_DIR):
         images.extend(glob.glob(os.path.join(TRAIN_IMAGES_DIR, "*.png")))
@@ -102,26 +131,43 @@ def curate():
         if cat and cat in categorized:
             categorized[cat].append(img_path)
             
+    # Fail before writing anything if the real data cannot fill every category.
+    shortfalls = {
+        cat: IMAGES_PER_CATEGORY - len(categorized[cat])
+        for cat in categories
+        if len(categorized[cat]) < IMAGES_PER_CATEGORY
+    }
+    if shortfalls and not allow_synthetic:
+        lines = "\n".join(
+            f"  {cat}: {len(categorized[cat])} of {IMAGES_PER_CATEGORY} "
+            f"(short by {missing})"
+            for cat, missing in shortfalls.items()
+        )
+        sys.exit(
+            "ERROR: the raw data cannot fill every category:\n"
+            f"{lines}\n\n"
+            "Categories with no filename heuristic (notably Ethnic) need real labelled\n"
+            "images or an explicit mapping -- they will not be invented.\n"
+            "Refusing to pad with placeholder images. Re-run with --allow-synthetic\n"
+            "only if you explicitly want a throwaway dataset for smoke testing."
+        )
+
     # Sample and split
-    # Target: 100 per class (70 train, 15 val, 15 test)
+    # Target: IMAGES_PER_CATEGORY per class (70 train, 15 val, 15 test)
     for cat in categories:
         available = categorized[cat]
         print(f"Category {cat}: {len(available)} available")
-        
-        selected = []
-        if len(available) == 0:
-            print(f"Warning: No images for {cat}. Generating synthetic images to meet requirements.")
-            # We generate 100 fake paths to trigger synthetic generation
-            selected = [f"synthetic_{cat}_{i}.png" for i in range(100)]
-        else:
-            random.shuffle(available)
-            selected = available[:100]
-            
-            # If less than 100, pad with synthetic
-            if len(selected) < 100:
-                print(f"Padding {cat} with {100 - len(selected)} synthetic images.")
-                selected.extend([f"synthetic_{cat}_{i}.png" for i in range(100 - len(selected))])
-        
+
+        random.shuffle(available)
+        selected = available[:IMAGES_PER_CATEGORY]
+
+        if len(selected) < IMAGES_PER_CATEGORY:
+            # Only reachable with --allow-synthetic; loudly marked as not real data.
+            missing = IMAGES_PER_CATEGORY - len(selected)
+            print(f"  !! PLACEHOLDER: padding {cat} with {missing} generated images "
+                  f"-- this dataset is NOT suitable for reported results")
+            selected.extend([f"synthetic_{cat}_{i}.png" for i in range(missing)])
+
         n_total = len(selected)
         n_train = int(n_total * 0.7)
         n_val = int(n_total * 0.15)
@@ -144,5 +190,17 @@ def curate():
                         print(f"Failed to copy {img_p}: {e}")
 
 if __name__ == '__main__':
-    curate()
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--raw-dir", default=RAW_DIR,
+                        help="Directory holding DeepFashion train_images/ and test_images/")
+    parser.add_argument("--allow-synthetic", action="store_true",
+                        help="Permit generated placeholder images when real data is missing "
+                             "(smoke testing only -- never for reported results)")
+    args = parser.parse_args()
+
+    if args.allow_synthetic:
+        print("!! --allow-synthetic is set: output may contain generated placeholder "
+              "images and must not be used for reported results.\n")
+
+    curate(args.raw_dir, allow_synthetic=args.allow_synthetic)
     print("Curation complete.")
