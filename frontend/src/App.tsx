@@ -34,6 +34,7 @@ import { EditDressModal } from './features/wardrobe/EditDressModal'
 import { WardrobeFilterBar } from './features/wardrobe/WardrobeFilterBar'
 import { WardrobeGrid } from './features/wardrobe/WardrobeGrid'
 import { DuplicateAlertModal } from './features/shopping/DuplicateAlertModal'
+import { OutfitAnalysisPanel } from './features/outfit/OutfitAnalysisPanel'
 import type { DuplicateCheckResult, DuplicateDecision, SimilarItem } from './types/shopping'
 import type {
   CreateDressInput,
@@ -457,6 +458,8 @@ export function App() {
             ? 'Backend connection failed or token expired. Try signing out and back in.'
             : notice}
         </div>
+
+        <OutfitAnalysisPanel token={session.token} />
 
         {/* Wardrobe Section */}
         <section id="wardrobe" className="scroll-mt-4 space-y-6">
