@@ -232,3 +232,36 @@ async def test_fastapi_wardrobe_ai_upload_endpoint():
         assert "pattern" in payload
         assert "season" in payload
         assert "occasion" in payload
+
+
+def test_vocabulary_covers_ethnic_garments():
+    """Zero-shot classification can only return a label it was given.
+
+    Without ethnic garments in the candidate list, a saree or anarkali is forced
+    onto the nearest Western word -- an anarkali was being reported as "skirt".
+    """
+    from app.modules.ai.service import CANDIDATE_TYPES
+
+    for garment in ("saree", "lehenga", "anarkali", "kurta", "salwar kameez"):
+        assert garment in CANDIDATE_TYPES, f"{garment} missing from CANDIDATE_TYPES"
+
+
+def test_ethnic_outfits_map_to_sensible_categories():
+    from app.modules.ai.service import (
+        ACCESSORY_TYPES,
+        CANDIDATE_TYPES,
+        ONE_PIECE_TYPES,
+        OUTERWEAR_TYPES,
+    )
+
+    # Complete outfits are not "separates".
+    for garment in ("saree", "lehenga", "anarkali", "sherwani"):
+        assert garment in ONE_PIECE_TYPES
+
+    assert "dupatta" in ACCESSORY_TYPES
+    assert not ONE_PIECE_TYPES & OUTERWEAR_TYPES
+
+    # Every mapped type must be something the classifier can actually return.
+    for mapped in ONE_PIECE_TYPES | OUTERWEAR_TYPES | ACCESSORY_TYPES:
+        if mapped not in {"jumpsuit", "romper"}:  # retained for older records
+            assert mapped in CANDIDATE_TYPES, f"{mapped} mapped but not a candidate"

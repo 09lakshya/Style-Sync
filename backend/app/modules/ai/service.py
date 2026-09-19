@@ -12,12 +12,27 @@ logger = logging.getLogger("stylesync.ai.service")
 
 # Candidate label sets for Zero-Shot attribute extraction
 CANDIDATE_TYPES = [
+    # Western
     "dress", "shirt", "blouse", "top", "t-shirt",
     "skirt", "pants", "jeans", "shorts",
     "jacket", "coat", "blazer", "sweater", "hoodie",
+    # Ethnic / South Asian. Zero-shot classification can only return a label it
+    # was given, so without these an anarkali or saree is forced onto the nearest
+    # Western word -- typically "skirt" or "dress". The wardrobe has an Ethnic
+    # category, so the vocabulary has to cover it.
+    "saree", "lehenga", "anarkali", "salwar kameez", "kurta", "kurti",
+    "churidar", "sherwani", "dupatta",
 ]
 
 CANDIDATE_CATEGORIES = ["one_piece", "separates", "outerwear", "accessories"]
+
+# Garments worn as a single complete outfit rather than separates.
+ONE_PIECE_TYPES = {
+    "dress", "jumpsuit", "romper",
+    "saree", "lehenga", "anarkali", "salwar kameez", "sherwani",
+}
+OUTERWEAR_TYPES = {"jacket", "coat", "blazer"}
+ACCESSORY_TYPES = {"dupatta"}
 
 CANDIDATE_COLORS = [
     "blue", "white", "black", "green", "red", "pink",
@@ -74,10 +89,12 @@ class AIService:
             top_type = rule_meta["type"]
 
         # Determine Category based on type
-        if top_type in {"dress", "jumpsuit", "romper"}:
+        if top_type in ONE_PIECE_TYPES:
             category = "one_piece"
-        elif top_type in {"jacket", "coat", "blazer"}:
+        elif top_type in OUTERWEAR_TYPES:
             category = "outerwear"
+        elif top_type in ACCESSORY_TYPES:
+            category = "accessories"
         else:
             category = "separates"
         cat_conf = max(type_conf, 0.75)
