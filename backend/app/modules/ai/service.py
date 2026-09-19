@@ -72,8 +72,41 @@ class AIService:
         start_time = time.perf_counter()
         logger.info("Starting AI metadata extraction (filename=%s)", filename)
 
+        # In a full-scene photo the background dominates what CLIP sees -- a room
+        # portrait measured here put the person at 5.8% of the frame and the
+        # colour came back as the carpet rather than the outfit. Crop to the
+        # subject in that case only; normally framed photos are left untouched
+        # (see subject_detector, which is deliberately conservative).
+        #
+        # The crop must happen at full resolution, BEFORE downscaling to 224px --
+        # cropping the downscaled image leaves a handful of pixels to upscale.
+        #
+        # Deliberately not applied to embeddings: the duplicate-detection
+        # thresholds are calibrated on uncropped images.
+        analysis_bytes = file_bytes
         try:
-            pil_image = self.preprocess_image(file_bytes)
+            import io as _io
+
+            from app.modules.ai.subject_detector import subject_detector
+
+            original = Image.open(_io.BytesIO(file_bytes)).convert("RGB")
+            cropped, crop_info = subject_detector.crop_to_subject(original)
+            if crop_info.get("cropped"):
+                buffer = _io.BytesIO()
+                cropped.save(buffer, format="PNG")
+                analysis_bytes = buffer.getvalue()
+                logger.info(
+                    "Cropped to subject (coverage %.3f, score %.3f) before attribute extraction",
+                    crop_info["coverage"], crop_info["score"],
+                )
+        except Exception as exc:
+            logger.warning("Subject cropping skipped: %s", exc)
+
+        try:
+            # CLAHE sharpens structure but shifts hue, so colour is read from the
+            # un-enhanced image and everything else from the enhanced one.
+            pil_image = self.preprocess_image(analysis_bytes)
+            colour_image = self.preprocessor.preprocess_for_clip(analysis_bytes, enhance=False)
         except Exception as exc:
             logger.warning("Preprocessing failed, falling back to rule-based inference: %s", exc)
             return infer_metadata(filename)
@@ -100,7 +133,7 @@ class AIService:
         cat_conf = max(type_conf, 0.75)
 
         # 2. Classify Primary Color
-        color_results = self.clip.zero_shot_classify(pil_image, CANDIDATE_COLORS, prompt_template="a photo of {} colored clothing")
+        color_results = self.clip.zero_shot_classify(colour_image, CANDIDATE_COLORS, prompt_template="a photo of {} colored clothing")
         top_color, color_conf = color_results[0] if color_results else ("blue", 0.5)
         secondary_colors = [c for c, p in color_results[1:3] if p > 0.18]
 
