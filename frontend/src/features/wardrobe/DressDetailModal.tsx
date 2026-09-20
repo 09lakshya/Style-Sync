@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { X, Edit2, RefreshCw, Trash2, Calendar, Tag, Activity, AlertTriangle, Loader2, Sparkles } from 'lucide-react'
+import { X, Edit2, RefreshCw, Trash2, Calendar, Tag, Activity, AlertTriangle, Check, Loader2, Sparkles } from 'lucide-react'
 import type { WardrobeItem } from '../../types/wardrobe'
 import { formatScore } from '../../lib/utils'
 
@@ -10,8 +10,11 @@ interface DressDetailModalProps {
   onEdit: (item: WardrobeItem) => void
   onReplaceImage: (item: WardrobeItem, file: File) => void
   onDelete: (itemId: string) => void
+  /** Records one wearing: the server adds 1 and stamps today as the last worn date. */
+  onMarkWorn?: (item: WardrobeItem) => void
   isReplacingImage?: boolean
   isDeleting?: boolean
+  isMarkingWorn?: boolean
 }
 
 export function DressDetailModal({
@@ -21,8 +24,10 @@ export function DressDetailModal({
   onEdit,
   onReplaceImage,
   onDelete,
+  onMarkWorn,
   isReplacingImage,
   isDeleting,
+  isMarkingWorn,
 }: DressDetailModalProps) {
   const [showConfirmDelete, setShowConfirmDelete] = useState(false)
 
@@ -112,8 +117,23 @@ export function DressDetailModal({
                     <span className="text-xs text-stone-400">Wear Count</span>
                     <p className="mt-1 font-semibold text-stone-200 flex items-center gap-1">
                       <Activity className="h-4 w-4 text-[#a15c38]" />
-                      {item.wearCount} times
+                      {item.wearCount} {item.wearCount === 1 ? 'time' : 'times'}
                     </p>
+                    {onMarkWorn && (
+                      <button
+                        type="button"
+                        onClick={() => onMarkWorn(item)}
+                        disabled={isMarkingWorn}
+                        className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-[#38332c] bg-stone-900 px-2.5 py-1 text-xs font-medium text-stone-300 transition-colors hover:bg-stone-800 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#a15c38]"
+                      >
+                        {isMarkingWorn ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Check className="h-3.5 w-3.5" />
+                        )}
+                        Mark as worn today
+                      </button>
+                    )}
                   </div>
                 </div>
 

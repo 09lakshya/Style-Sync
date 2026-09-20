@@ -211,6 +211,7 @@ class WardrobeService:
         purchase_date: str | datetime | None = None,
         occasion: str | list[str] | None = None,
         last_worn_date: str | datetime | None = None,
+        wear_count: int | None = None,
     ) -> dict[str, Any]:
         """Update metadata of an existing wardrobe item after verifying ownership."""
         await self.get_item_by_id(item_id, user_id)
@@ -232,6 +233,14 @@ class WardrobeService:
                 updates["occasion"] = [o.strip() for o in occasion if o and o.strip()]
         if last_worn_date is not None:
             updates["last_worn_at"] = _parse_datetime(last_worn_date)
+        if wear_count is not None:
+            # A correction of the running total, so it may go down as well as up.
+            if wear_count < 0:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="wear_count cannot be negative.",
+                )
+            updates["wear_count"] = int(wear_count)
 
         updated_item = await wardrobe_repository.update_item(item_id, user_id, updates)
         if not updated_item:

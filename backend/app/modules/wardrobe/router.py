@@ -15,6 +15,7 @@ class UpdateWardrobeItemSchema(BaseModel):
     purchase_date: str | None = None
     occasion: str | list[str] | None = None
     last_worn_date: str | None = None
+    wear_count: int | None = None
 
 
 @router.get("/items")
@@ -89,6 +90,7 @@ async def update_wardrobe_item(
         purchase_date=payload.purchase_date,
         occasion=payload.occasion,
         last_worn_date=payload.last_worn_date,
+        wear_count=payload.wear_count,
     )
     return {"item": _public_item(item)}
 

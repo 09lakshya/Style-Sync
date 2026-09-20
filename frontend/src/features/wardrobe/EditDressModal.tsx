@@ -58,6 +58,8 @@ export function EditDressModal({ item, isOpen, onClose, onSubmit, isSubmitting }
   const [purchaseDate, setPurchaseDate] = useState(item?.purchaseDate || '')
   const [occasion, setOccasion] = useState(item?.occasion[0] || 'Casual')
   const [lastWornDate, setLastWornDate] = useState(item?.lastWornDate !== 'Not worn yet' ? item?.lastWornDate || '' : '')
+  // Kept as a string so the field can be cleared while typing.
+  const [wearCount, setWearCount] = useState(String(item?.wearCount ?? 0))
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   // Sync state if item changes
@@ -70,6 +72,7 @@ export function EditDressModal({ item, isOpen, onClose, onSubmit, isSubmitting }
       setPurchaseDate(item.purchaseDate || '')
       setOccasion(item.occasion[0] || 'Casual')
       setLastWornDate(item.lastWornDate !== 'Not worn yet' ? item.lastWornDate : '')
+      setWearCount(String(item.wearCount ?? 0))
     }
   }, [item])
 
@@ -82,6 +85,12 @@ export function EditDressModal({ item, isOpen, onClose, onSubmit, isSubmitting }
       return
     }
 
+    const parsedWearCount = Number(wearCount)
+    if (!Number.isInteger(parsedWearCount) || parsedWearCount < 0) {
+      setErrorMessage('Times worn must be a whole number of 0 or more.')
+      return
+    }
+
     onSubmit({
       id: item!.id,
       name: name.trim(),
@@ -91,6 +100,7 @@ export function EditDressModal({ item, isOpen, onClose, onSubmit, isSubmitting }
       purchaseDate,
       occasion,
       lastWornDate,
+      wearCount: parsedWearCount,
     })
   }
 
@@ -219,6 +229,27 @@ export function EditDressModal({ item, isOpen, onClose, onSubmit, isSubmitting }
                 onChange={(e) => setLastWornDate(e.target.value)}
                 className="w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 focus:border-[#a15c38] focus:outline-none"
               />
+            </div>
+
+            <div>
+              <label
+                htmlFor="edit-wear-count"
+                className="block text-xs font-medium uppercase tracking-wider text-stone-400 mb-1.5"
+              >
+                Times Worn
+              </label>
+              <input
+                id="edit-wear-count"
+                type="number"
+                min={0}
+                step={1}
+                value={wearCount}
+                onChange={(e) => setWearCount(e.target.value)}
+                className="w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 focus:border-[#a15c38] focus:outline-none"
+              />
+              <p className="mt-1.5 text-xs text-stone-500">
+                Correct the running total. Use &ldquo;Mark as worn today&rdquo; to log a single wearing.
+              </p>
             </div>
           </div>
 

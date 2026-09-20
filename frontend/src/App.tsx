@@ -25,6 +25,7 @@ import {
   createWardrobeItem,
   deleteWardrobeItem,
   fetchWardrobeItems,
+  markWardrobeItemWorn,
   replaceWardrobeItemImage,
   updateWardrobeItem,
 } from './api/wardrobeApi'
@@ -182,6 +183,28 @@ export function App() {
       void queryClient.invalidateQueries({ queryKey: ['wardrobe-items', session?.token] })
     },
     onError: (error) => setNotice(error instanceof Error ? error.message : 'Update failed.'),
+  })
+
+  const markWornMutation = useMutation({
+    mutationFn: (itemId: string) => markWardrobeItemWorn(itemId, session?.token ?? ''),
+    onSuccess: (updatedItem) => {
+      if (selectedDetailItem?.id === updatedItem.id) {
+        setSelectedDetailItem(updatedItem)
+      }
+      setNotice(
+        `Logged a wearing of "${updatedItem.name}" — now ${updatedItem.wearCount} ${
+          updatedItem.wearCount === 1 ? 'time' : 'times'
+        }.`
+      )
+      queryClient.setQueryData<WardrobeItem[]>(
+        ['wardrobe-items', session?.token],
+        (current = []) => current.map((i) => (i.id === updatedItem.id ? updatedItem : i))
+      )
+      void queryClient.invalidateQueries({ queryKey: ['wardrobe-items', session?.token] })
+      void queryClient.invalidateQueries({ queryKey: ['wardrobe-analytics', session?.token] })
+    },
+    onError: (error) =>
+      setNotice(error instanceof Error ? error.message : 'Could not record the wearing.'),
   })
 
   const replaceImageMutation = useMutation({
@@ -590,6 +613,8 @@ export function App() {
           setSelectedDetailItem(null)
           setEditingItem(item)
         }}
+        onMarkWorn={(item) => markWornMutation.mutate(item.id)}
+        isMarkingWorn={markWornMutation.isPending}
         onReplaceImage={(item, file) =>
           replaceImageMutation.mutate({ itemId: item.id, file })
         }

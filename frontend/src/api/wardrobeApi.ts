@@ -112,7 +112,21 @@ export async function updateWardrobeItem(
       purchase_date: input.purchaseDate,
       occasion: input.occasion,
       last_worn_date: input.lastWornDate,
+      wear_count: input.wearCount,
     }),
+  })
+  const payload = await parseResponse<{ item: ApiWardrobeItem }>(response)
+  return toWardrobeItem(payload.item)
+}
+
+/** Records one wearing: adds 1 to the count and sets "last worn" to now, server-side. */
+export async function markWardrobeItemWorn(
+  itemId: string,
+  token: string
+): Promise<WardrobeItem> {
+  const response = await fetch(`${API_BASE_URL}/wardrobe/items/${itemId}/wear`, {
+    method: 'POST',
+    headers: getAuthHeader(token),
   })
   const payload = await parseResponse<{ item: ApiWardrobeItem }>(response)
   return toWardrobeItem(payload.item)

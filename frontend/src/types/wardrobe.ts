@@ -73,6 +73,7 @@ export interface UpdateDressMetadataInput {
   purchaseDate?: string
   occasion?: string
   lastWornDate?: string
+  wearCount?: number
 }
 
 export interface WardrobeFilterState {
