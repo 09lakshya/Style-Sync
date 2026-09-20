@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { X, Edit2, RefreshCw, Trash2, Calendar, Tag, Activity, AlertTriangle, Check, Loader2, Sparkles } from 'lucide-react'
+import { X, Edit2, RefreshCw, Trash2, AlertTriangle, Check, Loader2 } from 'lucide-react'
 import type { WardrobeItem } from '../../types/wardrobe'
 import { formatScore } from '../../lib/utils'
 
@@ -84,8 +84,7 @@ export function DressDetailModal({
             <div className="flex flex-col justify-between p-6 sm:p-8 space-y-6">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[#332b21] px-2.5 py-0.5 text-xs font-medium text-[#d99b77] capitalize">
-                    <Tag className="h-3 w-3" />
+                  <span className="inline-flex items-center rounded-full bg-[#332b21] px-2.5 py-0.5 text-xs font-medium text-[#d99b77] capitalize">
                     {item.type}
                   </span>
                   {item.brand && (
@@ -115,8 +114,7 @@ export function DressDetailModal({
                   </div>
                   <div className="rounded-lg border border-[#2b2722] bg-[#211f1c] p-3">
                     <span className="text-xs text-stone-400">Wear Count</span>
-                    <p className="mt-1 font-semibold text-stone-200 flex items-center gap-1">
-                      <Activity className="h-4 w-4 text-[#a15c38]" />
+                    <p className="mt-1 font-semibold text-stone-200">
                       {item.wearCount} {item.wearCount === 1 ? 'time' : 'times'}
                     </p>
                     {onMarkWorn && (
@@ -138,10 +136,7 @@ export function DressDetailModal({
                 </div>
 
                 <div className="mt-4 rounded-lg border border-[#a15c38]/30 bg-[#241a14]/50 p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Sparkles className="h-4 w-4 text-[#d99b77]" />
-                    <h4 className="text-sm font-semibold text-[#d99b77]">AI Classification</h4>
-                  </div>
+                  <h4 className="mb-2 text-sm font-semibold text-[#d99b77]">AI Classification</h4>
                   {item.predictedCategory ? (
                     <div className="grid grid-cols-2 gap-4 text-xs">
                       <div>
@@ -171,15 +166,9 @@ export function DressDetailModal({
                 {/* Dates Section */}
                 <div className="mt-4 space-y-2 text-xs text-stone-400">
                   {item.purchaseDate && (
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-3.5 w-3.5 text-stone-400" />
-                      <span>Purchased on: <strong className="text-stone-200">{item.purchaseDate}</strong></span>
-                    </div>
+                    <p>Purchased on: <strong className="text-stone-200">{item.purchaseDate}</strong></p>
                   )}
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-3.5 w-3.5 text-stone-400" />
-                    <span>Last worn: <strong className="text-stone-200">{item.lastWornDate}</strong></span>
-                  </div>
+                  <p>Last worn: <strong className="text-stone-200">{item.lastWornDate}</strong></p>
                 </div>
               </div>
 

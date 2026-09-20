@@ -1,18 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
-  AlertCircle,
-  BarChart3,
   CalendarDays,
-  CheckCircle2,
   CloudUpload,
   Layers3,
-  Palette,
   Plus,
   Search,
   Shirt,
-  Sparkles,
   TrendingUp,
-  WandSparkles,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
@@ -419,10 +413,11 @@ export function App() {
         <section className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
           <div className="overflow-hidden rounded-xl border border-[#ded8ce] bg-[#fbfaf7] shadow-sm">
             <div className="grid min-h-[380px] lg:grid-cols-[0.95fr_1.05fr]">
-              <div className="flex flex-col justify-between p-6 sm:p-8">
+              {/* Centred rather than spread: the copy is short, so justify-between
+                  left a large gap above the button. */}
+              <div className="flex flex-col justify-center p-6 sm:p-8">
                 <div>
-                  <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#dad0c1] bg-white px-3.5 py-1 text-xs font-medium text-[#5c625d]">
-                    <Sparkles className="h-4 w-4 text-[#a15c38]" />
+                  <div className="mb-5 inline-flex items-center rounded-full border border-[#dad0c1] bg-white px-4 py-1.5 text-sm font-medium text-[#5c625d]">
                     Digital Wardrobe Module
                   </div>
                   <h1 className="max-w-xl text-4xl font-semibold leading-tight text-[#20231f] sm:text-5xl">
@@ -457,7 +452,6 @@ export function App() {
 
           <div className="flex flex-col gap-4">
             <WorkflowCard
-              icon={Search}
               title="Duplicate purchase check"
               description="Compare a new shopping image against your current digital wardrobe items."
             >
@@ -478,11 +472,6 @@ export function App() {
             <div className="lg:relative lg:min-h-0 lg:flex-1">
               <section className="flex flex-col rounded-xl border border-[#ded8ce] bg-[#fbfaf7] p-4 lg:absolute lg:inset-0">
                 <div className="mb-3 flex items-center gap-2">
-                  {duplicateDecision === 'similar_found' ? (
-                    <AlertCircle className="h-5 w-5 text-[#a15c38]" />
-                  ) : (
-                    <CheckCircle2 className="h-5 w-5 text-[#557660]" />
-                  )}
                   <h2 className="text-base font-semibold">Similarity report</h2>
                   {duplicateDecision && (
                     <span className="ml-auto rounded-full bg-[#f0e8dd] px-2 py-0.5 text-xs font-medium text-[#7f4b2f]">
@@ -570,7 +559,7 @@ export function App() {
             />
 
             <aside id="insights" className="scroll-mt-4 space-y-4">
-              <Panel title="Recommendations" icon={WandSparkles}>
+              <Panel title="Recommendations">
                 {recommendations.slice(0, 3).map((recommendation) => (
                   <RecommendationCard
                     key={recommendation.items.map((item) => item.id).join('-')}
@@ -579,13 +568,13 @@ export function App() {
                 ))}
               </Panel>
 
-              <Panel title="Analytics" icon={BarChart3}>
+              <Panel title="Analytics">
                 <StatLine label="Duplicate risk checks" value={`${duplicateChecks} today`} />
                 <StatLine label="Most common color" value={topColor} />
                 <StatLine label="Long-unused pieces" value={underused.toString()} />
               </Panel>
 
-              <Panel title="Color guidance" icon={Palette}>
+              <Panel title="Color guidance">
                 <p className="text-sm leading-6 text-[#646b64]">
                   {colorHints[topColor] ?? 'Use one anchor color, one neutral, and one accent.'}
                 </p>
@@ -777,26 +766,19 @@ const decisionLabels: Record<DuplicateDecision, string> = {
 }
 
 function WorkflowCard({
-  icon: Icon,
   title,
   description,
   children,
 }: {
-  icon: typeof Shirt
   title: string
   description: string
   children: ReactNode
 }) {
   return (
     <section className="rounded-xl border border-[#ded8ce] bg-white p-5 shadow-sm">
-      <div className="mb-4 flex items-start gap-3">
-        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-[#f0e8dd] text-[#895035]">
-          <Icon className="h-5 w-5" />
-        </div>
-        <div>
-          <h2 className="text-lg font-semibold text-[#1f2328]">{title}</h2>
-          <p className="text-xs text-[#687068]">{description}</p>
-        </div>
+      <div className="mb-4">
+        <h2 className="text-lg font-semibold text-[#1f2328]">{title}</h2>
+        <p className="text-xs text-[#687068]">{description}</p>
       </div>
       {children}
     </section>
@@ -829,19 +811,14 @@ function FileInput({
 
 function Panel({
   title,
-  icon: Icon,
   children,
 }: {
   title: string
-  icon: typeof Shirt
   children: ReactNode
 }) {
   return (
     <section className="rounded-xl border border-[#ded8ce] bg-white p-4 shadow-sm">
-      <div className="mb-3 flex items-center gap-2">
-        <Icon className="h-4 w-4 text-[#895035]" />
-        <h2 className="font-semibold text-sm text-[#1f2328]">{title}</h2>
-      </div>
+      <h2 className="mb-3 font-semibold text-sm text-[#1f2328]">{title}</h2>
       <div className="space-y-3">{children}</div>
     </section>
   )

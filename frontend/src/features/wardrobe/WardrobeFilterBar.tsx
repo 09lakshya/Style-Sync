@@ -1,5 +1,5 @@
 import React from 'react'
-import { Search, SlidersHorizontal, ArrowUpDown } from 'lucide-react'
+import { Search } from 'lucide-react'
 import type { WardrobeFilterState } from '../../types/wardrobe'
 
 interface WardrobeFilterBarProps {
@@ -68,7 +68,6 @@ export function WardrobeFilterBar({ filters, onChange, totalCount }: WardrobeFil
         {/* Filter & Sort Controls */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <div className="flex items-center gap-1.5 rounded-lg border border-[#38332c] bg-[#211f1c] px-3 py-1.5 text-xs text-stone-300">
-            <SlidersHorizontal className="h-3.5 w-3.5 text-[#a15c38]" />
             <span className="hidden sm:inline font-medium">Filters:</span>
 
             {/* Color */}
@@ -120,7 +119,7 @@ export function WardrobeFilterBar({ filters, onChange, totalCount }: WardrobeFil
 
           {/* Sort Select */}
           <div className="flex items-center gap-1.5 rounded-lg border border-[#38332c] bg-[#211f1c] px-3 py-1.5 text-xs text-stone-300">
-            <ArrowUpDown className="h-3.5 w-3.5 text-[#a15c38]" />
+            <span className="hidden sm:inline font-medium">Sort:</span>
             <select
               value={filters.sortBy}
               onChange={handleSortChange}

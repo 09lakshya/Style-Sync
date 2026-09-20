@@ -1,4 +1,4 @@
-import { Plus, Calendar, Activity, Sparkles } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import type { WardrobeItem } from '../../types/wardrobe'
 import { formatScore } from '../../lib/utils'
 
@@ -33,9 +33,6 @@ export function WardrobeGrid({ items, isLoading, onSelectItem, onAddDressClick }
   if (items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#38332c] bg-[#141311] py-16 px-6 text-center shadow-inner">
-        <div className="grid h-16 w-16 place-items-center rounded-full border border-[#4d3324] bg-[#241a14] text-[#a15c38] mb-4">
-          <Sparkles className="h-8 w-8" />
-        </div>
         <h3 className="text-2xl font-bold text-[#f7f4ef]">Your wardrobe is waiting.</h3>
         <p className="mt-2 max-w-md text-sm text-stone-400 leading-relaxed">
           Add your first piece and start building your digital wardrobe.
@@ -81,7 +78,6 @@ export function WardrobeGrid({ items, isLoading, onSelectItem, onAddDressClick }
                 className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-md border border-[#a15c38]/50 bg-[#241a14]/80 px-2.5 py-1 text-xs font-medium text-[#d99b77] backdrop-blur-md"
                 title={`AI classified as ${item.predictedCategory}`}
               >
-                <Sparkles className="h-3 w-3" />
                 <span className="capitalize">{item.predictedCategory}</span>
                 {formatScore(item.predictionConfidence) && (
                   <span className="text-[11px] text-[#d99b77]/70">
@@ -117,14 +113,8 @@ export function WardrobeGrid({ items, isLoading, onSelectItem, onAddDressClick }
 
             {/* Footer */}
             <div className="flex items-center justify-between text-xs text-stone-400 pt-2 border-t border-[#2b2722]">
-              <span className="inline-flex items-center gap-1">
-                <Activity className="h-3.5 w-3.5 text-[#a15c38]" />
-                {item.wearCount} wears
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <Calendar className="h-3.5 w-3.5" />
-                {item.lastWornDate}
-              </span>
+              <span>{item.wearCount} wears</span>
+              <span>{item.lastWornDate}</span>
             </div>
           </div>
         </article>

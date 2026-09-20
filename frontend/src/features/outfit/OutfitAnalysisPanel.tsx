@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { CloudUpload, Loader2, Sparkles, WandSparkles } from 'lucide-react'
+import { CloudUpload, Loader2 } from 'lucide-react'
 import { analyzeOutfit } from '../../api/outfitApi'
 import type { OutfitAnalysis, OutfitGender } from '../../types/outfit'
 import { STYLING_SLOTS } from '../../types/outfit'
@@ -53,10 +53,7 @@ export function OutfitAnalysisPanel({ token }: OutfitAnalysisPanelProps) {
       id="outfit-analysis"
       className="scroll-mt-4 rounded-xl border border-[#ded8ce] bg-white p-5 shadow-sm"
     >
-      <div className="mb-4 flex items-start gap-3">
-        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-[#f0e8dd] text-[#895035]">
-          <WandSparkles className="h-5 w-5" />
-        </div>
+      <div className="mb-4">
         <div>
           <h2 className="text-lg font-semibold text-[#1f2328]">Outfit analysis</h2>
           <p className="text-xs text-[#687068]">
@@ -99,7 +96,7 @@ export function OutfitAnalysisPanel({ token }: OutfitAnalysisPanelProps) {
             disabled={!file || isAnalyzing}
             className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-[#a15c38] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#b56942] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {isAnalyzing && <Loader2 className="h-4 w-4 animate-spin" />}
             {isAnalyzing ? 'Analyzing outfit...' : 'Analyze outfit'}
           </button>
         </div>
