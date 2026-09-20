@@ -15,7 +15,7 @@ export function EditorialVisual() {
       {/* Bottom Editorial Copy */}
       <div className="relative z-10 max-w-lg space-y-4 mt-auto">
         <h2 className="font-serif-editorial text-4xl xl:text-5xl font-light text-[#F5F2EB] leading-tight tracking-wide">
-          Curate your wardrobe with surgical precision.
+          Curate your wardrobe with precision.
         </h2>
         <p className="text-sm font-sans-ui text-[#B8AD9A] leading-relaxed tracking-wide">
           Digital closet organization, duplicate purchase prevention, and AI-tailored outfit curation designed for modern elegance.

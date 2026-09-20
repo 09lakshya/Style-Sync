@@ -70,7 +70,9 @@ export function LoginPage({ onSessionSuccess, onNavigateToSignup }: LoginPagePro
       <EditorialVisual />
 
       {/* 50% Desktop Right Column - Sign In Form */}
-      <main className="w-full lg:w-1/2 flex flex-col justify-between min-h-screen p-6 sm:p-12 lg:p-20 bg-[#0A0A09]">
+      {/* Sized to the viewport on desktop so the Sign In button is reachable without
+          scrolling; it scrolls only if the content genuinely cannot fit. */}
+      <main className="w-full lg:w-1/2 flex flex-col justify-between min-h-screen lg:h-screen lg:overflow-y-auto px-6 py-6 sm:px-12 sm:py-8 lg:px-16 lg:py-10 bg-[#0A0A09]">
         {/* Brand Header */}
         <header className="flex items-center justify-between">
           <div className="flex items-baseline gap-2">
@@ -88,10 +90,10 @@ export function LoginPage({ onSessionSuccess, onNavigateToSignup }: LoginPagePro
         </header>
 
         {/* Form Container */}
-        <div className="w-full max-w-md mx-auto my-auto py-8">
-          <div className="mb-8 space-y-2">
+        <div className="w-full max-w-md mx-auto my-auto py-6 lg:py-4">
+          <div className="mb-6 space-y-2">
             <p className="text-xs uppercase tracking-widest text-[#B8AD9A] font-medium">Welcome Back</p>
-            <h1 className="font-serif-editorial text-4xl sm:text-5xl font-normal text-[#F5F2EB] tracking-wide">
+            <h1 className="font-serif-editorial text-3xl sm:text-4xl font-normal text-[#F5F2EB] tracking-wide">
               Sign in to your wardrobe
             </h1>
             <p className="text-sm text-[#B8AD9A] pt-1">
@@ -101,7 +103,7 @@ export function LoginPage({ onSessionSuccess, onNavigateToSignup }: LoginPagePro
 
           {errors.general && (
             <div
-              className="mb-6 border border-amber-500/30 bg-amber-950/20 px-4 py-3 text-xs text-amber-300 animate-fade-in font-sans-ui flex flex-col gap-1"
+              className="mb-4 border border-amber-500/30 bg-amber-950/20 px-4 py-3 text-xs text-amber-300 animate-fade-in font-sans-ui flex flex-col gap-1"
               role="alert"
             >
               <span>{errors.general}</span>
@@ -121,7 +123,7 @@ export function LoginPage({ onSessionSuccess, onNavigateToSignup }: LoginPagePro
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+          <form onSubmit={handleSubmit} className="space-y-5" noValidate>
             <AuthInput
               label="Email Address"
               type="email"
@@ -172,7 +174,7 @@ export function LoginPage({ onSessionSuccess, onNavigateToSignup }: LoginPagePro
             </button>
           </form>
 
-          <div className="mt-8 text-center pt-6 border-t border-white/5">
+          <div className="mt-6 text-center pt-4 border-t border-white/5">
             <p className="text-xs text-[#B8AD9A]">
               Don&apos;t have an account?{' '}
               <button
