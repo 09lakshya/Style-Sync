@@ -55,6 +55,8 @@ export function AddDressModal({ isOpen, onClose, onSubmit, isSubmitting, error }
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [name, setName] = useState('')
   const [color, setColor] = useState('Blue')
+  // Free-text colour, used only while the select sits on "Other".
+  const [customColor, setCustomColor] = useState('')
   const [pattern, setPattern] = useState('Solid')
   const [brand, setBrand] = useState('')
   const [purchaseDate, setPurchaseDate] = useState('')
@@ -128,11 +130,17 @@ export function AddDressModal({ isOpen, onClose, onSubmit, isSubmitting, error }
       return
     }
 
+    const resolvedColor = color === 'Other' ? customColor.trim() : color
+    if (!resolvedColor) {
+      setErrorMessage('Please type a color, or pick one from the list.')
+      return
+    }
+
     setErrorMessage(null)
     onSubmit({
       file,
       name: name.trim(),
-      color,
+      color: resolvedColor,
       pattern,
       brand: brand.trim(),
       purchaseDate,
@@ -247,10 +255,14 @@ export function AddDressModal({ isOpen, onClose, onSubmit, isSubmitting, error }
             </div>
 
             <div>
-              <label className="block text-xs font-medium uppercase tracking-wider text-stone-400 mb-1.5">
+              <label
+                htmlFor="add-dress-color"
+                className="block text-xs font-medium uppercase tracking-wider text-stone-400 mb-1.5"
+              >
                 Color *
               </label>
               <select
+                id="add-dress-color"
                 value={color}
                 onChange={(e) => setColor(e.target.value)}
                 className="w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 focus:border-[#a15c38] focus:outline-none"
@@ -261,6 +273,16 @@ export function AddDressModal({ isOpen, onClose, onSubmit, isSubmitting, error }
                   </option>
                 ))}
               </select>
+              {color === 'Other' && (
+                <input
+                  type="text"
+                  value={customColor}
+                  onChange={(e) => setCustomColor(e.target.value)}
+                  placeholder="Type a color, e.g. Mustard"
+                  aria-label="Custom color"
+                  className="mt-2 w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 placeholder-stone-500 focus:border-[#a15c38] focus:outline-none"
+                />
+              )}
             </div>
 
             <div>

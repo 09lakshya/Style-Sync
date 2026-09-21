@@ -25,6 +25,19 @@ const COLOR_OPTIONS = [
   'Other',
 ]
 
+/** Matches a stored colour to a list entry, case-insensitively; anything else is "Other". */
+function toColorOption(stored?: string): string {
+  if (!stored) return 'Blue'
+  const known = COLOR_OPTIONS.find((opt) => opt.toLowerCase() === stored.trim().toLowerCase())
+  return known ?? 'Other'
+}
+
+/** The free-text colour to seed the input with: empty unless the colour is a custom one. */
+function toCustomColor(stored?: string): string {
+  if (!stored) return ''
+  return toColorOption(stored) === 'Other' ? stored.trim() : ''
+}
+
 const PATTERN_OPTIONS = [
   'Solid',
   'Floral',
@@ -52,7 +65,10 @@ const OCCASION_OPTIONS = [
 
 export function EditDressModal({ item, isOpen, onClose, onSubmit, isSubmitting }: EditDressModalProps) {
   const [name, setName] = useState(item?.name || '')
-  const [color, setColor] = useState(item?.color || 'Blue')
+  // A colour saved as free text is not in the list, so the select shows "Other"
+  // and the text field is seeded with it.
+  const [color, setColor] = useState(() => toColorOption(item?.color))
+  const [customColor, setCustomColor] = useState(() => toCustomColor(item?.color))
   const [pattern, setPattern] = useState(item?.pattern || 'Solid')
   const [brand, setBrand] = useState(item?.brand || '')
   const [purchaseDate, setPurchaseDate] = useState(item?.purchaseDate || '')
@@ -66,7 +82,8 @@ export function EditDressModal({ item, isOpen, onClose, onSubmit, isSubmitting }
   React.useEffect(() => {
     if (item) {
       setName(item.name)
-      setColor(item.color)
+      setColor(toColorOption(item.color))
+      setCustomColor(toCustomColor(item.color))
       setPattern(item.pattern)
       setBrand(item.brand || '')
       setPurchaseDate(item.purchaseDate || '')
@@ -91,10 +108,16 @@ export function EditDressModal({ item, isOpen, onClose, onSubmit, isSubmitting }
       return
     }
 
+    const resolvedColor = color === 'Other' ? customColor.trim() : color
+    if (!resolvedColor) {
+      setErrorMessage('Please type a color, or pick one from the list.')
+      return
+    }
+
     onSubmit({
       id: item!.id,
       name: name.trim(),
-      color,
+      color: resolvedColor,
       pattern,
       brand: brand.trim(),
       purchaseDate,
@@ -157,10 +180,14 @@ export function EditDressModal({ item, isOpen, onClose, onSubmit, isSubmitting }
             </div>
 
             <div>
-              <label className="block text-xs font-medium uppercase tracking-wider text-stone-400 mb-1.5">
+              <label
+                htmlFor="edit-dress-color"
+                className="block text-xs font-medium uppercase tracking-wider text-stone-400 mb-1.5"
+              >
                 Color *
               </label>
               <select
+                id="edit-dress-color"
                 value={color}
                 onChange={(e) => setColor(e.target.value)}
                 className="w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 focus:border-[#a15c38] focus:outline-none"
@@ -171,6 +198,16 @@ export function EditDressModal({ item, isOpen, onClose, onSubmit, isSubmitting }
                   </option>
                 ))}
               </select>
+              {color === 'Other' && (
+                <input
+                  type="text"
+                  value={customColor}
+                  onChange={(e) => setCustomColor(e.target.value)}
+                  placeholder="Type a color, e.g. Mustard"
+                  aria-label="Custom color"
+                  className="mt-2 w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 placeholder-stone-500 focus:border-[#a15c38] focus:outline-none"
+                />
+              )}
             </div>
 
             <div>
