@@ -17,6 +17,42 @@ The images processed by this pipeline originate from the **DeepFashion (Category
 2. Download the DeepFashion Category and Attribute Prediction Benchmark.
 3. Extract the contents so that the `img/` folder and `Anno/` folder are located in `dataset/raw/deepfashion/`.
 
+## Custom (self-labelled) images
+
+The public half of the dataset comes from DeepFashion. The custom half is
+images you collect and label yourself, and it is the only source for `Ethnic`,
+which a Western catalogue does not cover.
+
+Drop images into one folder per category — **the folder name is the label**:
+
+```
+dataset/raw/custom/Casual/...
+dataset/raw/custom/Ethnic/...
+dataset/raw/custom/Formal/...        (Party, Western, Summer, Winter likewise)
+```
+
+Then validate and stage them:
+
+```bash
+# 0. Validate, de-duplicate and stage custom images (add --dry-run to preview)
+python scripts/00_ingest_custom.py
+```
+
+The script rejects, rather than repairs, anything unusable: images it cannot
+decode, images below 224x224, and near-duplicates of images already in
+`dataset/curated/`, `dataset/custom/` or `dataset/raw/ethnic_wear/` (64-bit DCT
+perceptual hash, Hamming distance <= 4). Every rejection is printed with its
+reason, and a per-class count shows progress toward the 500-1000 target. It is
+safe to re-run: images already staged are recognised and skipped.
+
+Accepted images land in `dataset/custom/<Category>/`, are recorded in
+`dataset/processed/00_custom_manifest.csv`, and the script prints the exact
+`01_curate_dataset.py --extra-source` command to fold them into curation.
+
+**Current custom count: 400** (all `Ethnic`, in `dataset/raw/ethnic_wear/`),
+plus 80 colour-labelled evaluation images in `dataset/raw/colour_eval/`. Around
+100 more, spread across the other six classes, reaches the 500 minimum.
+
 ## Pipeline Execution
 
 Run the scripts in sequential order to generate the curated dataset:
