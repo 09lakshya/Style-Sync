@@ -51,7 +51,7 @@ export function WardrobeFilterBar({ filters, onChange, totalCount }: WardrobeFil
     filters.sortBy !== 'recently_added'
 
   return (
-    <div className="rounded-xl border border-[#38332c] bg-[#1a1917] p-4 text-[#f7f4ef] shadow-lg">
+    <div className="rounded-xl border border-[#38332c] bg-[#1a1917] p-4 text-[var(--bg)] shadow-lg">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         {/* Search Input */}
         <div className="relative flex-1">

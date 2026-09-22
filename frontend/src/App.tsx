@@ -14,6 +14,7 @@ import { LoginPage } from './features/auth/LoginPage'
 import { SignupPage } from './features/auth/SignupPage'
 import type { AuthSession, AuthUser } from './features/auth/authTypes'
 import { getAuthHeader, readStoredSession, removeStoredSession, saveStoredSession } from './lib/auth'
+import { personalCopy } from './lib/personalisation'
 import { applyAccent, resolveAccent } from './lib/theme'
 
 import {
@@ -334,6 +335,13 @@ export function App() {
     applyAccent(accent)
   }, [accent])
 
+  // Copy follows the profile (which garment vocabulary to speak in) and the
+  // wardrobe (what is worth saying right now).
+  const copy = useMemo(
+    () => personalCopy(session?.user.gender, items, accent.source),
+    [session?.user.gender, items, accent.source],
+  )
+
   const topColor = analytics?.most_common_color ?? 'n/a'
   const underused =
     analytics?.least_used_items ?? items.filter((item) => item.wearCount <= 2).length
@@ -408,10 +416,11 @@ export function App() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f7f4ef] text-[#1f2328]">
+    <main className="min-h-screen bg-[var(--bg)] text-[#1f2328]">
       <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 px-4 py-4 sm:px-6 lg:px-8">
         <TopBar
           user={session.user}
+          profileLabel={copy.profileLabel}
           onSignOut={handleSignOut}
           onShowWardrobe={handleShowWardrobe}
           onShowTrends={handleShowTrends}
@@ -420,21 +429,20 @@ export function App() {
 
         {/* Hero Section */}
         <section className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
-          <div className="overflow-hidden rounded-xl border border-[#ded8ce] bg-[#fbfaf7] shadow-sm">
+          <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-gradient-to-br from-[var(--hero-from)] to-[var(--hero-to)] shadow-sm">
             <div className="grid min-h-[380px] lg:grid-cols-[0.95fr_1.05fr]">
               {/* Centred rather than spread: the copy is short, so justify-between
                   left a large gap above the button. */}
               <div className="flex flex-col justify-center p-6 sm:p-8">
                 <div>
-                  <div className="mb-5 inline-flex items-center rounded-full border border-[#dad0c1] bg-white px-4 py-1.5 text-sm font-medium text-[#5c625d]">
-                    Digital Wardrobe Module
+                  <div className="mb-5 inline-flex items-center rounded-full border border-[var(--border)] bg-[var(--surface-raised)] px-4 py-1.5 text-sm font-medium text-[#5c625d]">
+                    {copy.heroEyebrow}
                   </div>
                   <h1 className="max-w-xl text-4xl font-semibold leading-tight text-[#20231f] sm:text-5xl">
                     StyleSync
                   </h1>
                   <p className="mt-4 max-w-xl text-base leading-7 text-[#626760]">
-                    Upload dress photos, organize clothing metadata, view your digital wardrobe,
-                    and perform duplicate purchase checks seamlessly.
+                    {copy.heroBody}
                   </p>
                 </div>
 
@@ -479,7 +487,7 @@ export function App() {
             {/* Fills the space under the check card; absolutely positioned on large
                 screens so a long report scrolls instead of stretching the hero. */}
             <div className="lg:relative lg:min-h-0 lg:flex-1">
-              <section className="flex flex-col rounded-xl border border-[#ded8ce] bg-[#fbfaf7] p-4 lg:absolute lg:inset-0">
+              <section className="flex flex-col rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 lg:absolute lg:inset-0">
                 <div className="mb-3 flex items-center gap-2">
                   <h2 className="text-base font-semibold">Similarity report</h2>
                   {duplicateDecision && (
@@ -494,7 +502,7 @@ export function App() {
                     {similarItems.map((item) => (
                       <li
                         key={item.id}
-                        className="flex items-center gap-3 rounded-lg border border-[#e2dcd1] bg-white p-2"
+                        className="flex items-center gap-3 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-raised)] p-2"
                       >
                         <img
                           className="h-14 w-14 shrink-0 rounded-md object-cover"
@@ -512,7 +520,7 @@ export function App() {
                     ))}
                   </ul>
                 ) : (
-                  <p className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-[#ded8ce] p-4 text-center text-sm text-[#687068]">
+                  <p className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-[var(--border)] p-4 text-center text-sm text-[#687068]">
                     {duplicateMutation.isPending
                       ? 'Checking your wardrobe...'
                       : 'Run a similarity check to see the closest matches from your wardrobe here.'}
@@ -524,7 +532,7 @@ export function App() {
         </section>
 
         {/* Notice Banner */}
-        <div className="rounded-lg border border-[#ded8ce] bg-white px-4 py-3 text-sm text-[#5e645e]">
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-4 py-3 text-sm text-[#5e645e]">
           {wardrobeQuery.isError
             ? 'Backend connection failed or token expired. Try signing out and back in.'
             : notice}
@@ -545,9 +553,7 @@ export function App() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-2xl font-bold text-[#1f2328]">My Wardrobe</h2>
-              <p className="text-sm text-[#687068]">
-                Browse, search, and manage your authenticated clothing items.
-              </p>
+              <p className="text-sm text-[#687068]">{copy.wardrobeSubtitle}</p>
             </div>
 
             <button
@@ -570,6 +576,7 @@ export function App() {
           <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
             <WardrobeGrid
               items={filteredItems}
+              emptyMessage={copy.emptyWardrobe}
               isLoading={wardrobeQuery.isLoading}
               onSelectItem={(item) => setSelectedDetailItem(item)}
               onAddDressClick={() => setIsAddModalOpen(true)}
@@ -610,6 +617,7 @@ export function App() {
         isSubmitting={addDressMutation.isPending}
         error={addDressMutation.error}
         token={session.token}
+        suggestedGarments={copy.suggestedGarments}
       />
 
       <DressDetailModal
@@ -719,26 +727,30 @@ async function parseResponse<T>(response: Response): Promise<T> {
 
 function TopBar({
   user,
+  profileLabel,
   onSignOut,
   onShowWardrobe,
   onShowTrends,
   onShowReminders,
 }: {
   user: AuthUser
+  profileLabel: string
   onSignOut: () => void
   onShowWardrobe: () => void
   onShowTrends: () => void
   onShowReminders: () => void
 }) {
   return (
-    <header className="flex flex-col gap-3 rounded-xl border border-[#ded8ce] bg-white px-5 py-3 sm:flex-row sm:items-center sm:justify-between shadow-sm">
+    <header className="flex flex-col gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] px-5 py-3 sm:flex-row sm:items-center sm:justify-between shadow-sm">
       <div className="flex items-center gap-3">
         <div className="grid h-10 w-10 place-items-center rounded-lg bg-[#1f2328] text-white">
           <Shirt className="h-5 w-5" />
         </div>
         <div>
           <p className="font-bold text-[#1f2328]">StyleSync</p>
-          <p className="text-xs text-[#697169]">Digital Dress Wardrobe</p>
+          {/* Says which styling conventions the page is using, so the
+              personalisation is visible rather than implicit. */}
+          <p className="text-xs text-[#697169]">{profileLabel} · Digital Dress Wardrobe</p>
         </div>
       </div>
       <nav className="flex flex-wrap gap-2 text-sm text-[#4f574f]">
@@ -746,7 +758,7 @@ function TopBar({
         <NavPill icon={TrendingUp} label="Trends" onClick={onShowTrends} />
         <NavPill icon={CalendarDays} label="Reminders" onClick={onShowReminders} />
         <button
-          className="rounded-lg border border-[#e1dbd0] bg-[#fbfaf7] hover:bg-[var(--accent-soft)] transition-colors px-3.5 py-2 cursor-pointer font-medium text-xs text-[#1f2328]"
+          className="rounded-lg border border-[#e1dbd0] bg-[var(--surface)] hover:bg-[var(--accent-soft)] transition-colors px-3.5 py-2 cursor-pointer font-medium text-xs text-[#1f2328]"
           onClick={onSignOut}
         >
           {user.name} / Sign out
@@ -769,7 +781,7 @@ function NavPill({
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex items-center gap-2 rounded-lg border border-[#e1dbd0] bg-[#fbfaf7] px-3 py-2 text-xs font-medium text-[#4f574f] transition-colors hover:bg-[var(--accent-soft)] hover:text-[#1f2328] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+      className="inline-flex items-center gap-2 rounded-lg border border-[#e1dbd0] bg-[var(--surface)] px-3 py-2 text-xs font-medium text-[#4f574f] transition-colors hover:bg-[var(--accent-soft)] hover:text-[#1f2328] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
     >
       <Icon className="h-3.5 w-3.5 text-[var(--accent)]" />
       {label}
@@ -793,7 +805,7 @@ function WorkflowCard({
   children: ReactNode
 }) {
   return (
-    <section className="rounded-xl border border-[#ded8ce] bg-white p-5 shadow-sm">
+    <section className="rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-5 shadow-sm">
       <div className="mb-4">
         <h2 className="text-lg font-semibold text-[#1f2328]">{title}</h2>
         <p className="text-xs text-[#687068]">{description}</p>
@@ -813,7 +825,7 @@ function FileInput({
   onChange: (file: File | null) => void
 }) {
   return (
-    <label className="flex min-h-24 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-[#cfc7bb] bg-[#fbfaf7] px-3 py-4 text-center text-sm text-[#5d655e]">
+    <label className="flex min-h-24 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface)] px-3 py-4 text-center text-sm text-[#5d655e]">
       <CloudUpload className="mb-2 h-5 w-5 text-[var(--accent)]" />
       <span className="font-medium">{file ? file.name : label}</span>
       <span className="mt-1 text-xs text-[#7d847d]">JPG, PNG, or WebP up to 5 MB</span>
@@ -835,7 +847,7 @@ function Panel({
   children: ReactNode
 }) {
   return (
-    <section className="rounded-xl border border-[#ded8ce] bg-white p-4 shadow-sm">
+    <section className="rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-4 shadow-sm">
       <h2 className="mb-3 font-semibold text-sm text-[#1f2328]">{title}</h2>
       <div className="space-y-3">{children}</div>
     </section>
@@ -845,7 +857,7 @@ function Panel({
 function RecommendationCard({ recommendation }: { recommendation: Recommendation }) {
   const title = recommendation.items.map((item) => item.name).join(' + ')
   return (
-    <div className="rounded-lg border border-[#e3ddd2] bg-[#fbfaf7] p-3">
+    <div className="rounded-lg border border-[#e3ddd2] bg-[var(--surface)] p-3">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="font-medium text-xs">{title}</p>
@@ -853,7 +865,7 @@ function RecommendationCard({ recommendation }: { recommendation: Recommendation
             {recommendation.reasons.join(' / ')}
           </p>
         </div>
-        <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-[#557660]">
+        <span className="rounded-full bg-[var(--surface-raised)] px-2 py-0.5 text-[11px] font-semibold text-[#557660]">
           {Math.round(recommendation.score * 100)}%
         </span>
       </div>

@@ -160,7 +160,7 @@ export function SignupPage({ onSessionSuccess, onNavigateToLogin }: SignupPagePr
               type="email"
               name="email"
               id="email"
-              placeholder="viratkohli@example.com"
+              placeholder="user@example.com"
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value)

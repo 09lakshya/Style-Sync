@@ -6,9 +6,17 @@ interface WardrobeGridProps {
   isLoading: boolean
   onSelectItem: (item: WardrobeItem) => void
   onAddDressClick: () => void
+  /** Prompt written for this user's styling profile. */
+  emptyMessage?: string
 }
 
-export function WardrobeGrid({ items, isLoading, onSelectItem, onAddDressClick }: WardrobeGridProps) {
+export function WardrobeGrid({
+  items,
+  isLoading,
+  onSelectItem,
+  onAddDressClick,
+  emptyMessage,
+}: WardrobeGridProps) {
   if (isLoading) {
     return (
       <div className="grid auto-rows-min content-start gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -32,9 +40,9 @@ export function WardrobeGrid({ items, isLoading, onSelectItem, onAddDressClick }
   if (items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#38332c] bg-[#141311] py-16 px-6 text-center shadow-inner">
-        <h3 className="text-2xl font-bold text-[#f7f4ef]">Your wardrobe is waiting.</h3>
+        <h3 className="text-2xl font-bold text-[var(--bg)]">Your wardrobe is waiting.</h3>
         <p className="mt-2 max-w-md text-sm text-stone-400 leading-relaxed">
-          Add your first piece and start building your digital wardrobe.
+          {emptyMessage ?? 'Add your first piece and start building your digital wardrobe.'}
         </p>
         <button
           type="button"
@@ -57,7 +65,7 @@ export function WardrobeGrid({ items, isLoading, onSelectItem, onAddDressClick }
         <article
           key={item.id}
           onClick={() => onSelectItem(item)}
-          className="group relative cursor-pointer overflow-hidden rounded-xl border border-[#38332c] bg-[#1a1917] text-[#f7f4ef] transition-all duration-300 hover:-translate-y-1 hover:border-[var(--accent)] hover:shadow-xl hover:shadow-black/40"
+          className="group relative cursor-pointer overflow-hidden rounded-xl border border-[#38332c] bg-[#1a1917] text-[var(--bg)] transition-all duration-300 hover:-translate-y-1 hover:border-[var(--accent)] hover:shadow-xl hover:shadow-black/40"
         >
           {/* Card Image */}
           <div className="relative h-60 w-full overflow-hidden bg-[#11100f]">
@@ -79,7 +87,7 @@ export function WardrobeGrid({ items, isLoading, onSelectItem, onAddDressClick }
           {/* Card Info */}
           <div className="p-4 space-y-3">
             <div>
-              <h3 className="font-semibold text-base text-[#f7f4ef] line-clamp-1 group-hover:text-[#d99b77] transition-colors">
+              <h3 className="font-semibold text-base text-[var(--bg)] line-clamp-1 group-hover:text-[#d99b77] transition-colors">
                 {item.name}
               </h3>
               <p className="mt-0.5 text-xs text-stone-400 capitalize">

@@ -56,7 +56,7 @@ export function DuplicateAlertModal({
         aria-modal="true"
         aria-labelledby="duplicate-alert-title"
         onClick={(event) => event.stopPropagation()}
-        className="relative w-full max-w-2xl overflow-hidden rounded-xl border border-[#38332c] bg-[#1a1917] text-[#f7f4ef] shadow-2xl"
+        className="relative w-full max-w-2xl overflow-hidden rounded-xl border border-[#38332c] bg-[#1a1917] text-[var(--bg)] shadow-2xl"
       >
         <button
           type="button"

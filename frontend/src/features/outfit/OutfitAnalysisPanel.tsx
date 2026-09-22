@@ -51,7 +51,7 @@ export function OutfitAnalysisPanel({ token }: OutfitAnalysisPanelProps) {
   return (
     <section
       id="outfit-analysis"
-      className="scroll-mt-4 rounded-xl border border-[#ded8ce] bg-white p-5 shadow-sm"
+      className="scroll-mt-4 rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-5 shadow-sm"
     >
       <div className="mb-4">
         <div>
@@ -65,7 +65,7 @@ export function OutfitAnalysisPanel({ token }: OutfitAnalysisPanelProps) {
       <div className="grid gap-4 md:grid-cols-[minmax(0,260px)_1fr]">
         {/* Controls */}
         <div className="space-y-3">
-          <label className="flex min-h-24 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-[#cfc7bb] bg-[#fbfaf7] px-3 py-4 text-center text-sm text-[#5d655e]">
+          <label className="flex min-h-24 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface)] px-3 py-4 text-center text-sm text-[#5d655e]">
             <CloudUpload className="mb-2 h-5 w-5 text-[var(--accent)]" />
             <span className="font-medium">{file ? file.name : 'Choose outfit image'}</span>
             <span className="mt-1 text-xs text-[#7d847d]">JPG, PNG, or WebP</span>
@@ -86,7 +86,7 @@ export function OutfitAnalysisPanel({ token }: OutfitAnalysisPanelProps) {
             <img
               src={previewUrl}
               alt="Outfit awaiting analysis"
-              className="max-h-64 w-full rounded-lg border border-[#e2dcd1] object-contain"
+              className="max-h-64 w-full rounded-lg border border-[var(--border-soft)] object-contain"
             />
           )}
 
@@ -110,7 +110,7 @@ export function OutfitAnalysisPanel({ token }: OutfitAnalysisPanelProps) {
           )}
 
           {!error && !result && (
-            <div className="flex h-full min-h-[140px] items-center justify-center rounded-lg border border-dashed border-[#e2dcd1] bg-[#fbfaf7] px-4 py-6 text-center text-sm text-[#7d847d]">
+            <div className="flex h-full min-h-[140px] items-center justify-center rounded-lg border border-dashed border-[var(--border-soft)] bg-[var(--surface)] px-4 py-6 text-center text-sm text-[#7d847d]">
               {isAnalyzing ? 'Reading the image...' : 'Results will appear here once you analyze an outfit.'}
             </div>
           )}
@@ -118,7 +118,7 @@ export function OutfitAnalysisPanel({ token }: OutfitAnalysisPanelProps) {
           {result && (
             <div className="space-y-4">
               {/* Model output */}
-              <div className="rounded-lg border border-[#e2dcd1] bg-[#fbfaf7] p-4">
+              <div className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface)] p-4">
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-[#895035]">
                   Detected by the model
                 </p>
@@ -152,7 +152,7 @@ export function OutfitAnalysisPanel({ token }: OutfitAnalysisPanelProps) {
               </div>
 
               {/* Rule-based styling */}
-              <div className="rounded-lg border border-[#e2dcd1] bg-white p-4">
+              <div className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface-raised)] p-4">
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-[#5e645e]">
                   Styling suggestions
                 </p>

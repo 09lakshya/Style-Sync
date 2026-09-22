@@ -86,11 +86,58 @@ export function resolveAccent(items: WardrobeItem[]): AccentTheme {
   return { source: bestColor, ...ACCENTS[bestColor] }
 }
 
-/** Publish the accent as CSS variables; the components read them via var(). */
+// The neutral the interface is built on, before any wardrobe tint.
+const BASE = {
+  bg: '#f7f4ef',
+  surface: '#fbfaf7',
+  border: '#ded8ce',
+  borderSoft: '#e2dcd1',
+  rule: '#eee8de',
+}
+
+function parse(hex: string): [number, number, number] {
+  const value = hex.replace('#', '')
+  return [
+    parseInt(value.slice(0, 2), 16),
+    parseInt(value.slice(2, 4), 16),
+    parseInt(value.slice(4, 6), 16),
+  ]
+}
+
+/** Blend two hex colours; `ratio` is how much of `b` ends up in the result. */
+function mix(a: string, b: string, ratio: number): string {
+  const [ar, ag, ab] = parse(a)
+  const [br, bg, bb] = parse(b)
+  const channel = (x: number, y: number) =>
+    Math.round(x + (y - x) * ratio)
+      .toString(16)
+      .padStart(2, '0')
+  return `#${channel(ar, br)}${channel(ag, bg)}${channel(ab, bb)}`
+}
+
+/**
+ * Tint the whole surface palette toward the accent, not just the buttons.
+ *
+ * The ratios are small on purpose: enough that an olive wardrobe and a maroon
+ * one are plainly different pages, not so much that the interface stops being
+ * a neutral backdrop for photographs of clothes. Text colours are left alone so
+ * contrast does not move with the wardrobe.
+ */
 export function applyAccent(theme: AccentTheme): void {
   const root = document.documentElement
-  root.style.setProperty('--accent', theme.accent)
-  root.style.setProperty('--accent-hover', theme.accentHover)
-  root.style.setProperty('--accent-soft', theme.accentSoft)
-  root.style.setProperty('--accent-ink', theme.accentInk)
+  const set = (name: string, value: string) => root.style.setProperty(name, value)
+
+  set('--accent', theme.accent)
+  set('--accent-hover', theme.accentHover)
+  set('--accent-soft', theme.accentSoft)
+  set('--accent-ink', theme.accentInk)
+
+  set('--bg', mix(BASE.bg, theme.accent, 0.06))
+  set('--surface', mix(BASE.surface, theme.accent, 0.035))
+  set('--surface-raised', mix('#ffffff', theme.accent, 0.025))
+  set('--border', mix(BASE.border, theme.accent, 0.16))
+  set('--border-soft', mix(BASE.borderSoft, theme.accent, 0.12))
+  set('--rule', mix(BASE.rule, theme.accent, 0.12))
+  set('--hero-from', mix(BASE.surface, theme.accent, 0.1))
+  set('--hero-to', mix(BASE.surface, theme.accent, 0.02))
 }
