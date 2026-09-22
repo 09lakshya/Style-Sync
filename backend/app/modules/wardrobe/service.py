@@ -48,6 +48,51 @@ class WardrobeService:
             )
         return item
 
+    async def detect_item_metadata(
+        self, file_bytes: bytes, filename: str = "wardrobe-item.jpg"
+    ) -> dict[str, Any]:
+        """Run detection on a photo and return the attributes, saving nothing.
+
+        Mirrors what `create_item_from_upload` would store, so whatever the form
+        shows is what gets written if the user accepts it unchanged.
+        """
+        metadata = ai_service.extract_clothing_metadata(file_bytes=file_bytes, filename=filename)
+
+        predicted_category, confidence, model_version = None, None, None
+        try:
+            import io as _io
+
+            from PIL import Image
+
+            from app.modules.ai.classifier_manager import classifier_manager
+
+            if classifier_manager.is_loaded:
+                pil_image = Image.open(_io.BytesIO(file_bytes))
+                predicted_category, confidence = classifier_manager.predict(pil_image)
+                model_version = classifier_manager.model_version
+        except Exception as exc:
+            logger.warning("Classification model error during detection: %s", exc)
+
+        return {
+            "name": metadata.get("suggested_name"),
+            "type": metadata.get("type"),
+            "category": metadata.get("category"),
+            "is_ethnic": metadata.get("is_ethnic", False),
+            "color": metadata.get("primary_color"),
+            "secondary_colors": metadata.get("secondary_colors", []),
+            "pattern": metadata.get("pattern"),
+            "embellishment": metadata.get("embellishment"),
+            "sleeve_type": metadata.get("sleeve_type"),
+            "fabric": metadata.get("fabric"),
+            "season": metadata.get("season", []),
+            "occasion": metadata.get("occasion", []),
+            "tags": metadata.get("tags", []),
+            "confidence": metadata.get("confidence", {}),
+            "predicted_category": predicted_category,
+            "prediction_confidence": confidence,
+            "model_version": model_version,
+        }
+
     async def create_item_from_upload(
         self,
         user_id: str,
@@ -117,7 +162,15 @@ class WardrobeService:
             except Exception as classify_exc:
                 logger.warning(f"Classification model error: {classify_exc}")
 
-        item_name = name.strip() if name and name.strip() else filename.rsplit(".", 1)[0].replace("-", " ").replace("_", " ").title()
+        # A blank name is normal now that detection runs on upload: the detected
+        # attributes read better than IMG_2831, so the filename is only a last resort.
+        if name and name.strip():
+            item_name = name.strip()
+        else:
+            item_name = (
+                metadata.get("suggested_name")
+                or filename.rsplit(".", 1)[0].replace("-", " ").replace("_", " ").title()
+            )
         primary_color = color.strip() if color and color.strip() else metadata["primary_color"]
         item_pattern = pattern.strip() if pattern and pattern.strip() else metadata["pattern"]
         item_brand = brand.strip() if brand and brand.strip() else None

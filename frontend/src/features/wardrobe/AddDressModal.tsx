@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
-import { CloudUpload, X, AlertCircle, Loader2 } from 'lucide-react'
-import type { CreateDressInput } from '../../types/wardrobe'
+import { CloudUpload, X, AlertCircle, Loader2, Sparkles } from 'lucide-react'
+import { detectDressMetadata } from '../../api/wardrobeApi'
+import type { CreateDressInput, DetectedDressMetadata } from '../../types/wardrobe'
 
 interface AddDressModalProps {
   isOpen: boolean
@@ -8,32 +9,56 @@ interface AddDressModalProps {
   onSubmit: (data: CreateDressInput) => void
   isSubmitting: boolean
   error?: Error | null
+  token: string
 }
 
+// Kept in step with CANDIDATE_COLORS in the backend's ai service, so a detected
+// colour lands on a real option instead of falling through to "Other".
 const COLOR_OPTIONS = [
   'Black',
   'White',
-  'Blue',
-  'Red',
-  'Green',
-  'Yellow',
-  'Pink',
-  'Purple',
-  'Brown',
-  'Beige',
+  'Cream',
   'Grey',
+  'Silver',
+  'Blue',
+  'Navy',
+  'Teal',
+  'Green',
+  'Olive',
+  'Red',
+  'Maroon',
+  'Pink',
+  'Magenta',
+  'Peach',
+  'Purple',
+  'Yellow',
+  'Mustard',
+  'Orange',
+  'Gold',
+  'Beige',
+  'Brown',
   'Other',
 ]
 
+// Likewise CANDIDATE_PATTERNS: the lower block is the surface work that defines
+// most Indian occasion wear.
 const PATTERN_OPTIONS = [
   'Solid',
   'Floral',
   'Striped',
   'Checked',
-  'Printed',
+  'Plaid',
   'Polka Dot',
   'Geometric',
+  'Graphic',
+  'Animal Print',
+  'Paisley',
   'Embroidered',
+  'Zari',
+  'Sequined',
+  'Bandhani',
+  'Block Print',
+  'Ikat',
   'Other',
 ]
 
@@ -50,7 +75,11 @@ const OCCASION_OPTIONS = [
   'Other',
 ]
 
-export function AddDressModal({ isOpen, onClose, onSubmit, isSubmitting, error }: AddDressModalProps) {
+function formatConfidence(value: number | undefined): string {
+  return typeof value === 'number' ? `${Math.round(value * 100)}%` : ''
+}
+
+export function AddDressModal({ isOpen, onClose, onSubmit, isSubmitting, error, token }: AddDressModalProps) {
   const [file, setFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [name, setName] = useState('')
@@ -63,6 +92,10 @@ export function AddDressModal({ isOpen, onClose, onSubmit, isSubmitting, error }
   const [occasion, setOccasion] = useState('Casual')
   const [lastWornDate, setLastWornDate] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  // What the model read off the photo. Kept so the form can show what it filled
+  // in and the user can see what to correct.
+  const [detection, setDetection] = useState<DetectedDressMetadata | null>(null)
+  const [isDetecting, setIsDetecting] = useState(false)
 
   React.useEffect(() => {
     if (!isOpen) {
@@ -79,6 +112,8 @@ export function AddDressModal({ isOpen, onClose, onSubmit, isSubmitting, error }
       setOccasion('Casual')
       setLastWornDate('')
       setErrorMessage(null)
+      setDetection(null)
+      setIsDetecting(false)
     }
   }, [isOpen])
 
@@ -100,6 +135,51 @@ export function AddDressModal({ isOpen, onClose, onSubmit, isSubmitting, error }
     setFile(selected)
     const url = URL.createObjectURL(selected)
     setPreviewUrl(url)
+    void runDetection(selected)
+  }
+
+  /** Match a detected value to one of the select's options, case-insensitively. */
+  function toOption(options: string[], value: string | null): string | null {
+    if (!value) return null
+    const normalised = value.replace(/_/g, ' ').trim().toLowerCase()
+    return options.find((option) => option.toLowerCase() === normalised) ?? null
+  }
+
+  async function runDetection(selected: File) {
+    setIsDetecting(true)
+    setDetection(null)
+    try {
+      const detected = await detectDressMetadata(selected, token)
+      setDetection(detected)
+
+      // Only fill fields the user has not already set by hand.
+      if (detected.name) setName((prev) => (prev.trim() ? prev : detected.name ?? ''))
+
+      const detectedColor = toOption(COLOR_OPTIONS, detected.color)
+      if (detectedColor) {
+        setColor(detectedColor)
+      } else if (detected.color) {
+        setColor('Other')
+        setCustomColor(detected.color)
+      }
+
+      // Surface work is the more useful label when both are present.
+      const detectedPattern =
+        toOption(PATTERN_OPTIONS, detected.embellishment) ??
+        toOption(PATTERN_OPTIONS, detected.pattern)
+      if (detectedPattern) setPattern(detectedPattern)
+
+      const detectedOccasion = detected.occasion
+        .map((entry) => toOption(OCCASION_OPTIONS, entry))
+        .find(Boolean)
+      if (detectedOccasion) setOccasion(detectedOccasion)
+    } catch (err) {
+      // Detection is a convenience, never a blocker: the form still submits.
+      setDetection(null)
+      console.warn('Attribute detection failed:', err)
+    } finally {
+      setIsDetecting(false)
+    }
   }
 
   function handleDrop(e: React.DragEvent<HTMLLabelElement>) {
@@ -117,6 +197,8 @@ export function AddDressModal({ isOpen, onClose, onSubmit, isSubmitting, error }
 
   function removeFile() {
     setFile(null)
+    setDetection(null)
+    setIsDetecting(false)
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl)
       setPreviewUrl(null)
@@ -125,8 +207,8 @@ export function AddDressModal({ isOpen, onClose, onSubmit, isSubmitting, error }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!name.trim()) {
-      setErrorMessage('Please enter a dress name.')
+    if (!name.trim() && !file) {
+      setErrorMessage('Add a photo, or enter a name for this piece.')
       return
     }
 
@@ -139,6 +221,7 @@ export function AddDressModal({ isOpen, onClose, onSubmit, isSubmitting, error }
     setErrorMessage(null)
     onSubmit({
       file,
+      // Blank is fine with a photo attached: the backend names it from what it detected.
       name: name.trim(),
       color: resolvedColor,
       pattern,
@@ -206,13 +289,13 @@ export function AddDressModal({ isOpen, onClose, onSubmit, isSubmitting, error }
               <label
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
-                className="flex min-h-[180px] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-[#38332c] bg-[#211f1c] hover:bg-[#282622] hover:border-[#a15c38] transition-colors p-6 text-center"
+                className="flex min-h-[180px] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-[#38332c] bg-[#211f1c] hover:bg-[#282622] hover:border-[var(--accent)] transition-colors p-6 text-center"
               >
-                <div className="grid h-12 w-12 place-items-center rounded-full bg-[#2a2723] text-[#a15c38]">
+                <div className="grid h-12 w-12 place-items-center rounded-full bg-[#2a2723] text-[var(--accent)]">
                   <CloudUpload className="h-6 w-6" />
                 </div>
                 <p className="mt-3 text-sm font-medium text-stone-200">
-                  Drag and drop image here, or <span className="text-[#a15c38] underline">browse</span>
+                  Drag and drop image here, or <span className="text-[var(--accent)] underline">browse</span>
                 </p>
                 <p className="mt-1 text-xs text-stone-400">Supports JPG, PNG, or WebP up to 10MB</p>
                 <input
@@ -225,19 +308,61 @@ export function AddDressModal({ isOpen, onClose, onSubmit, isSubmitting, error }
             )}
           </div>
 
+          {/* What the model read off the photo. Shown so the filled-in values are
+              attributable, and so a wrong read is obvious before saving. */}
+          {(isDetecting || detection) && (
+            <div className="rounded-lg border border-[#38332c] bg-[#211f1c] p-3">
+              {isDetecting ? (
+                <p className="flex items-center gap-2 text-sm text-stone-300">
+                  <Loader2 className="h-4 w-4 animate-spin text-[var(--accent)]" />
+                  Reading the photo...
+                </p>
+              ) : detection ? (
+                <>
+                  <p className="flex items-center gap-2 text-sm font-medium text-stone-200">
+                    <Sparkles className="h-4 w-4 text-[var(--accent)]" />
+                    Detected automatically
+                    <span className="ml-auto text-xs font-normal text-stone-500">
+                      edit anything below
+                    </span>
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {[
+                      { label: detection.type, hint: `type ${formatConfidence(detection.confidence.type)}` },
+                      { label: detection.color, hint: `colour ${formatConfidence(detection.confidence.color)}` },
+                      { label: detection.embellishment ?? detection.pattern, hint: `pattern ${formatConfidence(detection.confidence.pattern)}` },
+                      { label: detection.fabric === 'user_review_needed' ? null : detection.fabric, hint: 'fabric' },
+                      { label: detection.sleeve_type, hint: 'sleeves' },
+                      { label: detection.is_ethnic ? 'ethnic wear' : null, hint: 'category' },
+                    ]
+                      .filter((chip) => Boolean(chip.label))
+                      .map((chip) => (
+                        <span
+                          key={`${chip.hint}-${chip.label}`}
+                          title={chip.hint}
+                          className="rounded-full border border-[#443d34] bg-[#2a2723] px-2.5 py-1 text-xs capitalize text-stone-300"
+                        >
+                          {String(chip.label).replace(/_/g, ' ')}
+                        </span>
+                      ))}
+                  </div>
+                </>
+              ) : null}
+            </div>
+          )}
+
           {/* Form Grid */}
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="block text-xs font-medium uppercase tracking-wider text-stone-400 mb-1.5">
-                Dress Name *
+                Dress Name {file ? '' : '*'}
               </label>
               <input
                 type="text"
-                required
-                placeholder="e.g. Blue Floral Summer Dress"
+                placeholder={file ? 'Detected from the photo' : 'e.g. Blue Floral Summer Dress'}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 placeholder-stone-500 focus:border-[#a15c38] focus:outline-none"
+                className="w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 placeholder-stone-500 focus:border-[var(--accent)] focus:outline-none"
               />
             </div>
 
@@ -250,7 +375,7 @@ export function AddDressModal({ isOpen, onClose, onSubmit, isSubmitting, error }
                 placeholder="e.g. Zara, Mango, H&M"
                 value={brand}
                 onChange={(e) => setBrand(e.target.value)}
-                className="w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 placeholder-stone-500 focus:border-[#a15c38] focus:outline-none"
+                className="w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 placeholder-stone-500 focus:border-[var(--accent)] focus:outline-none"
               />
             </div>
 
@@ -265,7 +390,7 @@ export function AddDressModal({ isOpen, onClose, onSubmit, isSubmitting, error }
                 id="add-dress-color"
                 value={color}
                 onChange={(e) => setColor(e.target.value)}
-                className="w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 focus:border-[#a15c38] focus:outline-none"
+                className="w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 focus:border-[var(--accent)] focus:outline-none"
               >
                 {COLOR_OPTIONS.map((opt) => (
                   <option key={opt} value={opt}>
@@ -280,7 +405,7 @@ export function AddDressModal({ isOpen, onClose, onSubmit, isSubmitting, error }
                   onChange={(e) => setCustomColor(e.target.value)}
                   placeholder="Type a color, e.g. Mustard"
                   aria-label="Custom color"
-                  className="mt-2 w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 placeholder-stone-500 focus:border-[#a15c38] focus:outline-none"
+                  className="mt-2 w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 placeholder-stone-500 focus:border-[var(--accent)] focus:outline-none"
                 />
               )}
             </div>
@@ -292,7 +417,7 @@ export function AddDressModal({ isOpen, onClose, onSubmit, isSubmitting, error }
               <select
                 value={pattern}
                 onChange={(e) => setPattern(e.target.value)}
-                className="w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 focus:border-[#a15c38] focus:outline-none"
+                className="w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 focus:border-[var(--accent)] focus:outline-none"
               >
                 {PATTERN_OPTIONS.map((opt) => (
                   <option key={opt} value={opt}>
@@ -309,7 +434,7 @@ export function AddDressModal({ isOpen, onClose, onSubmit, isSubmitting, error }
               <select
                 value={occasion}
                 onChange={(e) => setOccasion(e.target.value)}
-                className="w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 focus:border-[#a15c38] focus:outline-none"
+                className="w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 focus:border-[var(--accent)] focus:outline-none"
               >
                 {OCCASION_OPTIONS.map((opt) => (
                   <option key={opt} value={opt}>
@@ -327,7 +452,7 @@ export function AddDressModal({ isOpen, onClose, onSubmit, isSubmitting, error }
                 type="date"
                 value={purchaseDate}
                 onChange={(e) => setPurchaseDate(e.target.value)}
-                className="w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 focus:border-[#a15c38] focus:outline-none"
+                className="w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 focus:border-[var(--accent)] focus:outline-none"
               />
             </div>
 
@@ -339,7 +464,7 @@ export function AddDressModal({ isOpen, onClose, onSubmit, isSubmitting, error }
                 type="date"
                 value={lastWornDate}
                 onChange={(e) => setLastWornDate(e.target.value)}
-                className="w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 focus:border-[#a15c38] focus:outline-none"
+                className="w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 focus:border-[var(--accent)] focus:outline-none"
               />
             </div>
           </div>
@@ -356,7 +481,7 @@ export function AddDressModal({ isOpen, onClose, onSubmit, isSubmitting, error }
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex items-center gap-2 rounded-md bg-[#a15c38] px-5 py-2 text-sm font-medium text-white hover:bg-[#b56942] transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-md bg-[var(--accent)] px-5 py-2 text-sm font-medium text-white hover:bg-[var(--accent-hover)] transition-colors disabled:opacity-50"
             >
               {isSubmitting ? (
                 <>

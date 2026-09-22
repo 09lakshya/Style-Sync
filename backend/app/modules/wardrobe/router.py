@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 
 from app.modules.auth.dependencies import require_user
+from app.modules.media.validator import validate_image_bytes
 from app.modules.wardrobe.service import wardrobe_service
 
 router = APIRouter(prefix="/wardrobe", tags=["wardrobe"])
@@ -36,6 +37,29 @@ async def get_wardrobe_item(
     """Retrieve a single wardrobe item by ID."""
     item = await wardrobe_service.get_item_by_id(item_id, user_id)
     return {"item": _public_item(item)}
+
+
+@router.post("/detect")
+async def detect_wardrobe_item(
+    image: UploadFile = File(...),
+    user_id: str = Depends(require_user),
+) -> dict[str, object]:
+    """Detect a garment's attributes without saving it.
+
+    The add-item form calls this as soon as a photo is chosen so the fields
+    arrive filled in; nothing is stored and the user can still edit every value
+    before submitting.
+    """
+    file_bytes = await image.read()
+    if not file_bytes:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empty image upload.")
+
+    validate_image_bytes(file_bytes, image.content_type or "image/jpeg")
+
+    return await wardrobe_service.detect_item_metadata(
+        file_bytes=file_bytes,
+        filename=image.filename or "wardrobe-item.jpg",
+    )
 
 
 @router.post("/items", status_code=status.HTTP_201_CREATED)

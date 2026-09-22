@@ -53,6 +53,27 @@ export interface WardrobeItem {
   modelVersion?: string
 }
 
+/** What `POST /wardrobe/detect` returns for a photo, before anything is saved. */
+export interface DetectedDressMetadata {
+  name: string | null
+  type: string | null
+  category: string | null
+  is_ethnic: boolean
+  color: string | null
+  secondary_colors: string[]
+  pattern: string | null
+  embellishment: string | null
+  sleeve_type: string | null
+  fabric: string | null
+  season: string[]
+  occasion: string[]
+  tags: string[]
+  confidence: Record<string, number>
+  predicted_category: string | null
+  prediction_confidence: number | null
+  model_version: string | null
+}
+
 export interface CreateDressInput {
   file?: File | null
   name: string

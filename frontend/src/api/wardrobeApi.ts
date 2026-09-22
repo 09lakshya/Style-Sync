@@ -2,6 +2,7 @@ import { getAuthHeader } from '../lib/auth'
 import type {
   ApiWardrobeItem,
   CreateDressInput,
+  DetectedDressMetadata,
   UpdateDressMetadataInput,
   WardrobeItem,
 } from '../types/wardrobe'
@@ -51,6 +52,21 @@ async function parseResponse<T>(response: Response): Promise<T> {
     throw new Error(payload?.detail ?? `Request failed with status ${response.status}`)
   }
   return payload as T
+}
+
+export async function detectDressMetadata(
+  file: File,
+  token: string,
+): Promise<DetectedDressMetadata> {
+  const formData = new FormData()
+  formData.append('image', file)
+
+  const response = await fetch(`${API_BASE_URL}/wardrobe/detect`, {
+    method: 'POST',
+    headers: getAuthHeader(token),
+    body: formData,
+  })
+  return parseResponse<DetectedDressMetadata>(response)
 }
 
 export async function fetchWardrobeItems(token: string): Promise<WardrobeItem[]> {
