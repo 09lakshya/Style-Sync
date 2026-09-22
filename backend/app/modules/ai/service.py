@@ -84,6 +84,18 @@ OUTERWEAR_TYPES = {
 }
 ACCESSORY_TYPES = {"dupatta"}
 
+# Where a garment sits on the body. Outfit pairing needs to know that a kurti
+# is a top and a palazzo is a bottom, in both traditions.
+TOP_TYPES = {
+    "shirt", "blouse", "top", "t-shirt", "sweater", "hoodie",
+    "kurta", "kurti", "choli",
+}
+BOTTOM_TYPES = {
+    "skirt", "pants", "jeans", "shorts",
+    "churidar", "palazzo", "sharara", "gharara", "patiala salwar",
+    "dhoti", "lungi",
+}
+
 # Garments that place an item in the Ethnic side of the wardrobe. Used to tag
 # items and to keep festive occasions in play for them.
 ETHNIC_TYPES = {
@@ -147,6 +159,20 @@ CANDIDATE_PATTERNS = list(PATTERN_PROMPTS)
 # Patterns that are surface work rather than a woven print. Reported separately
 # so the UI can say "embroidered" without losing the base pattern.
 EMBELLISHMENT_PATTERNS = {"embroidered", "zari", "sequined"}
+
+# Surface work is only claimed well above the ordinary confidence threshold.
+# Measured against the curated set: genuine zari scores 0.70-0.78, while creased
+# plain linen reads as "embroidered" at 0.42 and plain western items stay under
+# 0.10. Anything below this bar is treated as texture, not embroidery.
+EMBELLISHMENT_MIN_CONFIDENCE = 0.55
+
+# Garments with sleeves to report. A sleeve reading on trousers is not a weak
+# answer, it is a meaningless one, so those return None instead.
+SLEEVELESS_GARMENT_TYPES = {
+    "skirt", "pants", "jeans", "shorts",
+    "churidar", "palazzo", "sharara", "gharara", "patiala salwar",
+    "dhoti", "lungi", "dupatta",
+}
 
 # Fabrics. Detection is coarse -- CLIP reads drape and sheen, not fibre -- so
 # the confidence is returned alongside and the UI should treat it as a hint.
@@ -291,7 +317,7 @@ class AIService:
         results = self.clip.zero_shot_classify(pil_image, phrases, prompt_template=template)
         return [(label_of[phrase], score) for phrase, score in results if phrase in label_of]
 
-    def _classify_type(self, pil_image: Image.Image) -> tuple[str, float]:
+    def _classify_type(self, pil_image: Image.Image) -> tuple[str, float, list[tuple[str, float]]]:
         """Identify the garment across the whole vocabulary at once.
 
         A two-stage variant (decide the silhouette, then name the garment within
@@ -305,9 +331,31 @@ class AIService:
         """
         results = self._classify_prompted(pil_image, TYPE_PROMPTS, "a photo of {}")
         if not results:
-            return "dress", 0.5
+            return "dress", 0.5, []
         top_type, confidence = results[0]
-        return top_type, float(confidence)
+        # The runners-up are returned so the form can offer them, and the list
+        # always spans both traditions.
+        #
+        # On a full-body photo CLIP judges the outfit rather than the garment: a
+        # man in loose white linen reads as churidar, dhoti and sharara, with
+        # "pants" seventh at 0.01, even though the same image scored against a
+        # western-only vocabulary gives pants 0.81. Nothing in the ranking is
+        # going to surface the right answer, so the best candidate from the
+        # other tradition is carried in deliberately.
+        alternatives = [(label, round(float(score), 3)) for label, score in results[:3]]
+        chosen = {label for label, _ in alternatives}
+        top_is_ethnic = top_type in ETHNIC_TYPES
+        crossover = next(
+            (
+                (label, round(float(score), 3))
+                for label, score in results
+                if label not in chosen and (label in ETHNIC_TYPES) != top_is_ethnic
+            ),
+            None,
+        )
+        if crossover:
+            alternatives.append(crossover)
+        return top_type, float(confidence), alternatives
 
     def extract_clothing_metadata(self, file_bytes: bytes, filename: str = "") -> dict[str, Any]:
         """
@@ -330,7 +378,7 @@ class AIService:
         threshold = settings.clip_confidence_threshold
 
         # 1. Classify Clothing Type (silhouette first, then the garment within it)
-        top_type, type_conf = self._classify_type(pil_image)
+        top_type, type_conf, type_alternatives = self._classify_type(pil_image)
         if type_conf < threshold:
             # Fallback check against filename if confidence is low
             rule_meta = infer_metadata(filename)
@@ -359,11 +407,21 @@ class AIService:
         pattern_results = self._classify_prompted(pil_image, PATTERN_PROMPTS, "clothing with {}")
         top_pattern, pattern_conf = pattern_results[0] if pattern_results else ("solid", 0.5)
         embellishment = next(
-            (p for p, score in pattern_results if p in EMBELLISHMENT_PATTERNS and score > 0.15),
+            (
+                p
+                for p, score in pattern_results
+                if p in EMBELLISHMENT_PATTERNS and score >= EMBELLISHMENT_MIN_CONFIDENCE
+            ),
             None,
         )
         base_pattern = top_pattern
-        if top_pattern in EMBELLISHMENT_PATTERNS:
+        if top_pattern in EMBELLISHMENT_PATTERNS and embellishment is None:
+            # Read as surface work, but not confidently enough to claim it.
+            base_pattern = next(
+                (p for p, _ in pattern_results if p not in EMBELLISHMENT_PATTERNS),
+                "solid",
+            )
+        elif top_pattern in EMBELLISHMENT_PATTERNS:
             base_pattern = next(
                 (p for p, _ in pattern_results if p not in EMBELLISHMENT_PATTERNS),
                 "solid",
@@ -390,9 +448,12 @@ class AIService:
             if festive not in occasions:
                 occasions.append(festive)
 
-        # 6. Sleeve Type (best effort)
-        sleeve_results = self.clip.zero_shot_classify(pil_image, CANDIDATE_SLEEVES, prompt_template="clothing with {} sleeves")
-        top_sleeve, _ = sleeve_results[0] if sleeve_results else ("short_sleeve", 0.4)
+        # 6. Sleeve Type (best effort), only where the garment has sleeves.
+        if top_type in SLEEVELESS_GARMENT_TYPES:
+            top_sleeve = None
+        else:
+            sleeve_results = self.clip.zero_shot_classify(pil_image, CANDIDATE_SLEEVES, prompt_template="clothing with {} sleeves")
+            top_sleeve, _ = sleeve_results[0] if sleeve_results else ("short_sleeve", 0.4)
 
         # 7. Fabric (best effort; CLIP reads drape and sheen, not fibre)
         fabric_results = self._classify_prompted(pil_image, FABRIC_PROMPTS, "clothing made of {}")
@@ -414,6 +475,7 @@ class AIService:
 
         metadata = {
             "type": top_type,
+            "type_alternatives": type_alternatives,
             "category": category,
             "is_ethnic": is_ethnic,
             "primary_color": top_color,
@@ -485,14 +547,23 @@ def infer_metadata(filename: str) -> dict[str, object]:
     lower = filename.lower()
     color = next((candidate for candidate in CANDIDATE_COLORS if candidate in lower), "blue")
 
-    if any(token in lower for token in ("shirt", "top", "tee", "blouse")):
-        item_type = "top"
-    elif any(token in lower for token in ("skirt", "jean", "pant", "trouser")):
-        item_type = "bottom"
-    elif any(token in lower for token in ("jacket", "coat", "blazer")):
-        item_type = "outerwear"
-    else:
-        item_type = "dress"
+    # These have to be names from TYPE_PROMPTS. The fallback used to emit
+    # "top"/"bottom"/"outerwear", which are categories rather than garments, so
+    # nothing downstream that matches on the garment vocabulary could use them.
+    item_type = next((garment for garment in CANDIDATE_TYPES if garment in lower), "")
+    if not item_type:
+        if any(token in lower for token in ("shirt", "tee", "blouse", "top")):
+            item_type = "shirt"
+        elif any(token in lower for token in ("jean", "denim")):
+            item_type = "jeans"
+        elif any(token in lower for token in ("skirt",)):
+            item_type = "skirt"
+        elif any(token in lower for token in ("pant", "trouser", "chino")):
+            item_type = "pants"
+        elif any(token in lower for token in ("jacket", "coat", "blazer")):
+            item_type = "jacket"
+        else:
+            item_type = "dress"
 
     if "floral" in lower:
         pattern = "floral"
@@ -505,13 +576,22 @@ def infer_metadata(filename: str) -> dict[str, object]:
 
     metadata = {
         "type": item_type,
-        "category": "one_piece" if item_type == "dress" else "separates",
+        "type_alternatives": [],
+        "category": (
+            "one_piece"
+            if item_type in ONE_PIECE_TYPES
+            else "outerwear"
+            if item_type in OUTERWEAR_TYPES
+            else "accessories"
+            if item_type in ACCESSORY_TYPES
+            else "separates"
+        ),
         "is_ethnic": item_type in ETHNIC_TYPES,
         "primary_color": color,
         "secondary_colors": [],
         "pattern": pattern,
         "embellishment": None,
-        "sleeve_type": "short_sleeve",
+        "sleeve_type": None if item_type in SLEEVELESS_GARMENT_TYPES else "short_sleeve",
         "fabric": "user_review_needed",
         "season": ["all_season"] if color == "black" else ["summer", "spring"],
         "occasion": ["casual"],

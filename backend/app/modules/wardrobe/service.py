@@ -4,7 +4,15 @@ from fastapi import HTTPException, status
 
 from app.core.config import settings
 from app.modules.ai.repository import embedding_repository
-from app.modules.ai.service import ai_service, generate_embedding, infer_metadata
+from app.modules.ai.service import (
+    ACCESSORY_TYPES,
+    ETHNIC_TYPES,
+    ONE_PIECE_TYPES,
+    OUTERWEAR_TYPES,
+    ai_service,
+    generate_embedding,
+    infer_metadata,
+)
 from app.modules.media.cloudinary_service import cloudinary_service
 from app.modules.wardrobe.repository import wardrobe_repository
 
@@ -76,6 +84,7 @@ class WardrobeService:
         return {
             "name": metadata.get("suggested_name"),
             "type": metadata.get("type"),
+            "type_alternatives": metadata.get("type_alternatives", []),
             "category": metadata.get("category"),
             "is_ethnic": metadata.get("is_ethnic", False),
             "color": metadata.get("primary_color"),
@@ -101,6 +110,7 @@ class WardrobeService:
         name: str | None = None,
         color: str | None = None,
         pattern: str | None = None,
+        item_type: str | None = None,
         brand: str | None = None,
         purchase_date: str | datetime | None = None,
         occasion: str | list[str] | None = None,
@@ -174,6 +184,29 @@ class WardrobeService:
         primary_color = color.strip() if color and color.strip() else metadata["primary_color"]
         item_pattern = pattern.strip() if pattern and pattern.strip() else metadata["pattern"]
         item_brand = brand.strip() if brand and brand.strip() else None
+
+        # A corrected type has to carry its category with it, or an item the user
+        # re-labelled as trousers stays filed under one_piece.
+        if item_type and item_type.strip():
+            resolved_type = item_type.strip().lower()
+            if resolved_type in ONE_PIECE_TYPES:
+                resolved_category = "one_piece"
+            elif resolved_type in OUTERWEAR_TYPES:
+                resolved_category = "outerwear"
+            elif resolved_type in ACCESSORY_TYPES:
+                resolved_category = "accessories"
+            else:
+                resolved_category = "separates"
+            resolved_tags = [
+                tag for tag in metadata.get("tags", []) if tag not in {"ethnic", metadata.get("type")}
+            ]
+            resolved_tags.append(resolved_type)
+            if resolved_type in ETHNIC_TYPES:
+                resolved_tags.append("ethnic")
+        else:
+            resolved_type = metadata.get("type", "dress")
+            resolved_category = metadata.get("category", "dresses")
+            resolved_tags = metadata.get("tags", [item_pattern, primary_color])
         item_purchase_date = _parse_datetime(purchase_date)
         item_last_worn_at = _parse_datetime(last_worn_date)
 
@@ -199,8 +232,8 @@ class WardrobeService:
             "width": resolved_width,
             "height": resolved_height,
             "bytes": resolved_bytes,
-            "type": metadata.get("type", "dress"),
-            "category": metadata.get("category", "dresses"),
+            "type": resolved_type,
+            "category": resolved_category,
             "primary_color": primary_color,
             "secondary_colors": metadata.get("secondary_colors", []),
             "pattern": item_pattern,
@@ -208,7 +241,7 @@ class WardrobeService:
             "fabric": metadata.get("fabric", "user_review_needed"),
             "season": metadata.get("season", ["all_season"]),
             "occasion": item_occasion,
-            "tags": metadata.get("tags", [item_pattern, primary_color]),
+            "tags": resolved_tags,
             "confidence": metadata.get("confidence", {}),
             "brand": item_brand,
             "purchase_date": item_purchase_date,

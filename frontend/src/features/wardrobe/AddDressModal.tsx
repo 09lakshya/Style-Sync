@@ -10,6 +10,8 @@ interface AddDressModalProps {
   isSubmitting: boolean
   error?: Error | null
   token: string
+  /** Garment words worth offering this user, from their styling profile. */
+  suggestedGarments?: string[]
 }
 
 // Kept in step with CANDIDATE_COLORS in the backend's ai service, so a detected
@@ -62,6 +64,28 @@ const PATTERN_OPTIONS = [
   'Other',
 ]
 
+// Mirrors TYPE_PROMPTS in the backend's ai service. Grouped so the traditional
+// wear is findable rather than buried among the western names.
+const GARMENT_GROUPS: { label: string; types: string[] }[] = [
+  {
+    label: 'Western',
+    types: [
+      'dress', 'gown', 'shirt', 'blouse', 'top', 't-shirt', 'skirt', 'pants',
+      'jeans', 'shorts', 'jumpsuit', 'romper', 'jacket', 'coat', 'blazer',
+      'sweater', 'hoodie', 'cardigan', 'waistcoat',
+    ],
+  },
+  {
+    label: 'Indian traditional',
+    types: [
+      'saree', 'lehenga', 'choli', 'anarkali', 'salwar kameez', 'patiala salwar',
+      'churidar', 'palazzo', 'sharara', 'gharara', 'kurta', 'kurti', 'angrakha',
+      'sherwani', 'bandhgala', 'nehru jacket', 'pathani suit', 'dhoti', 'lungi',
+      'mekhela chador', 'pattu pavadai', 'phiran', 'indo-western gown', 'dupatta',
+    ],
+  },
+]
+
 const OCCASION_OPTIONS = [
   'Casual',
   'Formal',
@@ -79,7 +103,15 @@ function formatConfidence(value: number | undefined): string {
   return typeof value === 'number' ? `${Math.round(value * 100)}%` : ''
 }
 
-export function AddDressModal({ isOpen, onClose, onSubmit, isSubmitting, error, token }: AddDressModalProps) {
+export function AddDressModal({
+  isOpen,
+  onClose,
+  onSubmit,
+  isSubmitting,
+  error,
+  token,
+  suggestedGarments = [],
+}: AddDressModalProps) {
   const [file, setFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [name, setName] = useState('')
@@ -87,6 +119,9 @@ export function AddDressModal({ isOpen, onClose, onSubmit, isSubmitting, error, 
   // Free-text colour, used only while the select sits on "Other".
   const [customColor, setCustomColor] = useState('')
   const [pattern, setPattern] = useState('Solid')
+  // Detection gets the garment wrong often enough on full-body photos that this
+  // has to be correctable: a loose linen trouser reads as a churidar.
+  const [itemType, setItemType] = useState('')
   const [brand, setBrand] = useState('')
   const [purchaseDate, setPurchaseDate] = useState('')
   const [occasion, setOccasion] = useState('Casual')
@@ -107,6 +142,7 @@ export function AddDressModal({ isOpen, onClose, onSubmit, isSubmitting, error, 
       setName('')
       setColor('Blue')
       setPattern('Solid')
+      setItemType('')
       setBrand('')
       setPurchaseDate('')
       setOccasion('Casual')
@@ -151,6 +187,7 @@ export function AddDressModal({ isOpen, onClose, onSubmit, isSubmitting, error, 
     try {
       const detected = await detectDressMetadata(selected, token)
       setDetection(detected)
+      if (detected.type) setItemType(detected.type)
 
       // Only fill fields the user has not already set by hand.
       if (detected.name) setName((prev) => (prev.trim() ? prev : detected.name ?? ''))
@@ -223,6 +260,7 @@ export function AddDressModal({ isOpen, onClose, onSubmit, isSubmitting, error, 
       file,
       // Blank is fine with a photo attached: the backend names it from what it detected.
       name: name.trim(),
+      itemType,
       color: resolvedColor,
       pattern,
       brand: brand.trim(),
@@ -364,6 +402,24 @@ export function AddDressModal({ isOpen, onClose, onSubmit, isSubmitting, error, 
                 onChange={(e) => setName(e.target.value)}
                 className="w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 placeholder-stone-500 focus:border-[var(--accent)] focus:outline-none"
               />
+              {/* Garment words for this user's profile, so naming by hand does
+                  not mean typing "kurta" from scratch every time. */}
+              {!detection && suggestedGarments.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {suggestedGarments.map((garment) => (
+                    <button
+                      key={garment}
+                      type="button"
+                      onClick={() =>
+                        setName((prev) => (prev.trim() ? `${prev.trim()} ${garment}` : garment))
+                      }
+                      className="rounded-full border border-[#443d34] bg-[#2a2723] px-2.5 py-1 text-xs text-stone-300 hover:border-[var(--accent)] hover:text-stone-100"
+                    >
+                      {garment}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div>
@@ -377,6 +433,52 @@ export function AddDressModal({ isOpen, onClose, onSubmit, isSubmitting, error, 
                 onChange={(e) => setBrand(e.target.value)}
                 className="w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 placeholder-stone-500 focus:border-[var(--accent)] focus:outline-none"
               />
+            </div>
+
+            <div>
+              <label
+                htmlFor="add-dress-type"
+                className="block text-xs font-medium uppercase tracking-wider text-stone-400 mb-1.5"
+              >
+                Garment type {detection ? '(detected)' : ''}
+              </label>
+              <select
+                id="add-dress-type"
+                value={itemType}
+                onChange={(e) => setItemType(e.target.value)}
+                className="w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 capitalize focus:border-[var(--accent)] focus:outline-none"
+              >
+                <option value="">Let the model decide</option>
+                {GARMENT_GROUPS.map((group) => (
+                  <optgroup key={group.label} label={group.label}>
+                    {group.types.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+              {/* The runners-up, one click away. On an ambiguous photo the right
+                  answer is usually second or third, not absent. */}
+              {detection && detection.type_alternatives.length > 1 && (
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                  <span className="text-[11px] text-stone-500">Not right?</span>
+                  {detection.type_alternatives
+                    .filter(([type]) => type !== itemType)
+                    .slice(0, 3)
+                    .map(([type, score]) => (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => setItemType(type)}
+                        className="rounded-full border border-[#443d34] bg-[#2a2723] px-2.5 py-1 text-xs capitalize text-stone-300 hover:border-[var(--accent)] hover:text-stone-100"
+                      >
+                        {type} {formatConfidence(score)}
+                      </button>
+                    ))}
+                </div>
+              )}
             </div>
 
             <div>

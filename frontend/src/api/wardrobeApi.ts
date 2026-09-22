@@ -96,6 +96,7 @@ export async function createWardrobeItem(
   if (input.name.trim()) formData.append('name', input.name.trim())
   if (input.color.trim()) formData.append('color', input.color.trim())
   if (input.pattern.trim()) formData.append('pattern', input.pattern.trim())
+  if (input.itemType.trim()) formData.append('item_type', input.itemType.trim())
   if (input.brand.trim()) formData.append('brand', input.brand.trim())
   if (input.purchaseDate) formData.append('purchase_date', input.purchaseDate)
   if (input.occasion.trim()) formData.append('occasion', input.occasion.trim())

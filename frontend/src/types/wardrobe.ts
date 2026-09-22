@@ -57,6 +57,8 @@ export interface WardrobeItem {
 export interface DetectedDressMetadata {
   name: string | null
   type: string | null
+  /** Runner-up garment readings, best first, so the form can offer them. */
+  type_alternatives: [string, number][]
   category: string | null
   is_ethnic: boolean
   color: string | null
@@ -77,6 +79,8 @@ export interface DetectedDressMetadata {
 export interface CreateDressInput {
   file?: File | null
   name: string
+  /** Garment type, detected then confirmed or corrected by the user. */
+  itemType: string
   color: string
   pattern: string
   brand: string
