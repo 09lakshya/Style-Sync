@@ -66,7 +66,7 @@ export function OutfitAnalysisPanel({ token }: OutfitAnalysisPanelProps) {
         {/* Controls */}
         <div className="space-y-3">
           <label className="flex min-h-24 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-[#cfc7bb] bg-[#fbfaf7] px-3 py-4 text-center text-sm text-[#5d655e]">
-            <CloudUpload className="mb-2 h-5 w-5 text-[#a15c38]" />
+            <CloudUpload className="mb-2 h-5 w-5 text-[var(--accent)]" />
             <span className="font-medium">{file ? file.name : 'Choose outfit image'}</span>
             <span className="mt-1 text-xs text-[#7d847d]">JPG, PNG, or WebP</span>
             <input
@@ -94,7 +94,7 @@ export function OutfitAnalysisPanel({ token }: OutfitAnalysisPanelProps) {
             type="button"
             onClick={handleAnalyze}
             disabled={!file || isAnalyzing}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-[#a15c38] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#b56942] disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isAnalyzing && <Loader2 className="h-4 w-4 animate-spin" />}
             {isAnalyzing ? 'Analyzing outfit...' : 'Analyze outfit'}

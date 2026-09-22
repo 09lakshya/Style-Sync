@@ -61,7 +61,7 @@ export function WardrobeFilterBar({ filters, onChange, totalCount }: WardrobeFil
             placeholder="Search dresses by name or brand..."
             value={filters.searchQuery}
             onChange={handleSearchChange}
-            className="w-full rounded-lg border border-[#38332c] bg-[#211f1c] pl-10 pr-4 py-2 text-sm text-stone-100 placeholder-stone-400 focus:border-[#a15c38] focus:outline-none transition-colors"
+            className="w-full rounded-lg border border-[#38332c] bg-[#211f1c] pl-10 pr-4 py-2 text-sm text-stone-100 placeholder-stone-400 focus:border-[var(--accent)] focus:outline-none transition-colors"
           />
         </div>
 
@@ -135,7 +135,7 @@ export function WardrobeFilterBar({ filters, onChange, totalCount }: WardrobeFil
           {hasActiveFilters && (
             <button
               onClick={clearFilters}
-              className="text-xs text-[#a15c38] underline hover:text-[#b56942] transition-colors"
+              className="text-xs text-[var(--accent)] underline hover:text-[var(--accent-hover)] transition-colors"
             >
               Reset
             </button>

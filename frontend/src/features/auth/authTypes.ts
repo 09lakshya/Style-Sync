@@ -1,7 +1,12 @@
+/** What the user tells us at sign-up. Drives which trends and styling rules
+ *  apply, never a colour on its own. "unspecified" is a real answer. */
+export type ProfileGender = 'female' | 'male' | 'non-binary' | 'unspecified'
+
 export type AuthUser = {
   id: string
   name: string
   email: string
+  gender?: ProfileGender
 }
 
 export type AuthSession = {
@@ -18,6 +23,7 @@ export type RegisterPayload = {
   name: string
   email: string
   password: string
+  gender: ProfileGender
 }
 
 export type AuthResponse = {
@@ -30,5 +36,13 @@ export type FormErrors = {
   name?: string
   email?: string
   password?: string
+  gender?: string
   general?: string
 }
+
+export const GENDER_OPTIONS: { value: ProfileGender; label: string }[] = [
+  { value: 'female', label: 'Woman' },
+  { value: 'male', label: 'Man' },
+  { value: 'non-binary', label: 'Non-binary' },
+  { value: 'unspecified', label: 'Prefer not to say' },
+]

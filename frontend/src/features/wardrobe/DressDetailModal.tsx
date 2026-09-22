@@ -122,7 +122,7 @@ export function DressDetailModal({
                         type="button"
                         onClick={() => onMarkWorn(item)}
                         disabled={isMarkingWorn}
-                        className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-[#38332c] bg-stone-900 px-2.5 py-1 text-xs font-medium text-stone-300 transition-colors hover:bg-stone-800 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#a15c38]"
+                        className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-[#38332c] bg-stone-900 px-2.5 py-1 text-xs font-medium text-stone-300 transition-colors hover:bg-stone-800 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
                       >
                         {isMarkingWorn ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -135,7 +135,7 @@ export function DressDetailModal({
                   </div>
                 </div>
 
-                <div className="mt-4 rounded-lg border border-[#a15c38]/30 bg-[#241a14]/50 p-4">
+                <div className="mt-4 rounded-lg border border-[var(--accent)]/30 bg-[#241a14]/50 p-4">
                   <h4 className="mb-2 text-sm font-semibold text-[#d99b77]">AI Classification</h4>
                   {item.predictedCategory ? (
                     <div className="grid grid-cols-2 gap-4 text-xs">
@@ -187,7 +187,7 @@ export function DressDetailModal({
                 <button
                   type="button"
                   onClick={() => onEdit(item)}
-                  className="inline-flex items-center gap-2 rounded-md bg-[#a15c38] px-4 py-2 text-sm font-medium text-white hover:bg-[#b56942] transition-colors"
+                  className="inline-flex items-center gap-2 rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--accent-hover)] transition-colors"
                 >
                   <Edit2 className="h-4 w-4" />
                   Edit Metadata

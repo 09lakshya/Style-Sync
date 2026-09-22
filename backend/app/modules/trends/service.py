@@ -15,6 +15,7 @@ from collections import Counter
 from datetime import datetime, timezone
 from typing import Any
 
+from app.modules.auth.service import get_profile_gender
 from app.modules.trends import catalog
 from app.modules.wardrobe.service import wardrobe_service
 
@@ -33,19 +34,28 @@ PALETTE_WEIGHT = 0.25
 
 # Colours that read as interchangeable when matching a trend palette.
 COLOR_FAMILIES: dict[str, set[str]] = {
-    "blue": {"blue", "navy"},
+    "blue": {"blue", "navy", "teal"},
     "navy": {"navy", "blue"},
-    "beige": {"beige", "brown", "white"},
-    "brown": {"brown", "beige"},
-    "grey": {"grey", "black", "white"},
+    "teal": {"teal", "blue", "green"},
+    "beige": {"beige", "brown", "white", "cream"},
+    "cream": {"cream", "beige", "white"},
+    "brown": {"brown", "beige", "maroon"},
+    "grey": {"grey", "black", "white", "silver"},
     "black": {"black", "grey"},
-    "white": {"white", "beige", "grey"},
-    "red": {"red", "pink", "purple"},
-    "purple": {"purple", "red", "pink"},
-    "pink": {"pink", "red", "purple"},
-    "green": {"green"},
-    "yellow": {"yellow", "orange"},
-    "orange": {"orange", "yellow", "brown"},
+    "white": {"white", "beige", "cream", "grey"},
+    "red": {"red", "pink", "purple", "maroon", "magenta"},
+    "maroon": {"maroon", "red", "purple", "brown"},
+    "purple": {"purple", "red", "pink", "magenta"},
+    "pink": {"pink", "red", "purple", "magenta", "peach"},
+    "magenta": {"magenta", "pink", "purple", "red"},
+    "peach": {"peach", "pink", "orange", "beige"},
+    "green": {"green", "olive", "teal"},
+    "olive": {"olive", "green", "brown"},
+    "yellow": {"yellow", "orange", "mustard"},
+    "mustard": {"mustard", "yellow", "orange", "brown"},
+    "orange": {"orange", "yellow", "brown", "peach"},
+    "gold": {"gold", "yellow", "beige", "brown"},
+    "silver": {"silver", "grey", "white"},
 }
 
 _WORD_RE = re.compile(r"[a-z]+")
@@ -161,9 +171,19 @@ class TrendsService:
         occasion: str | None = None,
         sort: str = "momentum",
         limit: int | None = None,
+        gender: str | None = None,
+        include_all_genders: bool = False,
     ) -> dict[str, Any]:
         items = await wardrobe_service.get_user_items(user_id)
+        resolved_gender = gender or await get_profile_gender(user_id)
         trends = [self._annotate(trend, items) for trend in catalog.TRENDS]
+
+        # A saree drape is not a look a man's wardrobe can be scored against, and
+        # a bandhgala is not one a woman's can. Anyone who did not say, or said
+        # non-binary, sees everything: guessing for them would be worse than the
+        # slightly longer list.
+        if not include_all_genders and resolved_gender in {"female", "male"}:
+            trends = [t for t in trends if resolved_gender in t["genders"]]
 
         if season and season.lower() not in {"all", ""}:
             wanted = season.lower()
@@ -189,6 +209,7 @@ class TrendsService:
         return {
             "season": catalog.CATALOG_SEASON,
             "updated": catalog.CATALOG_UPDATED,
+            "gender": resolved_gender,
             "wardrobe_size": len(items),
             "count": len(trends),
             "average_match": round(sum(scores) / len(scores)) if scores else 0,
@@ -239,6 +260,7 @@ class TrendsService:
         return {
             "id": trend["id"],
             "title": trend["title"],
+            "genders": trend["genders"],
             "summary": trend["summary"],
             "momentum": trend["momentum"],
             "status": catalog.status_for(trend["momentum"]),

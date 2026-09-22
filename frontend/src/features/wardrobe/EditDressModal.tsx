@@ -162,7 +162,7 @@ export function EditDressModal({ item, isOpen, onClose, onSubmit, isSubmitting }
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 placeholder-stone-500 focus:border-[#a15c38] focus:outline-none"
+              className="w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 placeholder-stone-500 focus:border-[var(--accent)] focus:outline-none"
             />
           </div>
 
@@ -175,7 +175,7 @@ export function EditDressModal({ item, isOpen, onClose, onSubmit, isSubmitting }
                 type="text"
                 value={brand}
                 onChange={(e) => setBrand(e.target.value)}
-                className="w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 placeholder-stone-500 focus:border-[#a15c38] focus:outline-none"
+                className="w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 placeholder-stone-500 focus:border-[var(--accent)] focus:outline-none"
               />
             </div>
 
@@ -190,7 +190,7 @@ export function EditDressModal({ item, isOpen, onClose, onSubmit, isSubmitting }
                 id="edit-dress-color"
                 value={color}
                 onChange={(e) => setColor(e.target.value)}
-                className="w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 focus:border-[#a15c38] focus:outline-none"
+                className="w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 focus:border-[var(--accent)] focus:outline-none"
               >
                 {COLOR_OPTIONS.map((opt) => (
                   <option key={opt} value={opt}>
@@ -205,7 +205,7 @@ export function EditDressModal({ item, isOpen, onClose, onSubmit, isSubmitting }
                   onChange={(e) => setCustomColor(e.target.value)}
                   placeholder="Type a color, e.g. Mustard"
                   aria-label="Custom color"
-                  className="mt-2 w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 placeholder-stone-500 focus:border-[#a15c38] focus:outline-none"
+                  className="mt-2 w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 placeholder-stone-500 focus:border-[var(--accent)] focus:outline-none"
                 />
               )}
             </div>
@@ -217,7 +217,7 @@ export function EditDressModal({ item, isOpen, onClose, onSubmit, isSubmitting }
               <select
                 value={pattern}
                 onChange={(e) => setPattern(e.target.value)}
-                className="w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 focus:border-[#a15c38] focus:outline-none"
+                className="w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 focus:border-[var(--accent)] focus:outline-none"
               >
                 {PATTERN_OPTIONS.map((opt) => (
                   <option key={opt} value={opt}>
@@ -234,7 +234,7 @@ export function EditDressModal({ item, isOpen, onClose, onSubmit, isSubmitting }
               <select
                 value={occasion}
                 onChange={(e) => setOccasion(e.target.value)}
-                className="w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 focus:border-[#a15c38] focus:outline-none"
+                className="w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 focus:border-[var(--accent)] focus:outline-none"
               >
                 {OCCASION_OPTIONS.map((opt) => (
                   <option key={opt} value={opt}>
@@ -252,7 +252,7 @@ export function EditDressModal({ item, isOpen, onClose, onSubmit, isSubmitting }
                 type="date"
                 value={purchaseDate}
                 onChange={(e) => setPurchaseDate(e.target.value)}
-                className="w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 focus:border-[#a15c38] focus:outline-none"
+                className="w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 focus:border-[var(--accent)] focus:outline-none"
               />
             </div>
 
@@ -264,7 +264,7 @@ export function EditDressModal({ item, isOpen, onClose, onSubmit, isSubmitting }
                 type="date"
                 value={lastWornDate}
                 onChange={(e) => setLastWornDate(e.target.value)}
-                className="w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 focus:border-[#a15c38] focus:outline-none"
+                className="w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 focus:border-[var(--accent)] focus:outline-none"
               />
             </div>
 
@@ -282,7 +282,7 @@ export function EditDressModal({ item, isOpen, onClose, onSubmit, isSubmitting }
                 step={1}
                 value={wearCount}
                 onChange={(e) => setWearCount(e.target.value)}
-                className="w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 focus:border-[#a15c38] focus:outline-none"
+                className="w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 focus:border-[var(--accent)] focus:outline-none"
               />
               <p className="mt-1.5 text-xs text-stone-500">
                 Correct the running total. Use &ldquo;Mark as worn today&rdquo; to log a single wearing.
@@ -302,7 +302,7 @@ export function EditDressModal({ item, isOpen, onClose, onSubmit, isSubmitting }
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex items-center gap-2 rounded-md bg-[#a15c38] px-5 py-2 text-sm font-medium text-white hover:bg-[#b56942] transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-md bg-[var(--accent)] px-5 py-2 text-sm font-medium text-white hover:bg-[var(--accent-hover)] transition-colors disabled:opacity-50"
             >
               {isSubmitting ? (
                 <>

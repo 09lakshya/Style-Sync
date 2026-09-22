@@ -5,7 +5,8 @@ import { AuthInput } from '../../components/auth/AuthInput'
 import { EditorialVisual } from '../../components/auth/EditorialVisual'
 import { PasswordInput } from '../../components/auth/PasswordInput'
 import { registerApi } from './authApi'
-import type { AuthSession, FormErrors } from './authTypes'
+import { GENDER_OPTIONS } from './authTypes'
+import type { AuthSession, FormErrors, ProfileGender } from './authTypes'
 
 interface SignupPageProps {
   onSessionSuccess: (session: AuthSession) => void
@@ -16,10 +17,14 @@ export function SignupPage({ onSessionSuccess, onNavigateToLogin }: SignupPagePr
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  // Asked here because it decides the trend mix and styling rules from the
+  // first session; there is no sensible way to infer it later.
+  const [gender, setGender] = useState<ProfileGender | ''>('')
   const [errors, setErrors] = useState<FormErrors>({})
 
   const registerMutation = useMutation({
-    mutationFn: (payload: { name: string; email: string; password: string }) => registerApi(payload),
+    mutationFn: (payload: { name: string; email: string; password: string; gender: ProfileGender }) =>
+      registerApi(payload),
     onSuccess: (session) => {
       setErrors({})
       onSessionSuccess(session)
@@ -31,7 +36,12 @@ export function SignupPage({ onSessionSuccess, onNavigateToLogin }: SignupPagePr
     },
   })
 
-  function validateFormWithValues(nameVal: string, emailVal: string, passwordVal: string): boolean {
+  function validateFormWithValues(
+    nameVal: string,
+    emailVal: string,
+    passwordVal: string,
+    genderVal: ProfileGender | '',
+  ): boolean {
     const newErrors: FormErrors = {}
 
     const trimmedName = nameVal.trim()
@@ -54,6 +64,10 @@ export function SignupPage({ onSessionSuccess, onNavigateToLogin }: SignupPagePr
       newErrors.password = 'Password must be at least 8 characters long.'
     }
 
+    if (!genderVal) {
+      newErrors.gender = 'Choose an option so your trends and styling can be tailored.'
+    }
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -70,8 +84,13 @@ export function SignupPage({ onSessionSuccess, onNavigateToLogin }: SignupPagePr
     if (formEmail !== email) setEmail(formEmail)
     if (formPassword !== password) setPassword(formPassword)
 
-    if (validateFormWithValues(formName, formEmail, formPassword)) {
-      registerMutation.mutate({ name: formName, email: formEmail, password: formPassword })
+    if (validateFormWithValues(formName, formEmail, formPassword, gender)) {
+      registerMutation.mutate({
+        name: formName,
+        email: formEmail,
+        password: formPassword,
+        gender: gender as ProfileGender,
+      })
     }
   }
 
@@ -125,7 +144,7 @@ export function SignupPage({ onSessionSuccess, onNavigateToLogin }: SignupPagePr
               type="text"
               name="name"
               id="name"
-              placeholder="E.g. Elena Rostova"
+              placeholder="E.g. Virat Kohli"
               value={name}
               onChange={(e) => {
                 setName(e.target.value)
@@ -141,7 +160,7 @@ export function SignupPage({ onSessionSuccess, onNavigateToLogin }: SignupPagePr
               type="email"
               name="email"
               id="email"
-              placeholder="name@example.com"
+              placeholder="viratkohli@example.com"
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value)
@@ -166,6 +185,44 @@ export function SignupPage({ onSessionSuccess, onNavigateToLogin }: SignupPagePr
               autoComplete="new-password"
               disabled={registerMutation.isPending}
             />
+
+            <fieldset disabled={registerMutation.isPending}>
+              <legend className="block text-xs uppercase tracking-widest text-[#B8AD9A] mb-3">
+                Style profile
+              </legend>
+              <div className="grid grid-cols-2 gap-2">
+                {GENDER_OPTIONS.map((option) => (
+                  <label
+                    key={option.value}
+                    className={`cursor-pointer border px-3 py-2.5 text-xs uppercase tracking-widest transition-colors ${
+                      gender === option.value
+                        ? 'border-[#E8E0D0] bg-[#E8E0D0]/10 text-[#F5F2EB]'
+                        : 'border-white/10 text-[#B8AD9A] hover:border-white/25'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="gender"
+                      value={option.value}
+                      checked={gender === option.value}
+                      onChange={() => {
+                        setGender(option.value)
+                        if (errors.gender) setErrors((prev) => ({ ...prev, gender: undefined }))
+                      }}
+                      className="sr-only"
+                    />
+                    {option.label}
+                  </label>
+                ))}
+              </div>
+              <p className="mt-2 text-[11px] leading-5 text-[#62605A]">
+                This selects which trends and styling conventions you are shown. Your theme comes
+                from your own wardrobe, not from this answer.
+              </p>
+              {errors.gender && (
+                <p className="mt-1.5 text-[11px] text-amber-300">{errors.gender}</p>
+              )}
+            </fieldset>
 
             <button
               type="submit"

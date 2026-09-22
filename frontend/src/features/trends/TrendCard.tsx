@@ -41,7 +41,7 @@ export function TrendCard({ trend, isExpanded, onToggle, onViewItem }: TrendCard
 
           {/* Fit score: how much of this look the wardrobe already covers. */}
           <div className="shrink-0 text-right">
-            <div className="text-2xl font-semibold text-[#a15c38]">{match.score}%</div>
+            <div className="text-2xl font-semibold text-[var(--accent)]">{match.score}%</div>
             <div className="text-xs text-[#687068]">wardrobe fit</div>
           </div>
         </div>
@@ -65,14 +65,14 @@ export function TrendCard({ trend, isExpanded, onToggle, onViewItem }: TrendCard
         {/* Progress bar mirrors the fit score for a quick scan down the list. */}
         <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#eee8de]">
           <div
-            className="h-full rounded-full bg-[#a15c38] transition-[width] duration-300"
+            className="h-full rounded-full bg-[var(--accent)] transition-[width] duration-300"
             style={{ width: `${Math.max(match.score, 2)}%` }}
           />
         </div>
 
         <button
           onClick={onToggle}
-          className="inline-flex items-center gap-1 self-start text-sm font-medium text-[#a15c38] hover:text-[#b56942]"
+          className="inline-flex items-center gap-1 self-start text-sm font-medium text-[var(--accent)] hover:text-[var(--accent-hover)]"
           aria-expanded={isExpanded}
         >
           {isExpanded ? 'Hide details' : 'How to wear it'}
@@ -139,7 +139,7 @@ export function TrendCard({ trend, isExpanded, onToggle, onViewItem }: TrendCard
               <ul className="space-y-1.5 text-sm leading-6 text-[#646b64]">
                 {trend.styling_tips.map((tip) => (
                   <li key={tip} className="flex gap-2">
-                    <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-[#a15c38]" />
+                    <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-[var(--accent)]" />
                     {tip}
                   </li>
                 ))}

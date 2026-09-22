@@ -29,6 +29,7 @@ export interface TrendMatch {
 
 export interface Trend {
   id: string
+  genders: string[]
   title: string
   summary: string
   momentum: number
@@ -45,6 +46,8 @@ export interface Trend {
 
 export interface TrendFeed {
   season: string
+  /** The profile gender the feed was filtered to. */
+  gender: string
   updated: string
   wardrobe_size: number
   count: number
@@ -72,6 +75,8 @@ export interface TrendFilters {
   season: string
   occasion: string
   sort: TrendSort
+  /** Opt out of the gender filter and show the whole catalogue. */
+  allGenders: boolean
 }
 
 export const TREND_SEASONS = ['All', 'spring', 'summer', 'fall', 'winter'] as const

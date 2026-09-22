@@ -10,7 +10,14 @@
   }
 }
 
+/* Accent tokens. The defaults are the brand's; once a wardrobe exists,
+   lib/theme.ts overwrites them with the colours the user actually wears. */
 :root {
+  --accent: #a15c38;
+  --accent-hover: #b56942;
+  --accent-soft: #f0e8dd;
+  --accent-ink: #7f4b2f;
+
   font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: #1f2328;
   background: #f7f4ef;

@@ -185,3 +185,55 @@ async def test_unknown_trend_returns_404(client):
 async def test_feed_requires_authentication(client):
     response = await client.get("/api/v1/trends")
     assert response.status_code in (401, 403)
+
+
+# --- gender personalisation ---------------------------------------------
+
+@pytest.mark.asyncio
+async def test_feed_is_filtered_to_the_profile_gender():
+    male = await register_user("Man", "man-trends@example.com", "Password123!", "male")
+    female = await register_user("Woman", "woman-trends@example.com", "Password123!", "female")
+
+    male_feed = await TrendsService().get_feed(str(male["id"]))
+    female_feed = await TrendsService().get_feed(str(female["id"]))
+
+    male_ids = {t["id"] for t in male_feed["trends"]}
+    female_ids = {t["id"] for t in female_feed["trends"]}
+
+    assert male_feed["gender"] == "male"
+    assert "modern-indian-drape" not in male_ids
+    assert "modern-bandhgala" in male_ids
+    assert "modern-indian-drape" in female_ids
+    assert "modern-bandhgala" not in female_ids
+    # The shared looks are shared, not duplicated per gender.
+    assert "quiet-luxury-neutrals" in male_ids & female_ids
+
+
+@pytest.mark.asyncio
+async def test_unspecified_and_non_binary_see_every_trend():
+    for email, gender in (("nb-trends@example.com", "non-binary"), ("un-trends@example.com", "unspecified")):
+        user = await register_user("Anyone", email, "Password123!", gender)
+        feed = await TrendsService().get_feed(str(user["id"]))
+        assert feed["count"] == len(catalog.TRENDS), gender
+
+
+@pytest.mark.asyncio
+async def test_all_genders_override_restores_the_full_feed():
+    user = await register_user("Man", "override-trends@example.com", "Password123!", "male")
+    filtered = await TrendsService().get_feed(str(user["id"]))
+    everything = await TrendsService().get_feed(str(user["id"]), include_all_genders=True)
+    assert everything["count"] > filtered["count"]
+    assert everything["count"] == len(catalog.TRENDS)
+
+
+def test_every_trend_declares_who_it_is_cut_for():
+    for trend in catalog.TRENDS:
+        assert trend["genders"], f"{trend['id']} declares no genders"
+        assert set(trend["genders"]) <= {"female", "male"}
+
+
+def test_the_catalogue_is_not_lopsided():
+    """Filtering by gender must not leave one of them with a thin feed."""
+    for gender in ("female", "male"):
+        count = sum(1 for t in catalog.TRENDS if gender in t["genders"])
+        assert count >= 10, f"only {count} trends for {gender}"

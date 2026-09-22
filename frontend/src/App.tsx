@@ -14,6 +14,7 @@ import { LoginPage } from './features/auth/LoginPage'
 import { SignupPage } from './features/auth/SignupPage'
 import type { AuthSession, AuthUser } from './features/auth/authTypes'
 import { getAuthHeader, readStoredSession, removeStoredSession, saveStoredSession } from './lib/auth'
+import { applyAccent, resolveAccent } from './lib/theme'
 
 import {
   createWardrobeItem,
@@ -326,6 +327,13 @@ export function App() {
       })
   }, [filters, items])
 
+  // The interface takes its accent from the wardrobe, so it shifts as the
+  // wardrobe does. Gender decides content, never colour.
+  const accent = useMemo(() => resolveAccent(items), [items])
+  useEffect(() => {
+    applyAccent(accent)
+  }, [accent])
+
   const topColor = analytics?.most_common_color ?? 'n/a'
   const underused =
     analytics?.least_used_items ?? items.filter((item) => item.wearCount <= 2).length
@@ -433,7 +441,7 @@ export function App() {
                 <div className="pt-6">
                   <button
                     onClick={() => setIsAddModalOpen(true)}
-                    className="inline-flex items-center gap-2 rounded-lg bg-[#a15c38] px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-[#b56942] transition-colors"
+                    className="inline-flex items-center gap-2 rounded-lg bg-[var(--accent)] px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-[var(--accent-hover)] transition-colors"
                   >
                     <Plus className="h-4 w-4" />
                     Add Dress to Wardrobe
@@ -459,7 +467,7 @@ export function App() {
               <form className="space-y-3" onSubmit={handleDuplicateCheck}>
                 <FileInput file={shoppingFile} onChange={setShoppingFile} label="Choose shopping image" />
                 <button
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-[#a15c38] px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={duplicateMutation.isPending}
                 >
                   <Search className="h-4 w-4" />
@@ -475,7 +483,7 @@ export function App() {
                 <div className="mb-3 flex items-center gap-2">
                   <h2 className="text-base font-semibold">Similarity report</h2>
                   {duplicateDecision && (
-                    <span className="ml-auto rounded-full bg-[#f0e8dd] px-2 py-0.5 text-xs font-medium text-[#7f4b2f]">
+                    <span className="ml-auto rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-xs font-medium text-[var(--accent-ink)]">
                       {decisionLabels[duplicateDecision]}
                     </span>
                   )}
@@ -497,7 +505,7 @@ export function App() {
                           <p className="truncate text-sm font-medium">{item.name}</p>
                           <p className="truncate text-xs text-[#687068]">{item.reason}</p>
                         </div>
-                        <span className="shrink-0 rounded-full bg-[#f0e8dd] px-2 py-1 text-sm font-semibold text-[#7f4b2f]">
+                        <span className="shrink-0 rounded-full bg-[var(--accent-soft)] px-2 py-1 text-sm font-semibold text-[var(--accent-ink)]">
                           {Math.round(item.similarity * 100)}%
                         </span>
                       </li>
@@ -601,6 +609,7 @@ export function App() {
         onSubmit={(data) => addDressMutation.mutate(data)}
         isSubmitting={addDressMutation.isPending}
         error={addDressMutation.error}
+        token={session.token}
       />
 
       <DressDetailModal
@@ -737,7 +746,7 @@ function TopBar({
         <NavPill icon={TrendingUp} label="Trends" onClick={onShowTrends} />
         <NavPill icon={CalendarDays} label="Reminders" onClick={onShowReminders} />
         <button
-          className="rounded-lg border border-[#e1dbd0] bg-[#fbfaf7] hover:bg-[#f0e8dd] transition-colors px-3.5 py-2 cursor-pointer font-medium text-xs text-[#1f2328]"
+          className="rounded-lg border border-[#e1dbd0] bg-[#fbfaf7] hover:bg-[var(--accent-soft)] transition-colors px-3.5 py-2 cursor-pointer font-medium text-xs text-[#1f2328]"
           onClick={onSignOut}
         >
           {user.name} / Sign out
@@ -760,9 +769,9 @@ function NavPill({
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex items-center gap-2 rounded-lg border border-[#e1dbd0] bg-[#fbfaf7] px-3 py-2 text-xs font-medium text-[#4f574f] transition-colors hover:bg-[#f0e8dd] hover:text-[#1f2328] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#a15c38]"
+      className="inline-flex items-center gap-2 rounded-lg border border-[#e1dbd0] bg-[#fbfaf7] px-3 py-2 text-xs font-medium text-[#4f574f] transition-colors hover:bg-[var(--accent-soft)] hover:text-[#1f2328] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
     >
-      <Icon className="h-3.5 w-3.5 text-[#a15c38]" />
+      <Icon className="h-3.5 w-3.5 text-[var(--accent)]" />
       {label}
     </button>
   )
@@ -805,7 +814,7 @@ function FileInput({
 }) {
   return (
     <label className="flex min-h-24 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-[#cfc7bb] bg-[#fbfaf7] px-3 py-4 text-center text-sm text-[#5d655e]">
-      <CloudUpload className="mb-2 h-5 w-5 text-[#a15c38]" />
+      <CloudUpload className="mb-2 h-5 w-5 text-[var(--accent)]" />
       <span className="font-medium">{file ? file.name : label}</span>
       <span className="mt-1 text-xs text-[#7d847d]">JPG, PNG, or WebP up to 5 MB</span>
       <input

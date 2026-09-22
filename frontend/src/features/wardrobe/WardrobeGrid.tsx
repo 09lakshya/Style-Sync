@@ -39,7 +39,7 @@ export function WardrobeGrid({ items, isLoading, onSelectItem, onAddDressClick }
         <button
           type="button"
           onClick={onAddDressClick}
-          className="mt-6 inline-flex items-center gap-2 rounded-lg bg-[#a15c38] px-6 py-3 text-sm font-semibold text-white shadow-lg hover:bg-[#b56942] transition-all hover:scale-105"
+          className="mt-6 inline-flex items-center gap-2 rounded-lg bg-[var(--accent)] px-6 py-3 text-sm font-semibold text-white shadow-lg hover:bg-[var(--accent-hover)] transition-all hover:scale-105"
         >
           <Plus className="h-5 w-5" />
           Add Dress
@@ -57,7 +57,7 @@ export function WardrobeGrid({ items, isLoading, onSelectItem, onAddDressClick }
         <article
           key={item.id}
           onClick={() => onSelectItem(item)}
-          className="group relative cursor-pointer overflow-hidden rounded-xl border border-[#38332c] bg-[#1a1917] text-[#f7f4ef] transition-all duration-300 hover:-translate-y-1 hover:border-[#a15c38] hover:shadow-xl hover:shadow-black/40"
+          className="group relative cursor-pointer overflow-hidden rounded-xl border border-[#38332c] bg-[#1a1917] text-[#f7f4ef] transition-all duration-300 hover:-translate-y-1 hover:border-[var(--accent)] hover:shadow-xl hover:shadow-black/40"
         >
           {/* Card Image */}
           <div className="relative h-60 w-full overflow-hidden bg-[#11100f]">

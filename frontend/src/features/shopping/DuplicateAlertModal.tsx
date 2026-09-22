@@ -62,7 +62,7 @@ export function DuplicateAlertModal({
           type="button"
           onClick={onClose}
           aria-label="Close similarity result"
-          className="absolute right-4 top-4 z-10 rounded-full bg-black/60 p-2 text-stone-300 backdrop-blur-md transition-colors hover:bg-black/80 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#a15c38]"
+          className="absolute right-4 top-4 z-10 rounded-full bg-black/60 p-2 text-stone-300 backdrop-blur-md transition-colors hover:bg-black/80 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
         >
           <X className="h-5 w-5" />
         </button>
@@ -118,7 +118,7 @@ export function DuplicateAlertModal({
                 type="button"
                 onClick={() => setShowOtherMatches((prev) => !prev)}
                 aria-expanded={showOtherMatches}
-                className="text-xs font-medium text-[#d99b77] underline-offset-4 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#a15c38]"
+                className="text-xs font-medium text-[#d99b77] underline-offset-4 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
               >
                 {showOtherMatches ? 'Hide' : 'Show'} {otherMatches.length} other close{' '}
                 {otherMatches.length === 1 ? 'match' : 'matches'}
@@ -147,7 +147,7 @@ export function DuplicateAlertModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md border border-[#38332c] bg-stone-900 px-4 py-2 text-sm font-medium text-stone-300 transition-colors hover:bg-stone-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#a15c38]"
+            className="rounded-md border border-[#38332c] bg-stone-900 px-4 py-2 text-sm font-medium text-stone-300 transition-colors hover:bg-stone-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           >
             Close
           </button>
@@ -155,7 +155,7 @@ export function DuplicateAlertModal({
             <button
               type="button"
               onClick={() => onViewItem(match.id)}
-              className="rounded-md bg-[#a15c38] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#b56942] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d99b77]"
+              className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--accent-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d99b77]"
             >
               View Item
             </button>

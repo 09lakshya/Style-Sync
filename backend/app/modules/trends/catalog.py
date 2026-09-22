@@ -41,6 +41,7 @@ def status_for(momentum: float) -> str:
 TRENDS: list[dict[str, Any]] = [
     {
         "id": "quiet-luxury-neutrals",
+        "genders": ["female", "male"],
         "title": "Quiet Luxury Neutrals",
         "momentum": 0.93,
         "summary": (
@@ -66,6 +67,7 @@ TRENDS: list[dict[str, Any]] = [
     },
     {
         "id": "burgundy-takeover",
+        "genders": ["female", "male"],
         "title": "The Burgundy Takeover",
         "momentum": 0.91,
         "summary": (
@@ -90,6 +92,7 @@ TRENDS: list[dict[str, Any]] = [
     },
     {
         "id": "sheer-layering",
+        "genders": ["female"],
         "title": "Sheer Layering",
         "momentum": 0.82,
         "summary": (
@@ -113,6 +116,7 @@ TRENDS: list[dict[str, Any]] = [
     },
     {
         "id": "modern-indian-drape",
+        "genders": ["female"],
         "title": "Modern Indian Drape",
         "momentum": 0.88,
         "summary": (
@@ -137,6 +141,7 @@ TRENDS: list[dict[str, Any]] = [
     },
     {
         "id": "utility-tailoring",
+        "genders": ["female", "male"],
         "title": "Utility Tailoring",
         "momentum": 0.79,
         "summary": (
@@ -161,6 +166,7 @@ TRENDS: list[dict[str, Any]] = [
     },
     {
         "id": "leopard-as-neutral",
+        "genders": ["female"],
         "title": "Leopard as a Neutral",
         "momentum": 0.84,
         "summary": (
@@ -184,6 +190,7 @@ TRENDS: list[dict[str, Any]] = [
     },
     {
         "id": "polished-denim",
+        "genders": ["female", "male"],
         "title": "Polished Denim",
         "momentum": 0.76,
         "summary": (
@@ -207,6 +214,7 @@ TRENDS: list[dict[str, Any]] = [
     },
     {
         "id": "chocolate-brown",
+        "genders": ["female", "male"],
         "title": "Chocolate Brown Suiting",
         "momentum": 0.80,
         "summary": (
@@ -230,6 +238,7 @@ TRENDS: list[dict[str, Any]] = [
     },
     {
         "id": "statement-outerwear",
+        "genders": ["female", "male"],
         "title": "Statement Outerwear",
         "momentum": 0.74,
         "summary": (
@@ -253,6 +262,7 @@ TRENDS: list[dict[str, Any]] = [
     },
     {
         "id": "soft-power-dressing",
+        "genders": ["female", "male"],
         "title": "Soft Power Dressing",
         "momentum": 0.71,
         "summary": (
@@ -277,6 +287,7 @@ TRENDS: list[dict[str, Any]] = [
     },
     {
         "id": "monochrome-column",
+        "genders": ["female", "male"],
         "title": "Considered Monochrome",
         "momentum": 0.68,
         "summary": (
@@ -300,6 +311,7 @@ TRENDS: list[dict[str, Any]] = [
     },
     {
         "id": "pistachio-and-sage",
+        "genders": ["female", "male"],
         "title": "Pistachio & Sage",
         "momentum": 0.66,
         "summary": (
@@ -322,6 +334,7 @@ TRENDS: list[dict[str, Any]] = [
     },
     {
         "id": "boho-revival",
+        "genders": ["female"],
         "title": "Boho Revival",
         "momentum": 0.72,
         "summary": (
@@ -345,6 +358,7 @@ TRENDS: list[dict[str, Any]] = [
     },
     {
         "id": "sporty-off-duty",
+        "genders": ["female", "male"],
         "title": "Sporty Off-Duty",
         "momentum": 0.63,
         "summary": (
@@ -368,6 +382,7 @@ TRENDS: list[dict[str, Any]] = [
     },
     {
         "id": "pinstripe-return",
+        "genders": ["female", "male"],
         "title": "The Pinstripe Return",
         "momentum": 0.58,
         "summary": (
@@ -391,6 +406,7 @@ TRENDS: list[dict[str, Any]] = [
     },
     {
         "id": "linen-carryover",
+        "genders": ["female", "male"],
         "title": "Linen Carry-Over",
         "momentum": 0.52,
         "summary": (
@@ -411,6 +427,78 @@ TRENDS: list[dict[str, Any]] = [
             "Closed shoes are what move linen out of summer.",
         ],
         "avoid": ["Pressing the linen flat"],
+    },
+    {
+        "id": "modern-bandhgala",
+        "genders": ["male"],
+        "title": "The Modern Bandhgala",
+        "momentum": 0.86,
+        "summary": (
+            "The closed-collar jacket has moved off the wedding circuit - worn over "
+            "trousers and a plain shirt, it does the job a blazer used to."
+        ),
+        "palette": ["black", "navy", "maroon", "olive"],
+        "patterns": ["solid", "embroidered"],
+        "seasons": ["fall", "winter", "all_season"],
+        "occasions": ["wedding", "formal", "evening"],
+        "key_pieces": [
+            {"label": "Bandhgala or nehru jacket", "types": ["bandhgala", "nehru jacket", "jacket", "blazer"]},
+            {"label": "Straight trouser", "types": ["trouser", "pants", "churidar"], "colors": ["black", "beige", "navy", "grey"]},
+            {"label": "Plain shirt or kurta underneath", "types": ["shirt", "kurta", "top"], "colors": ["white", "cream", "beige"]},
+        ],
+        "styling_tips": [
+            "Keep the jacket the only worked piece; the shirt underneath stays plain.",
+            "It reads as tailoring, so the trouser should break cleanly on the shoe.",
+        ],
+        "avoid": ["Matching embroidered trousers"],
+    },
+    {
+        "id": "everyday-kurta",
+        "genders": ["male", "female"],
+        "title": "The Kurta as Everyday Wear",
+        "momentum": 0.77,
+        "summary": (
+            "Plain cotton and linen kurtas worn as ordinary daywear rather than festive "
+            "dress - with jeans, with chinos, with anything."
+        ),
+        "palette": ["white", "cream", "olive", "navy", "beige"],
+        "patterns": ["solid", "striped", "block print"],
+        "seasons": ["summer", "spring", "all_season"],
+        "occasions": ["casual", "day_out", "work"],
+        "key_pieces": [
+            {"label": "Plain cotton kurta", "types": ["kurta", "kurti"], "colors": ["white", "cream", "olive", "navy", "beige"]},
+            {"label": "Jeans or straight trouser", "types": ["jeans", "trouser", "pants", "churidar", "palazzo"]},
+            {"label": "Leather sandal or clean sneaker", "types": ["sandal", "jutti", "sneaker", "shoe", "flat"]},
+        ],
+        "styling_tips": [
+            "Short kurta with jeans, long kurta with something straight and narrow.",
+            "Unstarched cotton is what keeps this from reading as festive dress.",
+        ],
+        "avoid": ["Heavy embroidery in daylight"],
+    },
+    {
+        "id": "festive-tonal-dressing",
+        "genders": ["female", "male"],
+        "title": "Tonal Festive Dressing",
+        "momentum": 0.83,
+        "summary": (
+            "Occasion wear in one colour family, with zari and embroidery doing the work "
+            "that contrast trims used to - quieter than it sounds, and far easier to wear."
+        ),
+        "palette": ["maroon", "gold", "cream", "olive", "magenta"],
+        "patterns": ["embroidered", "zari", "solid"],
+        "seasons": ["winter", "fall", "all_season"],
+        "occasions": ["wedding", "festive", "party"],
+        "key_pieces": [
+            {"label": "Occasion piece in the anchor colour", "types": ["saree", "lehenga", "anarkali", "sherwani", "kurta", "salwar kameez", "gown"]},
+            {"label": "Drape or layer in the same family", "types": ["dupatta", "stole", "scarf", "jacket", "choli"]},
+            {"label": "Metallic accessory", "types": ["jutti", "clutch", "bag", "sandal", "shoe"], "colors": ["gold", "silver", "beige"]},
+        ],
+        "styling_tips": [
+            "One colour family, three depths of it - the embroidery supplies the contrast.",
+            "Gold work with warm colours, silver with cool ones; mixing the two flattens both.",
+        ],
+        "avoid": ["A contrast dupatta fighting the base"],
     },
 ]
 

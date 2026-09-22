@@ -22,6 +22,7 @@ export function TrendsSection({ token, onViewItem }: TrendsSectionProps) {
     season: 'All',
     occasion: 'All',
     sort: 'momentum',
+    allGenders: false,
   })
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
@@ -45,7 +46,7 @@ export function TrendsSection({ token, onViewItem }: TrendsSectionProps) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="flex items-center gap-2 text-2xl font-bold text-[#1f2328]">
-            <TrendingUp className="h-5 w-5 text-[#a15c38]" />
+            <TrendingUp className="h-5 w-5 text-[var(--accent)]" />
             Trends
           </h2>
           <p className="text-sm text-[#687068]">
@@ -58,7 +59,7 @@ export function TrendsSection({ token, onViewItem }: TrendsSectionProps) {
         {feed && (
           <div className="rounded-lg border border-[#ded8ce] bg-white px-4 py-2 text-sm shadow-sm">
             <span className="text-[#687068]">Average fit </span>
-            <span className="font-semibold text-[#a15c38]">{feed.average_match}%</span>
+            <span className="font-semibold text-[var(--accent)]">{feed.average_match}%</span>
           </div>
         )}
       </div>
@@ -137,8 +138,24 @@ export function TrendsSection({ token, onViewItem }: TrendsSectionProps) {
           </select>
         </label>
 
+        {/* Trends are narrowed to the garments cut for the profile gender.
+            Anyone who wants the rest can say so; nothing is hidden for good. */}
+        {feed && (feed.gender === 'female' || feed.gender === 'male') && (
+          <label className="flex items-center gap-1.5 text-xs text-[#687068]">
+            <input
+              type="checkbox"
+              checked={filters.allGenders}
+              onChange={(event) =>
+                setFilters((prev) => ({ ...prev, allGenders: event.target.checked }))
+              }
+              className="h-3.5 w-3.5 accent-[var(--accent)]"
+            />
+            Show every trend, not just {feed.gender === 'female' ? 'womenswear' : 'menswear'}
+          </label>
+        )}
+
         {feedQuery.isFetching && (
-          <Loader2 className="ml-auto h-4 w-4 animate-spin text-[#a15c38]" />
+          <Loader2 className="ml-auto h-4 w-4 animate-spin text-[var(--accent)]" />
         )}
       </div>
 

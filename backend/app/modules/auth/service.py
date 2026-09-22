@@ -13,6 +13,18 @@ from app.core.config import settings
 from app.modules.auth.repository import user_repository
 
 
+# What sign-up accepts. Kept apart from style_rules.VALID_GENDERS: this is who
+# the user says they are, that is which styling conventions to reach for.
+VALID_PROFILE_GENDERS = {"female", "male", "non-binary", "unspecified"}
+
+PROFILE_TO_STYLING = {
+    "female": "female",
+    "male": "male",
+    "non-binary": "unisex",
+    "unspecified": "unisex",
+}
+
+
 def hash_password(password: str) -> str:
     """Hash a plaintext password using bcrypt."""
     salt = bcrypt.gensalt(rounds=12)
@@ -65,7 +77,9 @@ def verify_access_token(token: str) -> dict[str, Any] | None:
         return None
 
 
-async def register_user(name: str, email: str, password: str) -> dict[str, Any]:
+async def register_user(
+    name: str, email: str, password: str, gender: str = "unspecified"
+) -> dict[str, Any]:
     """Register a new user in MongoDB."""
     normalized_email = email.lower().strip()
     existing = await user_repository.find_by_email(normalized_email)
@@ -80,8 +94,34 @@ async def register_user(name: str, email: str, password: str) -> dict[str, Any]:
         name=name.strip(),
         email=normalized_email,
         password_hash=pwd_hash,
+        preferences={
+            "gender": gender if gender in VALID_PROFILE_GENDERS else "unspecified",
+            "preferred_colors": [],
+            "style_tags": [],
+            "notification_enabled": True,
+        },
     )
     return user
+
+
+async def get_profile_gender(user_id: str) -> str:
+    """The gender the user chose at sign-up, or "unspecified"."""
+    user = await user_repository.find_by_id(user_id)
+    preferences = (user or {}).get("preferences") or {}
+    if not isinstance(preferences, dict):
+        return "unspecified"
+    gender = str(preferences.get("gender", "unspecified"))
+    return gender if gender in VALID_PROFILE_GENDERS else "unspecified"
+
+
+async def get_styling_gender(user_id: str) -> str:
+    """Profile gender mapped onto the styling vocabulary in `style_rules`.
+
+    Non-binary and unspecified both style as unisex: the rule set only splits
+    where the conventional options genuinely differ, and offering someone the
+    unisex set is the honest answer when it does not know.
+    """
+    return PROFILE_TO_STYLING.get(await get_profile_gender(user_id), "unisex")
 
 
 async def authenticate_user(email: str, password: str) -> dict[str, Any] | None:

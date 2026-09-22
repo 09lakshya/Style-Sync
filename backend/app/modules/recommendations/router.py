@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 
 from app.modules.auth.dependencies import require_user
+from app.modules.auth.service import get_styling_gender
 from app.modules.media.validator import validate_image_bytes
 from app.modules.recommendations.service import outfit_analysis_service, recommendation_service
 
@@ -27,6 +28,7 @@ async def analyze_outfit(
         file_bytes=file_bytes,
         filename=image.filename or "outfit.jpg",
         gender=gender,
+        profile_gender=await get_styling_gender(user_id),
     )
 
 

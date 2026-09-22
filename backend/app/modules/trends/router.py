@@ -12,15 +12,21 @@ async def trend_feed(
     occasion: str | None = Query(None, description="Filter by occasion, e.g. work, party."),
     sort: str = Query("momentum", pattern="^(momentum|match|title)$"),
     limit: int | None = Query(None, ge=1, le=50),
+    all_genders: bool = Query(False, description="Ignore the profile gender and show every trend."),
     user_id: str = Depends(require_user),
 ) -> dict[str, object]:
-    """Current-season trends, each scored against what this user already owns."""
+    """Current-season trends, each scored against what this user already owns.
+
+    Filtered to the trends cut for the gender chosen at sign-up unless
+    `all_genders` is set.
+    """
     return await trends_service.get_feed(
         user_id=user_id,
         season=season,
         occasion=occasion,
         sort=sort,
         limit=limit,
+        include_all_genders=all_genders,
     )
 
 

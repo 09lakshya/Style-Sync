@@ -19,6 +19,7 @@ export async function fetchTrendFeed(token: string, filters: TrendFilters): Prom
   const params = new URLSearchParams({ sort: filters.sort })
   if (filters.season !== 'All') params.set('season', filters.season)
   if (filters.occasion !== 'All') params.set('occasion', filters.occasion)
+  if (filters.allGenders) params.set('all_genders', 'true')
 
   const response = await fetch(`${API_BASE_URL}/trends?${params.toString()}`, {
     headers: getAuthHeader(token),

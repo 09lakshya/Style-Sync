@@ -65,6 +65,7 @@ export async function registerApi(payload: RegisterPayload): Promise<AuthSession
         name: payload.name.trim(),
         email: payload.email.trim(),
         password: payload.password,
+        gender: payload.gender,
       }),
     })
 
