@@ -12,6 +12,7 @@ from app.modules.analytics.router import router as analytics_router
 from app.modules.auth.router import router as auth_router
 from app.modules.recommendations.router import router as recommendations_router
 from app.modules.shopping.router import router as shopping_router
+from app.modules.trends.router import router as trends_router
 from app.modules.wardrobe.router import router as wardrobe_router
 
 
@@ -92,4 +93,5 @@ app.include_router(wardrobe_router, prefix=settings.api_v1_prefix)
 app.include_router(shopping_router, prefix=settings.api_v1_prefix)
 app.include_router(recommendations_router, prefix=settings.api_v1_prefix)
 app.include_router(analytics_router, prefix=settings.api_v1_prefix)
+app.include_router(trends_router, prefix=settings.api_v1_prefix)
 app.include_router(ai_router, prefix=settings.api_v1_prefix)

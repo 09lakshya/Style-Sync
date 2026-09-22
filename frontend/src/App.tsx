@@ -30,6 +30,7 @@ import { WardrobeFilterBar } from './features/wardrobe/WardrobeFilterBar'
 import { WardrobeGrid } from './features/wardrobe/WardrobeGrid'
 import { DuplicateAlertModal } from './features/shopping/DuplicateAlertModal'
 import { OutfitAnalysisPanel } from './features/outfit/OutfitAnalysisPanel'
+import { TrendsSection } from './features/trends/TrendsSection'
 import type { DuplicateCheckResult, DuplicateDecision, SimilarItem } from './types/shopping'
 import type {
   CreateDressInput,
@@ -348,7 +349,7 @@ export function App() {
   }
 
   function handleShowTrends() {
-    scrollTo('insights')
+    scrollTo('trends')
   }
 
   // Reminders surfaces what you own but rarely wear, using the existing sort.
@@ -522,6 +523,14 @@ export function App() {
         </div>
 
         <OutfitAnalysisPanel token={session.token} />
+
+        <TrendsSection
+          token={session.token}
+          onViewItem={(itemId) => {
+            const matchedItem = items.find((item) => item.id === itemId)
+            if (matchedItem) setSelectedDetailItem(matchedItem)
+          }}
+        />
 
         {/* Wardrobe Section */}
         <section id="wardrobe" className="scroll-mt-4 space-y-6">
