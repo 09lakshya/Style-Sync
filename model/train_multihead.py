@@ -190,6 +190,7 @@ def train(resume=False):
         model = models.mobilenet_v2(pretrained=True)
     model.classifier[1] = nn.Linear(model.classifier[1].in_features, len(LABELS))
 
+    resumed_optimizer_state = None
     if resume:
         if not os.path.isfile(CHECKPOINT_PATH):
             raise SystemExit(
@@ -201,13 +202,21 @@ def train(resume=False):
                 "ERROR: that checkpoint was trained on {}\nbut this run expects {}. "
                 "Refusing to load mismatched heads.".format(saved.get("labels"), LABELS))
         model.load_state_dict(saved["state_dict"])
+        # Adam's moments are part of where a run had got to, not a detail. Left
+        # out, the first epochs go into rebuilding momentum the previous run had
+        # already paid for, which is what made epochs 0 to 2 of the last resume
+        # look like a converged model drifting sideways.
+        resumed_optimizer_state = saved.get("optimizer")
         print("Resuming from {}".format(CHECKPOINT_PATH))
         if "epoch" in saved:
             print("  saved at epoch {}, macro F1 {:.4f}".format(
                 saved["epoch"], saved.get("macro_f1", float("nan"))))
-        else:
+        if resumed_optimizer_state is None:
             print("  this checkpoint stores weights only -- it predates optimiser state,")
             print("  so fine-tuning restarts with a fresh Adam and its moments unset.")
+        else:
+            print("  optimiser state travels with it, so this continues the previous")
+            print("  run rather than restarting momentum from zero.")
         print()
 
     model = model.to(device)
@@ -257,6 +266,18 @@ def train(resume=False):
             for parameter in model.features.parameters():
                 parameter.requires_grad = True
             optimizer = optim.Adam(model.parameters(), lr=1e-4)
+            if resumed_optimizer_state is not None:
+                # Only valid here: the saved state came from this same phase-2
+                # optimiser, Adam over every parameter. A mismatch means the
+                # checkpoint was written by a different schedule, and carrying
+                # on with a fresh optimiser beats loading moments that belong to
+                # a different set of tensors.
+                try:
+                    optimizer.load_state_dict(resumed_optimizer_state)
+                    print("\nRestored optimiser state from the checkpoint.")
+                except ValueError as exc:
+                    print("\nCould not restore optimiser state ({}); "
+                          "continuing with a fresh Adam.".format(exc))
             scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="max", factor=0.5, patience=2)
             print("\nPhase 2: fine-tuning all layers at lr=1e-4 for {} epochs".format(finetune_epochs))
 
