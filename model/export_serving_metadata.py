@@ -29,7 +29,11 @@ CHECKPOINT_PATH = os.path.join(CHECKPOINT_DIR, "mobilenetv2_multihead.pth")
 THRESHOLD_PATH = os.path.join(ARTIFACT_DIR, "multihead_thresholds.json")
 METADATA_PATH = os.path.join(CHECKPOINT_DIR, "metadata.json")
 
-MODEL_VERSION = "mobilenetv2-multihead-1.0"
+# Bump this whenever the weights change, not just when the format does. Wardrobe
+# items store the model_version that labelled them, so leaving it fixed across a
+# promotion would make two different models indistinguishable in the data and
+# there would be no way to tell which predictions to re-check.
+MODEL_VERSION = "mobilenetv2-multihead-1.1"
 
 
 def main():
