@@ -19,3 +19,4 @@ dataset/curated/
 # checkpoint and its calibration are worth keeping.
 *.log.err
 *.candidate.pth
+*.candidate.json
