@@ -1,6 +1,8 @@
 {
-  "version": "mobilenetv2-1.0",
+  "version": "mobilenetv2-multihead-1.0",
   "architecture": "mobilenet_v2",
+  "head": "multilabel",
+  "checkpoint": "mobilenetv2_multihead.pth",
   "input_size": 224,
   "normalization": {
     "mean": [
@@ -14,21 +16,61 @@
       0.225
     ]
   },
-  "class_mapping": {
-    "0": "Casual",
-    "1": "Ethnic",
-    "2": "Formal",
-    "3": "Party",
-    "4": "Summer",
-    "5": "Western",
-    "6": "Winter"
+  "labels": [
+    "casual",
+    "formal",
+    "party",
+    "summer",
+    "winter",
+    "ethnic"
+  ],
+  "axes": {
+    "occasion": {
+      "labels": [
+        "casual",
+        "formal",
+        "party"
+      ],
+      "multi_label": true
+    },
+    "season": {
+      "labels": [
+        "summer",
+        "winter"
+      ],
+      "multi_label": true
+    },
+    "tradition": {
+      "labels": [
+        "ethnic"
+      ],
+      "multi_label": false,
+      "negative_label": "western"
+    }
+  },
+  "thresholds": {
+    "casual": 0.54,
+    "formal": 0.88,
+    "party": 0.94,
+    "summer": 0.57,
+    "winter": 0.78,
+    "ethnic": 0.72
   },
   "metrics": {
     "split": "test",
-    "num_samples": 420,
-    "accuracy": 0.7262,
-    "macro_f1": 0.7222,
-    "weighted_f1": 0.7222
+    "num_samples": 4627,
+    "macro_f1": 0.8412593678945481,
+    "macro_f1_at_0.5": 0.783380862057844,
+    "per_label_f1": {
+      "casual": 0.9771028037383177,
+      "formal": 0.7837150127226462,
+      "party": 0.8,
+      "summer": 0.9665071770334929,
+      "winter": 0.6069364161849711,
+      "ethnic": 0.9132947976878613
+    },
+    "note": "Thresholds were chosen on val and applied unchanged to test. Not comparable to the 0.726 accuracy of the seven-class model: that was one softmax over three conflated questions."
   },
-  "generated_at": "2026-09-19T10:16:11.646063+00:00"
+  "calibrated_at": "2026-09-23T05:39:01.144426+00:00",
+  "generated_at": "2026-09-23T08:45:01.609844+00:00"
 }
