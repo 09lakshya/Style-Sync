@@ -13,3 +13,9 @@ __pycache__/
 # downloads and the curated split are rebuilt locally from the curation script.
 dataset/raw/
 dataset/curated/
+
+# Training byproducts. The run log is rebuilt on every run, and a candidate
+# checkpoint is an experiment that has not earned promotion -- only the served
+# checkpoint and its calibration are worth keeping.
+*.log.err
+*.candidate.pth
