@@ -1,4 +1,5 @@
 import { getAuthHeader } from '../lib/auth'
+import { parseResponse } from '../lib/apiError'
 import type { OutfitFilters, OutfitSuggestions } from '../types/outfits'
 
 const API_BASE_URL = (
@@ -19,9 +20,5 @@ export async function fetchOutfits(
   const response = await fetch(`${API_BASE_URL}/outfits?${params.toString()}`, {
     headers: getAuthHeader(token),
   })
-  const payload = await response.json().catch(() => null)
-  if (!response.ok) {
-    throw new Error(payload?.detail ?? `Request failed with status ${response.status}`)
-  }
-  return payload as OutfitSuggestions
+  return parseResponse<OutfitSuggestions>(response)
 }

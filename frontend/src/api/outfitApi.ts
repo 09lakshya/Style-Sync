@@ -1,4 +1,5 @@
 import { getAuthHeader } from '../lib/auth'
+import { ApiError } from '../lib/apiError'
 import type { OutfitAnalysis } from '../types/outfit'
 
 const API_BASE_URL = (
@@ -19,7 +20,10 @@ export async function analyzeOutfit(file: File, token: string): Promise<OutfitAn
 
   const payload = await response.json().catch(() => null)
   if (!response.ok) {
-    throw new Error(payload?.detail ?? `Analysis failed with status ${response.status}`)
+    throw new ApiError(
+      payload?.detail ?? `Analysis failed with status ${response.status}`,
+      response.status,
+    )
   }
   return payload as OutfitAnalysis
 }

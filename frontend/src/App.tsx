@@ -14,6 +14,7 @@ import { LoginPage } from './features/auth/LoginPage'
 import { SignupPage } from './features/auth/SignupPage'
 import type { AuthSession, AuthUser } from './features/auth/authTypes'
 import { getAuthHeader, readStoredSession, removeStoredSession, saveStoredSession } from './lib/auth'
+import { parseResponse } from './lib/apiError'
 import { personalCopy } from './lib/personalisation'
 import { applyAccent, resolveAccent } from './lib/theme'
 
@@ -715,14 +716,6 @@ async function checkShoppingImage(file: File, token: string): Promise<DuplicateC
       reason: item.reason,
     })),
   }
-}
-
-async function parseResponse<T>(response: Response): Promise<T> {
-  const payload = await response.json().catch(() => null)
-  if (!response.ok) {
-    throw new Error(payload?.detail ?? `Request failed with status ${response.status}`)
-  }
-  return payload as T
 }
 
 function TopBar({

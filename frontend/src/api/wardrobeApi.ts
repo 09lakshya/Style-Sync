@@ -1,4 +1,5 @@
 import { getAuthHeader } from '../lib/auth'
+import { parseResponse } from '../lib/apiError'
 import type {
   ApiWardrobeItem,
   CreateDressInput,
@@ -44,14 +45,6 @@ export function toWardrobeItem(item: ApiWardrobeItem): WardrobeItem {
       typeof item.prediction_confidence === 'number' ? item.prediction_confidence : undefined,
     modelVersion: item.model_version || undefined,
   }
-}
-
-async function parseResponse<T>(response: Response): Promise<T> {
-  const payload = await response.json().catch(() => null)
-  if (!response.ok) {
-    throw new Error(payload?.detail ?? `Request failed with status ${response.status}`)
-  }
-  return payload as T
 }
 
 export async function detectDressMetadata(

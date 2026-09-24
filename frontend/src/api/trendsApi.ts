@@ -1,4 +1,5 @@
 import { getAuthHeader } from '../lib/auth'
+import { parseResponse } from '../lib/apiError'
 import type { TrendFeed, TrendFilters, TrendSignals } from '../types/trends'
 
 const API_BASE_URL = (
@@ -7,13 +8,7 @@ const API_BASE_URL = (
   'http://localhost:8000/api/v1'
 ).replace(/\/$/, '')
 
-async function parse<T>(response: Response): Promise<T> {
-  const payload = await response.json().catch(() => null)
-  if (!response.ok) {
-    throw new Error(payload?.detail ?? `Request failed with status ${response.status}`)
-  }
-  return payload as T
-}
+const parse = parseResponse
 
 export async function fetchTrendFeed(token: string, filters: TrendFilters): Promise<TrendFeed> {
   const params = new URLSearchParams({ sort: filters.sort })
