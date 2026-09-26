@@ -1,5 +1,5 @@
 {
-  "version": "mobilenetv2-multihead-1.1",
+  "version": "mobilenetv2-multihead-1.2",
   "architecture": "mobilenet_v2",
   "head": "multilabel",
   "checkpoint": "mobilenetv2_multihead.pth",
@@ -49,28 +49,28 @@
     }
   },
   "thresholds": {
-    "casual": 0.5,
-    "formal": 0.84,
-    "party": 0.94,
-    "summer": 0.46,
-    "winter": 0.89,
-    "ethnic": 0.74
+    "casual": 0.47,
+    "formal": 0.85,
+    "party": 0.97,
+    "summer": 0.57,
+    "winter": 0.65,
+    "ethnic": 0.59
   },
   "metrics": {
     "split": "test",
     "num_samples": 4627,
-    "macro_f1": 0.848940962690945,
-    "macro_f1_at_0.5": 0.7778831952791393,
+    "macro_f1": 0.8586645974013457,
+    "macro_f1_at_0.5": 0.833835949138662,
     "per_label_f1": {
-      "casual": 0.975940200887643,
-      "formal": 0.7644230769230769,
-      "party": 0.8057553956834532,
-      "summer": 0.9719737626714371,
-      "winter": 0.6508474576271186,
-      "ethnic": 0.9247058823529412
+      "casual": 0.9787134502923976,
+      "formal": 0.7912621359223302,
+      "party": 0.8130081300813008,
+      "summer": 0.9706937799043062,
+      "winter": 0.6850152905198778,
+      "ethnic": 0.9132947976878613
     },
     "note": "Thresholds were chosen on val and applied unchanged to test. Not comparable to the 0.726 accuracy of the seven-class model: that was one softmax over three conflated questions."
   },
-  "calibrated_at": "2026-09-24T14:06:09.589832+00:00",
-  "generated_at": "2026-09-24T14:07:17.841505+00:00"
+  "calibrated_at": "2026-09-26T08:08:56.074241+00:00",
+  "generated_at": "2026-09-26T08:15:52.702819+00:00"
 }

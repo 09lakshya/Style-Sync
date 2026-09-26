@@ -33,7 +33,7 @@ METADATA_PATH = os.path.join(CHECKPOINT_DIR, "metadata.json")
 # items store the model_version that labelled them, so leaving it fixed across a
 # promotion would make two different models indistinguishable in the data and
 # there would be no way to tell which predictions to re-check.
-MODEL_VERSION = "mobilenetv2-multihead-1.1"
+MODEL_VERSION = "mobilenetv2-multihead-1.2"
 
 
 def main():
