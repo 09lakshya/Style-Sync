@@ -396,6 +396,13 @@ export function App() {
 
   // Routing Guard logic
   if (!session) {
+    // A session dropped as expired leaves the URL pointing at the page the user
+    // was on, so the address bar reads /dashboard while the login form is on
+    // screen. Mirrors the replaceState below, which does the same for a signed-in
+    // user sitting on /login.
+    if (currentPath !== '/login' && currentPath !== '/signup') {
+      window.history.replaceState({}, '', '/login')
+    }
     if (currentPath === '/signup') {
       return (
         <SignupPage
