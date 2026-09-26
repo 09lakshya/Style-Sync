@@ -25,7 +25,26 @@ export interface ApiWardrobeItem {
   updated_at?: string
   predicted_category?: string
   prediction_confidence?: number
+  predicted_axes?: PredictedAxes | null
   model_version?: string
+}
+
+/** The classifier's three independent readings of one photo.
+ *
+ *  occasion and season are genuinely multi-label - a garment can suit both
+ *  summer and winter, or name no occasion at all - while tradition is a single
+ *  verdict because ethnic and western are complementary. An empty array means
+ *  the model cleared no threshold on that axis, which is an answer rather than
+ *  missing data.
+ *
+ *  `probabilities` carries the raw score per label so a recalibration can
+ *  re-derive these verdicts without re-running the model over saved photos.
+ */
+export interface PredictedAxes {
+  occasion?: string[]
+  season?: string[]
+  tradition?: string | null
+  probabilities?: Record<string, number>
 }
 
 export interface WardrobeItem {
@@ -50,6 +69,7 @@ export interface WardrobeItem {
   createdAt?: string
   predictedCategory?: string
   predictionConfidence?: number
+  predictedAxes?: PredictedAxes
   modelVersion?: string
 }
 
@@ -73,6 +93,7 @@ export interface DetectedDressMetadata {
   confidence: Record<string, number>
   predicted_category: string | null
   prediction_confidence: number | null
+  predicted_axes: PredictedAxes | null
   model_version: string | null
 }
 

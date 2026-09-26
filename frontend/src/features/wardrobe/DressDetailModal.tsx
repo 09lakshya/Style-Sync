@@ -17,6 +17,35 @@ interface DressDetailModalProps {
   isMarkingWorn?: boolean
 }
 
+/** One axis of the classifier's reading.
+ *
+ *  An axis with nothing above its threshold prints "No reading" rather than an
+ *  empty space: the model declining to answer is a real outcome and looks
+ *  identical to a bug if it renders as blank.
+ */
+function AxisReading({ label, value }: { label: string; value?: string[] | string | null }) {
+  const readings = Array.isArray(value) ? value : value ? [value] : []
+  return (
+    <div>
+      <span className="text-stone-400">{label}</span>
+      {readings.length > 0 ? (
+        <div className="mt-1 flex flex-wrap gap-1">
+          {readings.map((reading) => (
+            <span
+              key={reading}
+              className="rounded-full border border-[var(--accent)]/40 px-2 py-0.5 font-medium capitalize text-stone-200"
+            >
+              {reading}
+            </span>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-0.5 font-medium text-stone-500">No reading</p>
+      )}
+    </div>
+  )
+}
+
 export function DressDetailModal({
   item,
   isOpen,
@@ -137,26 +166,42 @@ export function DressDetailModal({
 
                 <div className="mt-4 rounded-lg border border-[var(--accent)]/30 bg-[#241a14]/50 p-4">
                   <h4 className="mb-2 text-sm font-semibold text-[#d99b77]">AI Classification</h4>
-                  {item.predictedCategory ? (
-                    <div className="grid grid-cols-2 gap-4 text-xs">
-                      <div>
-                        <span className="text-stone-400">Predicted Category</span>
-                        <p className="mt-0.5 font-medium capitalize text-stone-200">
-                          {item.predictedCategory}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-stone-400">Confidence Score</span>
-                        <p className="mt-0.5 font-medium text-stone-200">
-                          {formatScore(item.predictionConfidence, 1) ?? 'Not available'}
-                        </p>
-                      </div>
-                      {item.modelVersion && (
+                  {item.predictedAxes || item.predictedCategory ? (
+                    <div className="space-y-3 text-xs">
+                      {item.predictedAxes ? (
+                        // Three independent answers, not one label. A kurta is
+                        // ethnic and summer and casual at once, and collapsing
+                        // that to a single chip threw two thirds of it away.
+                        <div className="grid grid-cols-3 gap-4">
+                          <AxisReading label="Occasion" value={item.predictedAxes.occasion} />
+                          <AxisReading label="Season" value={item.predictedAxes.season} />
+                          <AxisReading label="Style" value={item.predictedAxes.tradition} />
+                        </div>
+                      ) : (
+                        // Items added before the model answered three axes only
+                        // ever stored one label, so show what there is instead
+                        // of three empty readings.
                         <div>
-                          <span className="text-stone-400">Model</span>
-                          <p className="mt-0.5 font-medium text-stone-200">{item.modelVersion}</p>
+                          <span className="text-stone-400">Predicted Category</span>
+                          <p className="mt-0.5 font-medium capitalize text-stone-200">
+                            {item.predictedCategory}
+                          </p>
                         </div>
                       )}
+                      <div className="grid grid-cols-2 gap-4 border-t border-[#38332c] pt-3">
+                        <div>
+                          <span className="text-stone-400">Confidence Score</span>
+                          <p className="mt-0.5 font-medium text-stone-200">
+                            {formatScore(item.predictionConfidence, 1) ?? 'Not available'}
+                          </p>
+                        </div>
+                        {item.modelVersion && (
+                          <div>
+                            <span className="text-stone-400">Model</span>
+                            <p className="mt-0.5 font-medium text-stone-200">{item.modelVersion}</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ) : (
                     <p className="text-xs text-stone-400">Not available</p>

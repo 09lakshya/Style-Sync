@@ -67,6 +67,12 @@ class WardrobeItem(Base):
     predicted_category = Column(String, nullable=True)
     prediction_confidence = Column(Float, nullable=True)
     model_version = Column(String, nullable=True)
+    # The classifier answers occasion, season and tradition independently, and
+    # predicted_category can only hold one of the three. This keeps all of them,
+    # along with the raw probabilities: thresholds have been recalibrated twice
+    # already, and storing the scores means a recalibration can refresh every
+    # item's verdicts without running the model over everyone's photos again.
+    predicted_axes = Column(JSON, default=dict)
     
     embedding_id = Column(String, nullable=True) 
     

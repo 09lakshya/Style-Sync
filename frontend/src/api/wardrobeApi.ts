@@ -43,6 +43,7 @@ export function toWardrobeItem(item: ApiWardrobeItem): WardrobeItem {
       : undefined,
     predictionConfidence:
       typeof item.prediction_confidence === 'number' ? item.prediction_confidence : undefined,
+    predictedAxes: item.predicted_axes || undefined,
     modelVersion: item.model_version || undefined,
   }
 }

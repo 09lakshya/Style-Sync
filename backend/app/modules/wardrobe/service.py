@@ -21,6 +21,49 @@ logger = logging.getLogger("stylesync.wardrobe.service")
 
 from datetime import datetime, date, timezone
 
+def _classify(file_bytes: bytes) -> tuple[str | None, float | None, dict[str, Any], str | None]:
+    """Run the classifier once and return (category, confidence, axes, version).
+
+    Both the detect-only path and the create path need exactly this, and they had
+    drifted into two copies. Keeping one means the axes stored on an item cannot
+    disagree with the axes shown in the form that previewed it.
+
+    The stored axes deliberately drop the thresholds and model version that
+    predict_axes also returns: the version has its own column, and repeating six
+    thresholds on every row would copy a property of the model across thousands
+    of items, where it would go stale the moment they are recalibrated.
+    """
+    try:
+        import io as _io
+
+        from PIL import Image
+
+        from app.modules.ai.classifier_manager import classifier_manager
+
+        if not classifier_manager.is_loaded:
+            return None, None, {}, None
+
+        pil_image = Image.open(_io.BytesIO(file_bytes))
+        # One forward pass for all three axes, then collapse the same
+        # probabilities to a single label. Calling predict() as well would
+        # classify the photo twice for one upload.
+        axes = classifier_manager.predict_axes(pil_image)
+        if not axes:
+            return None, None, {}, classifier_manager.model_version
+
+        category, confidence = classifier_manager.single_label(axes["probabilities"])
+        stored = {
+            "occasion": axes["occasion"],
+            "season": axes["season"],
+            "tradition": axes["tradition"],
+            "probabilities": axes["probabilities"],
+        }
+        return category, confidence, stored, classifier_manager.model_version
+    except Exception as exc:
+        logger.warning("Classification model error: %s", exc)
+        return None, None, {}, None
+
+
 def _parse_datetime(val: Any) -> datetime | None:
     if not val:
         return None
@@ -66,20 +109,7 @@ class WardrobeService:
         """
         metadata = ai_service.extract_clothing_metadata(file_bytes=file_bytes, filename=filename)
 
-        predicted_category, confidence, model_version = None, None, None
-        try:
-            import io as _io
-
-            from PIL import Image
-
-            from app.modules.ai.classifier_manager import classifier_manager
-
-            if classifier_manager.is_loaded:
-                pil_image = Image.open(_io.BytesIO(file_bytes))
-                predicted_category, confidence = classifier_manager.predict(pil_image)
-                model_version = classifier_manager.model_version
-        except Exception as exc:
-            logger.warning("Classification model error during detection: %s", exc)
+        predicted_category, confidence, predicted_axes, model_version = _classify(file_bytes)
 
         return {
             "name": metadata.get("suggested_name"),
@@ -99,6 +129,7 @@ class WardrobeService:
             "confidence": metadata.get("confidence", {}),
             "predicted_category": predicted_category,
             "prediction_confidence": confidence,
+            "predicted_axes": predicted_axes,
             "model_version": model_version,
         }
 
@@ -157,20 +188,8 @@ class WardrobeService:
             metadata = infer_metadata(filename)
 
         # 2.5 Run Custom Classification Model
-        pred_cat, pred_conf = None, None
-        mod_ver = None
-        if file_bytes is not None:
-            try:
-                from PIL import Image
-                import io
-                from app.modules.ai.classifier_manager import classifier_manager
-                
-                if classifier_manager.is_loaded:
-                    pil_img = Image.open(io.BytesIO(file_bytes))
-                    pred_cat, pred_conf = classifier_manager.predict(pil_img)
-                    mod_ver = classifier_manager.model_version
-            except Exception as classify_exc:
-                logger.warning(f"Classification model error: {classify_exc}")
+        pred_cat, pred_conf, pred_axes, mod_ver = (
+            _classify(file_bytes) if file_bytes is not None else (None, None, {}, None))
 
         # A blank name is normal now that detection runs on upload: the detected
         # attributes read better than IMG_2831, so the filename is only a last resort.
@@ -250,6 +269,7 @@ class WardrobeService:
             "embedding_id": None,
             "predicted_category": pred_cat,
             "prediction_confidence": pred_conf,
+            "predicted_axes": pred_axes,
             "model_version": mod_ver,
         }
 
