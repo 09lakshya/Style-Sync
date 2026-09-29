@@ -269,7 +269,9 @@ export function App() {
     },
   })
 
-  const items = wardrobeQuery.data ?? []
+  // Memoised so the empty fallback is one array, not a new one each render:
+  // the filters, accent and copy below all key on it.
+  const items = useMemo(() => wardrobeQuery.data ?? [], [wardrobeQuery.data])
   const analytics = analyticsQuery.data
   const recommendations = recommendationsQuery.data ?? []
 
