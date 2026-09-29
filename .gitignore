@@ -20,3 +20,7 @@ dataset/curated/
 *.log.err
 *.candidate.pth
 *.candidate.json
+
+# Photos picked by hand to try the classifier on. They are for poking at the
+# running app, not fixtures any test reads.
+data/
