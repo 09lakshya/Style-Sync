@@ -135,3 +135,80 @@ def test_analysis_reports_detected_gender(monkeypatch):
     monkeypatch.setattr(ai_service, "detect_styling_gender", lambda _: ("female", 0.88))
     result = asyncio.run(outfit_analysis_service.analyze(_image_bytes(), "outfit.png"))
     assert result["gender"] == {"value": "female", "source": "detected", "confidence": 0.88}
+
+
+def test_analysis_without_clip_reports_attributes_unavailable(monkeypatch):
+    """The uniform fallback reads as 'dress, blue, solid' for any photo; that must
+    not be passed off as a detection."""
+    monkeypatch.setattr(type(ai_service.clip), "is_loaded", property(lambda self: False))
+
+    def fail(**_):
+        raise AssertionError("attribute extraction should not run without CLIP")
+
+    monkeypatch.setattr(ai_service, "extract_clothing_metadata", fail)
+    result = asyncio.run(outfit_analysis_service.analyze(_image_bytes(), "outfit.png"))
+
+    attributes = result["attributes"]
+    assert attributes["available"] is False
+    assert attributes["reason"]
+    assert attributes["type"] is None
+    assert attributes["primary_color"] == ""
+    assert attributes["pattern"] == ""
+    assert result["gender"] == {"value": "unisex", "source": "unavailable", "confidence": None}
+
+
+# --- Ethnic vs occasion headline ----------------------------------------------
+
+from app.modules.ai.classifier_manager import classifier_manager
+
+# What the classifier gives a sherwani: ethnic and formal both clear their cuts.
+SHERWANI_PROBABILITIES = {
+    "casual": 0.06, "formal": 0.93, "party": 0.5, "summer": 0.2, "winter": 0.1, "ethnic": 0.99,
+}
+
+
+@pytest.fixture
+def classified_as_formal_and_ethnic(monkeypatch):
+    def _set(clip_type: str, clip_is_ethnic: bool):
+        monkeypatch.setattr(type(classifier_manager), "is_loaded", property(lambda self: True))
+        monkeypatch.setattr(classifier_manager, "thresholds", {
+            "casual": 0.47, "formal": 0.85, "party": 0.97, "summer": 0.57, "winter": 0.65, "ethnic": 0.59,
+        })
+        monkeypatch.setattr(classifier_manager, "axes", {
+            "occasion": {"labels": ["casual", "formal", "party"]},
+            "season": {"labels": ["summer", "winter"]},
+            "tradition": {"labels": ["ethnic"], "multi_label": False, "negative_label": "western"},
+        })
+        monkeypatch.setattr(classifier_manager, "predict_axes", lambda image: {
+            "probabilities": SHERWANI_PROBABILITIES,
+            "occasion": ["formal"],
+            "season": [],
+            "tradition": "ethnic",
+        })
+        monkeypatch.setattr(type(ai_service.clip), "is_loaded", property(lambda self: True))
+        monkeypatch.setattr(ai_service, "extract_clothing_metadata", lambda **_: {
+            "type": clip_type, "is_ethnic": clip_is_ethnic, "primary_color": "maroon",
+            "secondary_colors": [], "pattern": "solid", "season": [], "occasion": [],
+        })
+        monkeypatch.setattr(ai_service, "detect_styling_gender", lambda _: ("male", 0.95))
+
+    return _set
+
+
+def test_ethnic_leads_when_clip_names_an_ethnic_garment(classified_as_formal_and_ethnic):
+    classified_as_formal_and_ethnic("sherwani", True)
+    result = asyncio.run(outfit_analysis_service.analyze(_image_bytes(), "outfit.png"))
+
+    assert result["classification"]["predicted_category"] == "Ethnic"
+    assert result["classification"]["labels"] == ["Ethnic", "Formal"]
+    assert result["classification"]["prediction_confidence"] == 0.99
+    assert result["styling"]["style"] == style_rules.CATEGORY_STYLE["Ethnic"]["style"]
+
+
+def test_ethnic_does_not_lead_when_clip_sees_a_western_garment(classified_as_formal_and_ethnic):
+    classified_as_formal_and_ethnic("jacket", False)
+    result = asyncio.run(outfit_analysis_service.analyze(_image_bytes(), "outfit.png"))
+
+    assert result["classification"]["predicted_category"] == "Formal"
+    assert result["classification"]["labels"] == ["Formal"]
+    assert result["styling"]["style"] == style_rules.CATEGORY_STYLE["Formal"]["style"]

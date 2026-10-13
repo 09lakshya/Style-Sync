@@ -125,26 +125,38 @@ export function OutfitAnalysisPanel({ token }: OutfitAnalysisPanelProps) {
 
                 {result.classification.available ? (
                   <p className="mt-2 text-xl font-semibold capitalize text-[#1f2328]">
-                    {result.classification.predicted_category}
+                    {result.classification.labels.length
+                      ? result.classification.labels.join(' · ')
+                      : result.classification.predicted_category}
                   </p>
                 ) : (
                   <p className="mt-2 text-sm text-[#687068]">Classification unavailable.</p>
                 )}
 
-                <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs sm:grid-cols-3">
-                  <Attribute label="Type" value={result.attributes.type} />
-                  <Attribute label="Primary color" value={result.attributes.primary_color} />
-                  <Attribute label="Pattern" value={result.attributes.pattern} />
-                  <Attribute label="Sleeves" value={result.attributes.sleeve_type} />
-                  <Attribute label="Season" value={result.attributes.season.join(', ')} />
-                  <Attribute label="Occasion" value={result.attributes.occasion.join(', ')} />
-                  <Attribute
-                    label="Gender"
-                    value={gender && (GENDER_LABELS[gender.value] ?? gender.value)}
-                  />
-                </dl>
+                {result.attributes.available ? (
+                  <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs sm:grid-cols-3">
+                    <Attribute label="Type" value={result.attributes.type} />
+                    <Attribute label="Primary color" value={result.attributes.primary_color} />
+                    <Attribute label="Pattern" value={result.attributes.pattern} />
+                    <Attribute label="Sleeves" value={result.attributes.sleeve_type} />
+                    <Attribute label="Season" value={result.attributes.season.join(', ')} />
+                    <Attribute label="Occasion" value={result.attributes.occasion.join(', ')} />
+                    <Attribute
+                      label="Gender"
+                      value={
+                        gender && gender.source !== 'unavailable'
+                          ? (GENDER_LABELS[gender.value] ?? gender.value)
+                          : null
+                      }
+                    />
+                  </dl>
+                ) : (
+                  <p className="mt-3 text-sm text-[#687068]">
+                    {result.attributes.reason ?? 'Attributes unavailable.'}
+                  </p>
+                )}
 
-                {result.attributes.secondary_colors.length > 0 && (
+                {result.attributes.available && result.attributes.secondary_colors.length > 0 && (
                   <p className="mt-2 text-xs text-[#687068]">
                     Also detected: {result.attributes.secondary_colors.join(', ')}
                   </p>

@@ -30,12 +30,22 @@ class OutfitAnalysisService:
         from app.modules.ai.service import ai_service
 
         # 1. Real CLIP attribute extraction (also performs the preprocessing).
-        attributes = ai_service.extract_clothing_metadata(file_bytes=file_bytes, filename=filename)
+        # Without CLIP the extractor still answers, but from a uniform fallback
+        # that lands on the first label of every list -- "dress, blue, solid" for
+        # any photo. That is not a reading of this image, so it is not reported
+        # as one.
+        attributes_available = ai_service.clip.is_loaded
+        attributes: dict[str, Any] = (
+            ai_service.extract_clothing_metadata(file_bytes=file_bytes, filename=filename)
+            if attributes_available
+            else {}
+        )
 
         # 2. Real classifier prediction, if the model is loaded.
         predicted_category: str | None = None
         confidence: float | None = None
         model_version: str | None = None
+        labels: list[str] = []
         try:
             from PIL import Image
 
@@ -43,8 +53,27 @@ class OutfitAnalysisService:
 
             if classifier_manager.is_loaded:
                 pil = Image.open(io.BytesIO(file_bytes))
-                predicted_category, confidence = classifier_manager.predict(pil)
-                model_version = classifier_manager.model_version
+                axes = classifier_manager.predict_axes(pil)
+                if axes is not None:
+                    probabilities = axes["probabilities"]
+                    predicted_category, confidence = classifier_manager.single_label(probabilities)
+                    model_version = classifier_manager.model_version
+                    if predicted_category:
+                        labels = [predicted_category]
+                    # The single label ranks occasion over tradition, so a
+                    # sherwani reads "Formal" and gets styled with oxfords and a
+                    # tie. Tradition decides the styling more than occasion does,
+                    # but the classifier's ethnic head also fires on some western
+                    # pieces (a plain black jacket at 0.92), so it only leads when
+                    # CLIP independently named an ethnic garment.
+                    if (
+                        axes.get("tradition") == "ethnic"
+                        and attributes.get("is_ethnic")
+                        and predicted_category != "Ethnic"
+                    ):
+                        predicted_category = "Ethnic"
+                        confidence = probabilities.get("ethnic")
+                        labels = ["Ethnic", *labels]
         except Exception as exc:
             logger.warning("Outfit classification failed: %s", exc)
 
@@ -61,12 +90,16 @@ class OutfitAnalysisService:
             gender_info = {"value": gender, "source": "provided", "confidence": None}
         else:
             detected, gender_conf = ai_service.detect_styling_gender(file_bytes)
+            # A None confidence means nothing was read (CLIP down or the image
+            # unusable), as opposed to a reading too close to call.
             if detected == "unisex" and profile_gender in style_rules.VALID_GENDERS:
                 gender_info = {
                     "value": profile_gender,
                     "source": "profile",
                     "confidence": gender_conf,
                 }
+            elif gender_conf is None:
+                gender_info = {"value": "unisex", "source": "unavailable", "confidence": None}
             else:
                 gender_info = {"value": detected, "source": "detected", "confidence": gender_conf}
 
@@ -91,10 +124,18 @@ class OutfitAnalysisService:
             "classification": {
                 "available": predicted_category is not None,
                 "predicted_category": predicted_category,
+                # Every label worth showing, styling label first.
+                "labels": labels,
                 "prediction_confidence": confidence,
                 "model_version": model_version,
             },
             "attributes": {
+                "available": attributes_available,
+                "reason": (
+                    None
+                    if attributes_available
+                    else "The attribute model is not loaded, so type, colour and pattern could not be read."
+                ),
                 "type": attributes.get("type"),
                 "primary_color": primary_color,
                 "secondary_colors": secondary_colors,
