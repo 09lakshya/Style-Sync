@@ -174,7 +174,11 @@ export function DressDetailModal({
                         // that to a single chip threw two thirds of it away.
                         <div className="grid grid-cols-3 gap-4">
                           <AxisReading label="Occasion" value={item.predictedAxes.occasion} />
-                          <AxisReading label="Season" value={item.predictedAxes.season} />
+                          {/* The classifier's season head learned catalogue
+                              seasons, not weather, and is withheld; items saved
+                              before that still carry its reading, so show the
+                              item's own (CLIP) season instead. */}
+                          <AxisReading label="Season" value={item.season} />
                           <AxisReading label="Style" value={item.predictedAxes.tradition} />
                         </div>
                       ) : (

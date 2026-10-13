@@ -52,12 +52,12 @@ def _classify(file_bytes: bytes) -> tuple[str | None, float | None, dict[str, An
             return None, None, {}, classifier_manager.model_version
 
         category, confidence = classifier_manager.single_label(axes["probabilities"])
+        # A withheld axis is left out rather than stored empty, which would read
+        # as the model answering "no season".
         stored = {
-            "occasion": axes["occasion"],
-            "season": axes["season"],
-            "tradition": axes["tradition"],
-            "probabilities": axes["probabilities"],
+            axis: axes[axis] for axis in ("occasion", "season", "tradition") if axis in axes
         }
+        stored["probabilities"] = axes["probabilities"]
         return category, confidence, stored, classifier_manager.model_version
     except Exception as exc:
         logger.warning("Classification model error: %s", exc)

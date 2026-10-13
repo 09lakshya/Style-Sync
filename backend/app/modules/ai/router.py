@@ -3,7 +3,7 @@ from typing import Dict, Any
 from PIL import Image
 import io
 
-from app.modules.ai.classifier_manager import classifier_manager
+from app.modules.ai.classifier_manager import WITHHELD_AXES, classifier_manager
 
 router = APIRouter(prefix="/ai", tags=["ai"])
 
@@ -41,8 +41,10 @@ async def classify_image(file: UploadFile = File(...)) -> Dict[str, Any]:
         "predicted_category": predicted_category,
         "prediction_confidence": confidence,
         "occasion": axes["occasion"],
-        "season": axes["season"],
+        # null while the season head is withheld; `withheld_axes` says why.
+        "season": axes.get("season"),
         "tradition": axes["tradition"],
+        "withheld_axes": WITHHELD_AXES,
         "probabilities": axes["probabilities"],
         "thresholds": axes["thresholds"],
         "model_version": classifier_manager.model_version,

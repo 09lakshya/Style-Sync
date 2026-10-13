@@ -14,6 +14,18 @@ logger = logging.getLogger("stylesync.ai.classifier")
 # just not to the question "what kind of garment is this".
 SINGLE_LABEL_PRIORITY = ["occasion", "tradition", "season"]
 
+# Axes the checkpoint answers but serving does not report. The season head was
+# trained on Myntra's `season` column, which is the catalogue season rather than
+# the weather: 80 of 87 jackets are "summer" and 242 briefs and bras "winter". It
+# calls a puffer jacket summer at 0.99. CLIP's season reading names the opposite
+# season far less often on hand-labelled photos (model/evaluate_real_photos.py),
+# and items already take their season from CLIP, so this head is withheld until
+# it is retrained on garment-derived labels. The raw probabilities still carry
+# it, so an evaluation can keep measuring it.
+WITHHELD_AXES: Dict[str, str] = {
+    "season": "Trained on catalogue seasons, not weather; CLIP's season reading is used instead.",
+}
+
 
 class ClassifierManager:
     """
@@ -194,6 +206,8 @@ class ClassifierManager:
             "model_version": self.model_version,
         }
         for axis, definition in self.axes.items():
+            if axis in WITHHELD_AXES:
+                continue
             axis_labels = definition.get("labels", [])
             fired = [name for name in axis_labels
                      if probabilities.get(name, 0.0) >= self.thresholds[name]]
@@ -214,6 +228,8 @@ class ClassifierManager:
         forward pass to also get this.
         """
         for axis in SINGLE_LABEL_PRIORITY:
+            if axis in WITHHELD_AXES:
+                continue
             axis_labels = self.axes.get(axis, {}).get("labels", [])
             fired = [name for name in axis_labels
                      if probabilities.get(name, 0.0) >= self.thresholds[name]]
@@ -227,9 +243,13 @@ class ClassifierManager:
 
         # Nothing cleared its threshold. Saying so beats inventing a label, but
         # the strongest score is still worth reporting as the near miss it is.
-        if not probabilities:
+        reported = [
+            name for axis, definition in self.axes.items() if axis not in WITHHELD_AXES
+            for name in definition.get("labels", []) if name in probabilities
+        ]
+        if not reported:
             return None, None
-        best = max(probabilities, key=lambda name: probabilities[name] - self.thresholds[name])
+        best = max(reported, key=lambda name: probabilities[name] - self.thresholds[name])
         return None, probabilities[best]
 
     def predict(self, pil_image: Image.Image) -> Tuple[Optional[str], Optional[float]]:
