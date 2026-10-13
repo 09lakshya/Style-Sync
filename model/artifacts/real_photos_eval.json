@@ -1,0 +1,522 @@
+{
+  "evaluated_at": "2026-10-06T14:29:17.943423+00:00",
+  "model_version": "mobilenetv2-multihead-1.2",
+  "photos": 13,
+  "totals": {
+    "clf occasion": {
+      "correct": 7,
+      "scored": 13
+    },
+    "clf season": {
+      "correct": 4,
+      "scored": 8
+    },
+    "clf tradition": {
+      "correct": 9,
+      "scored": 12
+    },
+    "clip type": {
+      "correct": 8,
+      "scored": 13
+    },
+    "clip colour": {
+      "correct": 9,
+      "scored": 13
+    },
+    "clip pattern": {
+      "correct": 6,
+      "scored": 13
+    },
+    "clip season": {
+      "correct": 4,
+      "scored": 8
+    },
+    "clip tradition": {
+      "correct": 10,
+      "scored": 12
+    }
+  },
+  "opposite_season": {
+    "clf season": 4,
+    "clip season": 1
+  },
+  "results": [
+    {
+      "file": "black.jpg",
+      "predictions": {
+        "clf occasion": [
+          "party"
+        ],
+        "clf season": [
+          "summer"
+        ],
+        "clf tradition": "ethnic",
+        "clip type": "t-shirt",
+        "clip colour": "black",
+        "clip pattern": "graphic",
+        "clip season": [
+          "summer",
+          "all_season"
+        ],
+        "clip tradition": "western"
+      },
+      "probabilities": {
+        "casual": 0.1916,
+        "formal": 0.7745,
+        "party": 0.9841,
+        "summer": 0.9917,
+        "winter": 0.1863,
+        "ethnic": 0.9994
+      },
+      "correct": {
+        "clf occasion": false,
+        "clf season": true,
+        "clf tradition": false,
+        "clip type": true,
+        "clip colour": true,
+        "clip pattern": false,
+        "clip season": true,
+        "clip tradition": true
+      }
+    },
+    {
+      "file": "ethinic.jpg",
+      "predictions": {
+        "clf occasion": [
+          "formal"
+        ],
+        "clf season": [
+          "summer"
+        ],
+        "clf tradition": "ethnic",
+        "clip type": "sherwani",
+        "clip colour": "blue",
+        "clip pattern": "floral",
+        "clip season": [
+          "fall",
+          "winter"
+        ],
+        "clip tradition": "ethnic"
+      },
+      "probabilities": {
+        "casual": 0.0639,
+        "formal": 0.9295,
+        "party": 0.9281,
+        "summer": 0.9882,
+        "winter": 0.146,
+        "ethnic": 0.9902
+      },
+      "correct": {
+        "clf occasion": true,
+        "clf season": false,
+        "clf tradition": true,
+        "clip type": true,
+        "clip colour": true,
+        "clip pattern": false,
+        "clip season": true,
+        "clip tradition": true
+      }
+    },
+    {
+      "file": "jacket.jpg",
+      "predictions": {
+        "clf occasion": [
+          "formal",
+          "party"
+        ],
+        "clf season": [
+          "summer",
+          "winter"
+        ],
+        "clf tradition": "ethnic",
+        "clip type": "jacket",
+        "clip colour": "black",
+        "clip pattern": "solid",
+        "clip season": [
+          "all_season"
+        ],
+        "clip tradition": "western"
+      },
+      "probabilities": {
+        "casual": 0.1825,
+        "formal": 0.9171,
+        "party": 0.9803,
+        "summer": 0.7949,
+        "winter": 0.8566,
+        "ethnic": 0.9159
+      },
+      "correct": {
+        "clf occasion": false,
+        "clf season": false,
+        "clf tradition": false,
+        "clip type": true,
+        "clip colour": true,
+        "clip pattern": true,
+        "clip season": false,
+        "clip tradition": true
+      }
+    },
+    {
+      "file": "kp1.jpg",
+      "predictions": {
+        "clf occasion": [
+          "formal"
+        ],
+        "clf season": [
+          "summer"
+        ],
+        "clf tradition": "western",
+        "clip type": "pants",
+        "clip colour": "cream",
+        "clip pattern": "solid",
+        "clip season": [
+          "fall",
+          "spring"
+        ],
+        "clip tradition": "western"
+      },
+      "probabilities": {
+        "casual": 0.0479,
+        "formal": 0.981,
+        "party": 0.8125,
+        "summer": 0.9968,
+        "winter": 0.0582,
+        "ethnic": 0.0002
+      },
+      "correct": {
+        "clf occasion": true,
+        "clf tradition": true,
+        "clip type": true,
+        "clip colour": false,
+        "clip pattern": true,
+        "clip tradition": true
+      }
+    },
+    {
+      "file": "lp1.jpg",
+      "predictions": {
+        "clf occasion": [
+          "formal"
+        ],
+        "clf season": [
+          "summer"
+        ],
+        "clf tradition": "ethnic",
+        "clip type": "churidar",
+        "clip colour": "white",
+        "clip pattern": "solid",
+        "clip season": [
+          "summer",
+          "spring"
+        ],
+        "clip tradition": "ethnic"
+      },
+      "probabilities": {
+        "casual": 0.0882,
+        "formal": 0.9419,
+        "party": 0.9478,
+        "summer": 0.9201,
+        "winter": 0.4474,
+        "ethnic": 0.8982
+      },
+      "correct": {
+        "clf occasion": false,
+        "clf season": true,
+        "clf tradition": false,
+        "clip type": false,
+        "clip colour": true,
+        "clip pattern": true,
+        "clip season": true,
+        "clip tradition": false
+      }
+    },
+    {
+      "file": "lp2.jpg",
+      "predictions": {
+        "clf occasion": [
+          "casual"
+        ],
+        "clf season": [
+          "summer",
+          "winter"
+        ],
+        "clf tradition": "western",
+        "clip type": "dhoti",
+        "clip colour": "pink",
+        "clip pattern": "solid",
+        "clip season": [
+          "spring",
+          "all_season"
+        ],
+        "clip tradition": "ethnic"
+      },
+      "probabilities": {
+        "casual": 0.7374,
+        "formal": 0.6684,
+        "party": 0.1006,
+        "summer": 0.7106,
+        "winter": 0.7481,
+        "ethnic": 0.3251
+      },
+      "correct": {
+        "clf occasion": true,
+        "clf season": false,
+        "clf tradition": true,
+        "clip type": false,
+        "clip colour": false,
+        "clip pattern": true,
+        "clip season": false,
+        "clip tradition": false
+      }
+    },
+    {
+      "file": "nj1.jpg",
+      "predictions": {
+        "clf occasion": [
+          "casual"
+        ],
+        "clf season": [
+          "summer"
+        ],
+        "clf tradition": "ethnic",
+        "clip type": "kurti",
+        "clip colour": "red",
+        "clip pattern": "paisley",
+        "clip season": [
+          "all_season"
+        ],
+        "clip tradition": "ethnic"
+      },
+      "probabilities": {
+        "casual": 0.8895,
+        "formal": 0.0336,
+        "party": 0.5915,
+        "summer": 0.9996,
+        "winter": 0.0059,
+        "ethnic": 0.9932
+      },
+      "correct": {
+        "clf occasion": false,
+        "clf tradition": true,
+        "clip type": false,
+        "clip colour": false,
+        "clip pattern": true,
+        "clip tradition": true
+      }
+    },
+    {
+      "file": "nj2.jpg",
+      "predictions": {
+        "clf occasion": [
+          "casual"
+        ],
+        "clf season": [
+          "summer"
+        ],
+        "clf tradition": "ethnic",
+        "clip type": "nehru jacket",
+        "clip colour": "brown",
+        "clip pattern": "paisley",
+        "clip season": [
+          "all_season"
+        ],
+        "clip tradition": "ethnic"
+      },
+      "probabilities": {
+        "casual": 0.5991,
+        "formal": 0.1444,
+        "party": 0.7687,
+        "summer": 0.9842,
+        "winter": 0.1312,
+        "ethnic": 0.9935
+      },
+      "correct": {
+        "clf occasion": true,
+        "clf tradition": true,
+        "clip type": true,
+        "clip colour": true,
+        "clip pattern": false,
+        "clip tradition": true
+      }
+    },
+    {
+      "file": "puff jacket.jpg",
+      "predictions": {
+        "clf occasion": [
+          "casual"
+        ],
+        "clf season": [
+          "summer"
+        ],
+        "clf tradition": "western",
+        "clip type": "jacket",
+        "clip colour": "black",
+        "clip pattern": "solid",
+        "clip season": [
+          "winter"
+        ],
+        "clip tradition": "western"
+      },
+      "probabilities": {
+        "casual": 0.9534,
+        "formal": 0.1976,
+        "party": 0.0084,
+        "summer": 0.995,
+        "winter": 0.0371,
+        "ethnic": 0.0
+      },
+      "correct": {
+        "clf occasion": true,
+        "clf season": false,
+        "clf tradition": true,
+        "clip type": true,
+        "clip colour": true,
+        "clip pattern": true,
+        "clip season": true,
+        "clip tradition": true
+      }
+    },
+    {
+      "file": "shopping.png",
+      "predictions": {
+        "clf occasion": [
+          "formal"
+        ],
+        "clf season": [
+          "summer"
+        ],
+        "clf tradition": "western",
+        "clip type": "shirt",
+        "clip colour": "white",
+        "clip pattern": "checked",
+        "clip season": [
+          "all_season"
+        ],
+        "clip tradition": "western"
+      },
+      "probabilities": {
+        "casual": 0.1695,
+        "formal": 0.9787,
+        "party": 0.1289,
+        "summer": 0.9878,
+        "winter": 0.1155,
+        "ethnic": 0.4939
+      },
+      "correct": {
+        "clf occasion": true,
+        "clf tradition": true,
+        "clip type": true,
+        "clip colour": true,
+        "clip pattern": false,
+        "clip tradition": true
+      }
+    },
+    {
+      "file": "sk1.jpg",
+      "predictions": {
+        "clf occasion": [
+          "casual"
+        ],
+        "clf season": [
+          "summer"
+        ],
+        "clf tradition": "western",
+        "clip type": "jacket",
+        "clip colour": "gold",
+        "clip pattern": "geometric",
+        "clip season": [
+          "winter",
+          "all_season"
+        ],
+        "clip tradition": "western"
+      },
+      "probabilities": {
+        "casual": 0.9584,
+        "formal": 0.0584,
+        "party": 0.0039,
+        "summer": 0.9991,
+        "winter": 0.0095,
+        "ethnic": 0.0184
+      },
+      "correct": {
+        "clf occasion": true,
+        "clf season": true,
+        "clip type": false,
+        "clip colour": false,
+        "clip pattern": false,
+        "clip season": false
+      }
+    },
+    {
+      "file": "ts.jpg",
+      "predictions": {
+        "clf occasion": [],
+        "clf season": [
+          "summer"
+        ],
+        "clf tradition": "western",
+        "clip type": "t-shirt",
+        "clip colour": "white",
+        "clip pattern": "graphic",
+        "clip season": [
+          "all_season"
+        ],
+        "clip tradition": "western"
+      },
+      "probabilities": {
+        "casual": 0.4251,
+        "formal": 0.7995,
+        "party": 0.2846,
+        "summer": 0.997,
+        "winter": 0.0369,
+        "ethnic": 0.3226
+      },
+      "correct": {
+        "clf occasion": false,
+        "clf season": true,
+        "clf tradition": true,
+        "clip type": true,
+        "clip colour": true,
+        "clip pattern": false,
+        "clip season": false,
+        "clip tradition": true
+      }
+    },
+    {
+      "file": "women.jpg",
+      "predictions": {
+        "clf occasion": [
+          "casual"
+        ],
+        "clf season": [
+          "summer"
+        ],
+        "clf tradition": "ethnic",
+        "clip type": "anarkali",
+        "clip colour": "pink",
+        "clip pattern": "bandhani",
+        "clip season": [
+          "spring",
+          "summer"
+        ],
+        "clip tradition": "ethnic"
+      },
+      "probabilities": {
+        "casual": 0.5764,
+        "formal": 0.6983,
+        "party": 0.1041,
+        "summer": 0.9922,
+        "winter": 0.0597,
+        "ethnic": 0.9919
+      },
+      "correct": {
+        "clf occasion": false,
+        "clf tradition": true,
+        "clip type": false,
+        "clip colour": true,
+        "clip pattern": false,
+        "clip tradition": true
+      }
+    }
+  ]
+}
