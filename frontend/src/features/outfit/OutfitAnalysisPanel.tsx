@@ -56,7 +56,6 @@ export function OutfitAnalysisPanel({ token }: OutfitAnalysisPanelProps) {
   }
 
   const gender = result?.gender
-  const isGemini = result?.engine === 'gemini_multimodal_vision'
 
   return (
     <section
@@ -67,12 +66,6 @@ export function OutfitAnalysisPanel({ token }: OutfitAnalysisPanelProps) {
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-semibold text-[#1f2328]">AI Outfit Analysis</h2>
-            {isGemini && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-medium text-amber-800 border border-amber-200">
-                <Sparkles className="h-3 w-3 text-amber-600" />
-                Gemini Vision AI
-              </span>
-            )}
           </div>
           <p className="text-xs text-[#687068]">
             Upload an outfit to analyze individual garments, color harmony, silhouette, and get personalized stylist advice.

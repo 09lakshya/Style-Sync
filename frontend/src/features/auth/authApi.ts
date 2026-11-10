@@ -1,4 +1,4 @@
-import type { AuthResponse, AuthSession, LoginPayload, RegisterPayload } from './authTypes'
+import type { AuthResponse, AuthSession, AuthUser, LoginPayload, RegisterPayload, UpdateProfilePayload } from './authTypes'
 
 const API_BASE_URL =
   (import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1').replace(/\/$/, '')
@@ -80,4 +80,19 @@ export async function registerApi(payload: RegisterPayload): Promise<AuthSession
     }
     throw error
   }
+}
+
+export async function updateProfileApi(
+  token: string,
+  payload: UpdateProfilePayload,
+): Promise<AuthUser> {
+  const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  })
+  return handleResponse<AuthUser>(response)
 }

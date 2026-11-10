@@ -34,15 +34,15 @@ const GARMENTS: Record<ProfileGender, string[]> = {
 }
 
 const PROFILE_LABELS: Record<ProfileGender, string> = {
-  female: 'Womenswear',
-  male: 'Menswear',
-  'non-binary': 'All styling',
-  unspecified: 'All styling',
+  female: 'Digital Wardrobe',
+  male: 'Digital Wardrobe',
+  'non-binary': 'Digital Wardrobe',
+  unspecified: 'Digital Wardrobe',
 }
 
 const EYEBROWS: Record<ProfileGender, string> = {
-  female: 'Womenswear · Digital wardrobe',
-  male: 'Menswear · Digital wardrobe',
+  female: 'Digital wardrobe',
+  male: 'Digital wardrobe',
   'non-binary': 'Digital wardrobe',
   unspecified: 'Digital wardrobe',
 }

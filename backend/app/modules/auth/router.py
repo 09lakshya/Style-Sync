@@ -1,9 +1,11 @@
 from typing import Literal
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr, Field
 
 from app.modules.auth.service import authenticate_user, create_access_token, register_user
+from app.modules.auth.dependencies import require_user
+from app.modules.auth.repository import user_repository
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -18,6 +20,10 @@ class RegisterRequest(AuthRequest):
     # Asked at sign-up because it decides which trends and styling rules apply.
     # "unspecified" is a real answer, not a missing one, and is styled as unisex.
     gender: Literal["female", "male", "non-binary", "unspecified"] = "unspecified"
+
+
+class UpdateProfileRequest(BaseModel):
+    name: str | None = Field(default=None, min_length=2, max_length=80)
 
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
@@ -35,6 +41,26 @@ async def login(payload: AuthRequest) -> dict[str, object]:
 
     token = create_access_token(str(user["id"]))
     return {"user": _public_user(user), "access_token": token, "token_type": "bearer"}
+
+
+@router.patch("/profile")
+@router.put("/profile")
+async def update_profile(
+    payload: UpdateProfileRequest,
+    current_user_id: str = Depends(require_user),
+) -> dict[str, object]:
+    updates: dict[str, object] = {}
+    if payload.name is not None:
+        updates["name"] = payload.name.strip()
+
+    if updates:
+        updated = await user_repository.update_user(current_user_id, updates)
+    else:
+        updated = await user_repository.find_by_id(current_user_id)
+
+    if not updated:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    return _public_user(updated)
 
 
 def _public_user(user: dict[str, object]) -> dict[str, object]:

@@ -13,6 +13,7 @@ import type { FormEvent, ReactNode } from 'react'
 import { LoginPage } from './features/auth/LoginPage'
 import { SignupPage } from './features/auth/SignupPage'
 import type { AuthSession, AuthUser } from './features/auth/authTypes'
+import { PersonalDetailsDropdown } from './features/auth/PersonalDetailsDropdown'
 import { getAuthHeader, readStoredSession, removeStoredSession, saveStoredSession } from './lib/auth'
 import { parseResponse } from './lib/apiError'
 import { personalCopy } from './lib/personalisation'
@@ -398,6 +399,13 @@ export function App() {
     navigate('/login')
   }
 
+  function handleUpdateUser(updated: AuthUser) {
+    if (!session) return
+    const nextSession: AuthSession = { ...session, user: updated }
+    saveStoredSession(nextSession)
+    setSession(nextSession)
+  }
+
   // Routing Guard logic
   if (!session) {
     // A session dropped as expired leaves the URL pointing at the page the user
@@ -432,8 +440,9 @@ export function App() {
       <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 px-4 py-4 sm:px-6 lg:px-8">
         <TopBar
           user={session.user}
-          profileLabel={copy.profileLabel}
+          token={session.token}
           onSignOut={handleSignOut}
+          onUpdateUser={handleUpdateUser}
           onShowWardrobe={handleShowWardrobe}
           onShowTrends={handleShowTrends}
           onShowReminders={handleShowReminders}
@@ -469,11 +478,11 @@ export function App() {
                 </div>
               </div>
 
-              <div className="relative min-h-[320px] bg-[#d8d0c3]">
+              <div className="relative min-h-[320px] overflow-hidden bg-[#d8d0c3]">
                 <img
                   className="h-full w-full object-cover"
-                  src="/virat.jpg"
-                  alt="StyleSync Showcase"
+                  src={session.user.gender === 'female' ? '/female.jpg' : '/virat.jpg'}
+                  alt={session.user.gender === 'female' ? 'StyleSync – Women\'s Wardrobe' : 'StyleSync Showcase'}
                 />
               </div>
             </div>
@@ -734,15 +743,17 @@ async function checkShoppingImage(file: File, token: string): Promise<DuplicateC
 
 function TopBar({
   user,
-  profileLabel,
+  token,
   onSignOut,
+  onUpdateUser,
   onShowWardrobe,
   onShowTrends,
   onShowReminders,
 }: {
   user: AuthUser
-  profileLabel: string
+  token: string
   onSignOut: () => void
+  onUpdateUser: (updated: AuthUser) => void
   onShowWardrobe: () => void
   onShowTrends: () => void
   onShowReminders: () => void
@@ -755,21 +766,19 @@ function TopBar({
         </div>
         <div>
           <p className="font-bold text-[#1f2328]">StyleSync</p>
-          {/* Says which styling conventions the page is using, so the
-              personalisation is visible rather than implicit. */}
-          <p className="text-xs text-[#697169]">{profileLabel} · Digital Dress Wardrobe</p>
+          <p className="text-xs text-[#697169]">Digital Wardrobe</p>
         </div>
       </div>
       <nav className="flex flex-wrap gap-2 text-sm text-[#4f574f]">
         <NavPill icon={Layers3} label="My Wardrobe" onClick={onShowWardrobe} />
         <NavPill icon={TrendingUp} label="Trends" onClick={onShowTrends} />
         <NavPill icon={CalendarDays} label="Reminders" onClick={onShowReminders} />
-        <button
-          className="rounded-lg border border-[#e1dbd0] bg-[var(--surface)] hover:bg-[var(--accent-soft)] transition-colors px-3.5 py-2 cursor-pointer font-medium text-xs text-[#1f2328]"
-          onClick={onSignOut}
-        >
-          {user.name} / Sign out
-        </button>
+        <PersonalDetailsDropdown
+          user={user}
+          token={token}
+          onSignOut={onSignOut}
+          onUpdateUser={onUpdateUser}
+        />
       </nav>
     </header>
   )

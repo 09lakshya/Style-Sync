@@ -190,7 +190,7 @@ export function SignupPage({ onSessionSuccess, onNavigateToLogin }: SignupPagePr
               <legend className="block text-xs uppercase tracking-widest text-[#B8AD9A] mb-3">
                 Style profile
               </legend>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 {GENDER_OPTIONS.map((option) => (
                   <label
                     key={option.value}

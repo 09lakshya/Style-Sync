@@ -41,8 +41,11 @@ export type FormErrors = {
 }
 
 export const GENDER_OPTIONS: { value: ProfileGender; label: string }[] = [
-  { value: 'female', label: 'Woman' },
-  { value: 'male', label: 'Man' },
-  { value: 'non-binary', label: 'Non-binary' },
+  { value: 'male', label: 'Male' },
+  { value: 'female', label: 'Female' },
   { value: 'unspecified', label: 'Prefer not to say' },
 ]
+
+export type UpdateProfilePayload = {
+  name?: string
+}
