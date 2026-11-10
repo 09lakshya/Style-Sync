@@ -141,10 +141,31 @@ class ShoppingService:
             highest_similarity=highest,
         )
 
+        advisor_insight = None
+        from app.modules.ai.gemini_service import gemini_service
+        if file_bytes is not None and gemini_service.is_configured:
+            try:
+                lower = filename.lower()
+                mime_type = (
+                    "image/png"
+                    if lower.endswith(".png")
+                    else "image/webp"
+                    if lower.endswith(".webp")
+                    else "image/jpeg"
+                )
+                advisor_insight = await gemini_service.advise_shopping_purchase(
+                    file_bytes=file_bytes,
+                    matched_items=top_matches,
+                    mime_type=mime_type,
+                )
+            except Exception as exc:
+                logger.warning("Gemini shopping advisor skipped: %s", exc)
+
         return {
             "decision": decision,
             "highest_similarity": highest,
             "similar_items": top_matches,
+            "advisor": advisor_insight,
         }
 
     def _build_reason(self, reasons: list[str]) -> str:

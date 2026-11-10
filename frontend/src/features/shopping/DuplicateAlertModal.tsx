@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { ImageOff, X } from 'lucide-react'
-import type { DuplicateDecision, SimilarItem } from '../../types/shopping'
+import { ImageOff, Sparkles, X } from 'lucide-react'
+import type { DuplicateDecision, ShoppingAdvisorInsight, SimilarItem } from '../../types/shopping'
 import { formatScore } from '../../lib/utils'
 
 interface DuplicateAlertModalProps {
@@ -14,6 +14,8 @@ interface DuplicateAlertModalProps {
   /** Remaining backend-ranked matches, shown on request. Ordering is preserved as returned. */
   otherMatches?: SimilarItem[]
   decision?: DuplicateDecision
+  /** AI Stylist Shopping Advice comparing candidate with wardrobe items. */
+  advisor?: ShoppingAdvisorInsight | null
   /** Omitted when the matched item is not available in the current wardrobe view. */
   onViewItem?: (itemId: string) => void
 }
@@ -25,6 +27,7 @@ export function DuplicateAlertModal({
   match,
   otherMatches = [],
   decision,
+  advisor,
   onViewItem,
 }: DuplicateAlertModalProps) {
   const [showOtherMatches, setShowOtherMatches] = useState(false)
@@ -81,6 +84,42 @@ export function DuplicateAlertModal({
         </div>
 
         <div className="px-6 py-6 sm:px-8">
+          {/* AI Shopping Stylist Advisor */}
+          {advisor && (
+            <div className="mb-5 rounded-lg border border-[#443828] bg-[#241e17] p-4 text-xs">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="flex items-center gap-1.5 text-[#d99b77] font-semibold uppercase tracking-wider text-[11px]">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  AI Stylist Purchase Advice
+                </div>
+                {advisor.recommendation && (
+                  <span
+                    className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                      advisor.recommendation === 'skip'
+                        ? 'bg-rose-950/80 text-rose-300 border border-rose-800'
+                        : advisor.recommendation === 'buy'
+                        ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-800'
+                        : 'bg-amber-950/80 text-amber-300 border border-amber-800'
+                    }`}
+                  >
+                    Verdict: {advisor.recommendation.replace('_', ' ')}
+                  </span>
+                )}
+              </div>
+              {advisor.headline && (
+                <p className="font-semibold text-stone-100 text-sm mb-1">{advisor.headline}</p>
+              )}
+              {advisor.stylist_reasoning && (
+                <p className="text-stone-300 leading-relaxed mb-2">{advisor.stylist_reasoning}</p>
+              )}
+              {advisor.wardrobe_gap_insight && (
+                <p className="text-[#c4a98a] border-t border-[#383023] pt-2 italic">
+                  Wardrobe Insight: {advisor.wardrobe_gap_insight}
+                </p>
+              )}
+            </div>
+          )}
+
           <div className="grid gap-5 sm:grid-cols-2">
             <ComparisonPane
               label="Intent to buy"
@@ -179,32 +218,31 @@ function ComparisonPane({
   alt: string
   caption: string
   detail?: ReactNode
-  note?: string
+  note?: string | null
 }) {
-  const [hasImageError, setHasImageError] = useState(false)
-
   return (
-    <div className="space-y-2">
-      <p className="text-xs font-medium uppercase tracking-wide text-stone-400">{label}</p>
-      <div className="flex aspect-[4/5] w-full items-center justify-center overflow-hidden rounded-lg border border-[#2b2722] bg-[#11100f]">
-        {imageUrl && !hasImageError ? (
-          <img
-            src={imageUrl}
-            alt={alt}
-            onError={() => setHasImageError(true)}
-            className="h-full w-full object-contain"
-          />
+    <div className="rounded-lg border border-[#2b2722] bg-[#211f1c] p-4">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs font-medium uppercase tracking-wider text-stone-400">
+          {label}
+        </span>
+        {detail}
+      </div>
+
+      <div className="mt-3 flex aspect-[3/4] w-full items-center justify-center overflow-hidden rounded-md bg-[#141311]">
+        {imageUrl ? (
+          <img src={imageUrl} alt={alt} className="h-full w-full object-cover" />
         ) : (
-          <div className="flex flex-col items-center gap-2 p-4 text-center text-xs text-stone-500">
-            <ImageOff className="h-6 w-6" />
-            Image unavailable
+          <div className="flex flex-col items-center gap-1 text-stone-400">
+            <ImageOff className="h-8 w-8 text-stone-500" />
+            <span className="text-xs">No preview</span>
           </div>
         )}
       </div>
-      <div className="space-y-1">
-        <p className="truncate text-sm font-semibold text-stone-100">{caption}</p>
-        {detail}
-        {note && <p className="text-[11px] leading-4 text-stone-400">{note}</p>}
+
+      <div className="mt-3">
+        <p className="truncate text-sm font-medium text-stone-200">{caption}</p>
+        {note && <p className="mt-1 text-xs text-stone-400">{note}</p>}
       </div>
     </div>
   )

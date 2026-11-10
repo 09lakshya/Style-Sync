@@ -60,6 +60,9 @@ def score_clip_season(predicted: list[str], expected: set[str]) -> bool:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--json", type=Path, help="also write per-photo results here")
+    parser.add_argument("--candidate", action="store_true",
+                        help="score mobilenetv2_multihead.candidate.pth with its candidate "
+                             "thresholds instead of the served checkpoint")
     args = parser.parse_args()
     json_path = args.json.resolve() if args.json else None
 
@@ -81,6 +84,24 @@ def main() -> None:
         pass
     if not (classifier_manager.is_loaded and ai_service.clip.is_loaded):
         raise SystemExit("Both the classifier and CLIP must load; scoring a fallback measures nothing.")
+
+    if args.candidate:
+        # Swap the candidate's weights and cuts into the served model, so the
+        # candidate is read through exactly the preprocessing the API uses.
+        import torch
+
+        weights = ROOT / "backend" / "app" / "modules" / "ai" / "checkpoints" / "mobilenetv2_multihead.candidate.pth"
+        cuts = ROOT / "model" / "artifacts" / "multihead_thresholds.candidate.json"
+        if not (weights.is_file() and cuts.is_file()):
+            raise SystemExit("--candidate needs both {} and {} (train, then calibrate).".format(weights, cuts))
+        saved = torch.load(weights, map_location="cpu", weights_only=False)
+        if saved.get("labels") != classifier_manager.labels:
+            raise SystemExit("Candidate labels {} do not match the served {}.".format(
+                saved.get("labels"), classifier_manager.labels))
+        classifier_manager.model.load_state_dict(saved["state_dict"])
+        classifier_manager.model.eval()
+        classifier_manager.thresholds = json.loads(cuts.read_text())["thresholds"]
+        classifier_manager.model_version += "+candidate"
 
     axis_labels = {axis: d.get("labels", []) for axis, d in classifier_manager.axes.items()}
     thresholds = classifier_manager.thresholds

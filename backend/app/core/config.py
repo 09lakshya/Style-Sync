@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+import os
 
 
 class Settings(BaseSettings):
@@ -23,12 +24,26 @@ class Settings(BaseSettings):
     gender_confidence_threshold: float = 0.70
     ai_device: str = "cpu"
     enable_clahe_preprocessing: bool = True
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-3.5-flash"
+
+    @property
+    def is_gemini_configured(self) -> bool:
+        return bool(self.gemini_api_key or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY"))
+
+    @property
+    def effective_gemini_api_key(self) -> str:
+        return self.gemini_api_key or os.environ.get("GEMINI_API_KEY", "") or os.environ.get("GOOGLE_API_KEY", "")
 
     @property
     def is_cloudinary_configured(self) -> bool:
         return bool(self.cloudinary_cloud_name and self.cloudinary_api_key and self.cloudinary_api_secret)
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=(".env", "backend/.env", "../backend/.env"),
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
 
 settings = Settings()

@@ -10,13 +10,14 @@ frontend/src/types/wardrobe.ts already do:
     season     summer | winter             (multi-label)
     tradition  ethnic | western            (binary)
 
-Myntra labels `usage` and `season` per item independently, which is exactly
-this supervision, already annotated.
+Occasion comes from Myntra's `usage`. Season does not come from Myntra's
+`season`, which is the catalogue season rather than the weather; it is derived
+from `articleType` instead (see ARTICLE_TO_SEASON).
 
 Not every row answers every axis, and nothing here fills a gap by guessing. A
 `usage` of Ethnic says what tradition a garment belongs to but not what
-occasion it suits; a `season` of Fall or Spring has no home in a summer/winter
-split. Those axes are left unlabelled and carry a mask of 0, so the loss
+occasion it suits; a pair of jeans is worn in summer and winter alike. Those
+axes are left unlabelled and carry a mask of 0, so the loss
 ignores them instead of training on an invented answer. Every row that is
 dropped, and every axis left blank, is counted in the report.
 
@@ -67,13 +68,23 @@ USAGE_TO_OCCASION = {
 # Rows whose usage puts them outside the wardrobe StyleSync models at all.
 USAGE_EXCLUDED = {"sports"}
 
-# Myntra `season` -> season labels. Fall and Spring have no honest mapping onto
-# a two-way summer/winter split, so they are left unlabelled rather than forced.
-SEASON_TO_SEASON = {
-    "summer": ["summer"],
-    "winter": ["winter"],
-    "fall": [],
-    "spring": [],
+# articleType -> season labels. Myntra's own `season` column is the catalogue
+# season an item was listed in, not the weather it suits: 80 of 87 jackets are
+# "Summer" and 242 briefs and bras "Winter". A model trained on it called a
+# puffer jacket summer at 0.99. What a garment is says far more, so season comes
+# from articleType, and only for types whose answer is not in doubt. Jeans,
+# shirts, kurtas, dresses and the rest are worn in either and stay unlabelled.
+ARTICLE_TO_SEASON = {
+    "sweaters": ["winter"],
+    "sweatshirts": ["winter"],
+    "jackets": ["winter"],
+    "tshirts": ["summer"],
+    "shorts": ["summer"],
+    "lounge shorts": ["summer"],
+    "capris": ["summer"],
+    "camisoles": ["summer"],
+    "swimwear": ["summer"],
+    "rompers": ["summer"],
 }
 
 # articleType values that place a garment on the Ethnic side regardless of what
@@ -171,10 +182,9 @@ def classify(row):
         return None, "usage={}".format(usage or "blank")
 
     article = (row.get("articleType") or "").strip().lower()
-    season_raw = (row.get("season") or "").strip().lower()
 
     occasion = USAGE_TO_OCCASION.get(usage, [])
-    season = SEASON_TO_SEASON.get(season_raw, [])
+    season = ARTICLE_TO_SEASON.get(article, [])
     tradition = "ethnic" if (usage == "ethnic" or article in ETHNIC_ARTICLE_TYPES) else "western"
 
     # An occasion mask of 0 means "this row does not say", not "none of these".

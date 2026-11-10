@@ -34,7 +34,7 @@ import { WardrobeGrid } from './features/wardrobe/WardrobeGrid'
 import { DuplicateAlertModal } from './features/shopping/DuplicateAlertModal'
 import { OutfitAnalysisPanel } from './features/outfit/OutfitAnalysisPanel'
 import { TrendsSection } from './features/trends/TrendsSection'
-import type { DuplicateCheckResult, DuplicateDecision, SimilarItem } from './types/shopping'
+import type { DuplicateCheckResult, DuplicateDecision, ShoppingAdvisorInsight, SimilarItem } from './types/shopping'
 import type {
   CreateDressInput,
   UpdateDressMetadataInput,
@@ -89,6 +89,7 @@ export function App() {
   const [shoppingPreviewUrl, setShoppingPreviewUrl] = useState<string | null>(null)
   const [similarItems, setSimilarItems] = useState<SimilarItem[]>([])
   const [duplicateDecision, setDuplicateDecision] = useState<DuplicateDecision | null>(null)
+  const [shoppingAdvisor, setShoppingAdvisor] = useState<ShoppingAdvisorInsight | null>(null)
   const [isDuplicateAlertOpen, setIsDuplicateAlertOpen] = useState(false)
   const [duplicateChecks, setDuplicateChecks] = useState<number>(0)
   const [notice, setNotice] = useState<string>(
@@ -245,6 +246,7 @@ export function App() {
     onSuccess: (result) => {
       setSimilarItems(result.similarItems)
       setDuplicateDecision(result.decision)
+      setShoppingAdvisor(result.advisor ?? null)
       setDuplicateChecks((count) => count + 1)
 
       const hasMatch = result.decision !== 'no_strong_duplicate' && result.similarItems.length > 0
@@ -655,6 +657,7 @@ export function App() {
         match={similarItems[0] ?? null}
         otherMatches={similarItems.slice(1)}
         decision={duplicateDecision ?? undefined}
+        advisor={shoppingAdvisor}
         onViewItem={
           items.some((item) => item.id === similarItems[0]?.id)
             ? (itemId) => {
@@ -712,6 +715,7 @@ async function checkShoppingImage(file: File, token: string): Promise<DuplicateC
       similarity: number
       reason: string
     }>
+    advisor?: ShoppingAdvisorInsight | null
   }>(response)
 
   return {
@@ -724,6 +728,7 @@ async function checkShoppingImage(file: File, token: string): Promise<DuplicateC
       similarity: item.similarity,
       reason: item.reason,
     })),
+    advisor: payload.advisor ?? null,
   }
 }
 

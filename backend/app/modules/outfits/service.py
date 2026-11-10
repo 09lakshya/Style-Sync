@@ -58,11 +58,34 @@ class OutfitService:
         else:
             outfits.sort(key=lambda o: (-o["score"], o["total_wears"]))
 
+        outfits_to_return = outfits[: max(limit, 1)]
+        from app.modules.ai.gemini_service import gemini_service
+        if gemini_service.is_configured and outfits_to_return:
+            top_outfit = outfits_to_return[0]
+            try:
+                insight = await gemini_service.evaluate_outfit_pairing(
+                    pieces=top_outfit.get("pieces", []),
+                    occasion=occasion,
+                    season=season,
+                )
+                if insight:
+                    if insight.get("aesthetic"):
+                        top_outfit["style"] = insight["aesthetic"]
+                        top_outfit.setdefault("style_labels", {})[insight["aesthetic"]] = insight["aesthetic"]
+                    if insight.get("stylist_rationale"):
+                        top_outfit["reasons"].insert(0, f"AI Stylist: {insight['stylist_rationale']}")
+                    if insight.get("elevation_tip"):
+                        top_outfit["reasons"].append(f"Stylist Tip: {insight['elevation_tip']}")
+                    if isinstance(insight.get("score_adjustment"), int):
+                        top_outfit["score"] = max(50, min(100, top_outfit["score"] + insight["score_adjustment"]))
+            except Exception as exc:
+                logger.warning("Gemini outfit pairing evaluation skipped: %s", exc)
+
         return {
             "wardrobe_size": len(items),
             "count": len(outfits),
             "gaps": self._gaps(by_slot),
-            "outfits": outfits[: max(limit, 1)],
+            "outfits": outfits_to_return,
         }
 
     def _build(self, by_slot: dict[str, list[dict[str, Any]]]) -> list[dict[str, Any]]:

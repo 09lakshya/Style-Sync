@@ -107,6 +107,23 @@ class WardrobeService:
         Mirrors what `create_item_from_upload` would store, so whatever the form
         shows is what gets written if the user accepts it unchanged.
         """
+        from app.modules.ai.gemini_service import gemini_service
+
+        if gemini_service.is_configured:
+            lower = filename.lower()
+            mime_type = (
+                "image/png"
+                if lower.endswith(".png")
+                else "image/webp"
+                if lower.endswith(".webp")
+                else "image/jpeg"
+            )
+            gemini_result = await gemini_service.detect_clothing_item(
+                file_bytes=file_bytes, mime_type=mime_type
+            )
+            if gemini_result:
+                return gemini_result
+
         metadata = ai_service.extract_clothing_metadata(file_bytes=file_bytes, filename=filename)
 
         predicted_category, confidence, predicted_axes, model_version = _classify(file_bytes)

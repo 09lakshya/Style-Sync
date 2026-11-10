@@ -458,7 +458,7 @@ class AIService:
         # 7. Fabric (best effort; CLIP reads drape and sheen, not fibre)
         fabric_results = self._classify_prompted(pil_image, FABRIC_PROMPTS, "clothing made of {}")
         top_fabric, fabric_conf = fabric_results[0] if fabric_results else ("user_review_needed", 0.0)
-        if fabric_conf < threshold:
+        if fabric_conf < 0.12:
             top_fabric = "user_review_needed"
 
         tags = [base_pattern, top_color, top_type]
@@ -552,18 +552,24 @@ def infer_metadata(filename: str) -> dict[str, object]:
     # nothing downstream that matches on the garment vocabulary could use them.
     item_type = next((garment for garment in CANDIDATE_TYPES if garment in lower), "")
     if not item_type:
-        if any(token in lower for token in ("shirt", "tee", "blouse", "top")):
-            item_type = "shirt"
+        if any(token in lower for token in ("shirt", "tee", "blouse", "top", "tshirt", "t-shirt")):
+            item_type = "t-shirt" if any(t in lower for t in ("t-shirt", "tshirt", "tee")) else "shirt"
+        elif any(token in lower for token in ("hoodie", "sweater", "sweatshirt", "cardigan", "knit", "vest")):
+            item_type = "sweater" if "sweater" in lower or "knit" in lower or "vest" in lower else "hoodie"
+        elif any(token in lower for token in ("kurta", "kurti")):
+            item_type = "kurti" if "kurti" in lower else "kurta"
         elif any(token in lower for token in ("jean", "denim")):
             item_type = "jeans"
+        elif any(token in lower for token in ("short", "shorts")):
+            item_type = "shorts"
         elif any(token in lower for token in ("skirt",)):
             item_type = "skirt"
-        elif any(token in lower for token in ("pant", "trouser", "chino")):
+        elif any(token in lower for token in ("pant", "trouser", "chino", "palazzo", "slack", "chinos")):
             item_type = "pants"
         elif any(token in lower for token in ("jacket", "coat", "blazer")):
             item_type = "jacket"
         else:
-            item_type = "dress"
+            item_type = "top"
 
     if "floral" in lower:
         pattern = "floral"

@@ -10,8 +10,17 @@ export interface SimilarItem {
 /** Backend duplicate-check verdict. Thresholds live in the backend, not here. */
 export type DuplicateDecision = 'similar_found' | 'review_matches' | 'no_strong_duplicate'
 
+export interface ShoppingAdvisorInsight {
+  recommendation?: 'buy' | 'skip' | 'consider_alternative'
+  headline?: string
+  stylist_reasoning?: string
+  wardrobe_gap_insight?: string
+  styling_potential?: string
+}
+
 export interface DuplicateCheckResult {
   decision: DuplicateDecision
   highestSimilarity: number
   similarItems: SimilarItem[]
+  advisor?: ShoppingAdvisorInsight | null
 }

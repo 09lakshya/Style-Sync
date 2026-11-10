@@ -1,9 +1,49 @@
-/** Response of POST /recommendations/analyze-outfit.
- *
- * `classification` and `attributes` are model output. `styling` and `tags` are
- * rule-based, derived from those attributes — the UI labels them separately.
- */
+/** Response of POST /recommendations/analyze-outfit. */
+export interface OutfitPiece {
+  slot: string
+  name: string
+  color: string
+  pattern?: string
+  details?: string
+}
+
+export interface ColorChip {
+  name: string
+  hex: string
+}
+
+export interface ColorPaletteInfo {
+  primary_color: string
+  secondary_colors: string[]
+  color_chips?: ColorChip[]
+  harmony_type?: string
+  harmony_evaluation?: string
+}
+
+export interface StylistCritique {
+  strengths?: string[]
+  elevation_tips?: string[]
+}
+
 export interface OutfitAnalysis {
+  engine?: 'gemini_multimodal_vision' | 'local_vision_models'
+  outfit_score?: number
+  aesthetic?: string
+  summary?: string
+  detected_pieces?: OutfitPiece[]
+  color_palette?: ColorPaletteInfo
+  silhouette_and_proportions?: {
+    fit?: string
+    evaluation?: string
+  }
+  stylist_critique?: StylistCritique
+  styling_recommendations?: {
+    footwear?: string[]
+    bag?: string[]
+    jewellery_and_watches?: string[]
+    layers_and_outerwear?: string[]
+    other_accessories?: string[]
+  }
   classification: {
     available: boolean
     predicted_category: string | null
@@ -12,8 +52,6 @@ export interface OutfitAnalysis {
     prediction_confidence: number | null
     model_version: string | null
   }
-  /** `available` is false when the attribute model (CLIP) is not loaded; the
-   *  fields are then empty rather than placeholder values. */
   attributes: {
     available: boolean
     reason: string | null
@@ -26,9 +64,6 @@ export interface OutfitAnalysis {
     occasion: string[]
     confidence: Record<string, number>
   }
-  /** Who the styling targets. Detected by CLIP unless the request overrode it;
-   *  'unisex' when the detection was not confident, 'unavailable' when nothing
-   *  could be read and no profile answer filled in. */
   gender?: {
     value: OutfitGender
     source: 'detected' | 'provided' | 'profile' | 'unavailable'
@@ -50,11 +85,11 @@ export type OutfitGender = 'female' | 'male' | 'unisex'
 
 /** Order the accessory slots are presented in. */
 export const STYLING_SLOTS = [
+  'footwear',
+  'bag',
   'earrings',
   'necklace',
   'bracelet',
   'watch',
-  'footwear',
-  'bag',
   'other',
 ] as const
