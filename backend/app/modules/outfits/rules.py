@@ -205,15 +205,19 @@ def can_layer(layer: dict[str, Any], core_pieces: list[dict[str, Any]]) -> tuple
         return False, f"A traditional {layer_type} clashes over casual western separates."
 
     # 2. Fabric Physics & Material Harmony:
-    # Heavy leather jackets over light linen/silk create an absurd textural clash
-    has_delicate_summer_fabric = any(
-        str(p.get("fabric") or "").lower() in DELICATE_SUMMER_FABRICS
-        or "linen" in str(p.get("name") or "").lower()
-        or "linen" in str(p.get("fabric") or "").lower()
+    # Heavy leather jackets over delicate/linen tops create an absurd textural clash
+    has_delicate_summer_top = any(
+        (
+            str(p.get("fabric") or "").lower() in DELICATE_SUMMER_FABRICS
+            or "linen" in str(p.get("name") or "").lower()
+            or "linen" in str(p.get("fabric") or "").lower()
+            or "silk" in str(p.get("fabric") or "").lower()
+        )
+        and slot_of(p) in {"top", "one_piece"}
         for p in core_pieces
     )
-    if layer_is_leather and has_delicate_summer_fabric:
-        return False, "Heavy leather outerwear clashes with delicate or breathable linen/summer fabrics."
+    if layer_is_leather and has_delicate_summer_top:
+        return False, "Heavy leather outerwear clashes over delicate or breathable linen/summer tops."
 
     # 3. Season Harmony:
     layer_seasons = seasons_of(layer)

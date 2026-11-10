@@ -293,14 +293,23 @@ def test_nehru_jacket_can_layer_over_kurta():
     assert can is True
 
 
-def test_leather_jacket_cannot_layer_over_linen():
+def test_leather_jacket_cannot_layer_over_linen_top():
     shirt = piece(name="Linen shirt", type="shirt", primary_color="white", fabric="linen")
-    pant = piece(name="Linen pant", type="pants", primary_color="beige", fabric="linen")
+    pant = piece(name="Trousers", type="pants", primary_color="black")
     leather_jacket = piece(name="Leather jacket", type="jacket", primary_color="black", fabric="leather")
     
     can, reason = rules.can_layer(leather_jacket, [shirt, pant])
     assert can is False
     assert "linen" in reason.lower() or "delicate" in reason.lower()
+
+
+def test_leather_jacket_can_layer_over_tshirt_and_linen_pants():
+    tee = piece(name="Cotton T-shirt", type="t-shirt", primary_color="white", fabric="cotton")
+    pant = piece(name="Linen pant", type="pants", primary_color="beige", fabric="linen")
+    leather_jacket = piece(name="Leather jacket", type="jacket", primary_color="black", fabric="leather")
+    
+    can, _ = rules.can_layer(leather_jacket, [tee, pant])
+    assert can is True
 
 
 def test_leather_jacket_can_layer_over_western_tshirt_and_pants():

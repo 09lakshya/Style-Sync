@@ -57,38 +57,42 @@ class OutfitService:
             outfits.sort(key=lambda o: (-o["score"], o["total_wears"]))
 
         outfits_to_return = outfits[: max(limit, 1)]
+        import asyncio
         from app.modules.ai.gemini_service import gemini_service
         if gemini_service.is_configured and outfits_to_return:
-            for top_outfit in outfits_to_return[:2]:
-                try:
-                    insight = await gemini_service.evaluate_outfit_pairing(
+            top_outfit = outfits_to_return[0]
+            try:
+                insight = await asyncio.wait_for(
+                    gemini_service.evaluate_outfit_pairing(
                         pieces=top_outfit.get("pieces", []),
                         occasion=occasion,
                         season=season,
-                    )
-                    if insight:
-                        if not insight.get("is_cohesive", True):
-                            top_outfit["warnings"].append(
-                                f"AI Stylist Caution: {insight.get('stylist_rationale', 'Aesthetic mismatch detected.')}"
-                            )
+                    ),
+                    timeout=4.0,
+                )
+                if insight:
+                    if not insight.get("is_cohesive", True):
+                        top_outfit["warnings"].append(
+                            f"AI Stylist Caution: {insight.get('stylist_rationale', 'Aesthetic mismatch detected.')}"
+                        )
+                        top_outfit["score"] = max(
+                            20,
+                            min(100, top_outfit["score"] + min(-20, insight.get("score_adjustment", -25))),
+                        )
+                    else:
+                        if insight.get("aesthetic"):
+                            top_outfit["style"] = insight["aesthetic"]
+                            top_outfit.setdefault("style_labels", {})[insight["aesthetic"]] = insight["aesthetic"]
+                        if insight.get("stylist_rationale"):
+                            top_outfit["reasons"].insert(0, f"AI Stylist: {insight['stylist_rationale']}")
+                        if insight.get("elevation_tip"):
+                            top_outfit["reasons"].append(f"Stylist Tip: {insight['elevation_tip']}")
+                        if isinstance(insight.get("score_adjustment"), int):
                             top_outfit["score"] = max(
-                                20,
-                                min(100, top_outfit["score"] + min(-20, insight.get("score_adjustment", -25))),
+                                40, min(100, top_outfit["score"] + insight["score_adjustment"])
                             )
-                        else:
-                            if insight.get("aesthetic"):
-                                top_outfit["style"] = insight["aesthetic"]
-                                top_outfit.setdefault("style_labels", {})[insight["aesthetic"]] = insight["aesthetic"]
-                            if insight.get("stylist_rationale"):
-                                top_outfit["reasons"].insert(0, f"AI Stylist: {insight['stylist_rationale']}")
-                            if insight.get("elevation_tip"):
-                                top_outfit["reasons"].append(f"Stylist Tip: {insight['elevation_tip']}")
-                            if isinstance(insight.get("score_adjustment"), int):
-                                top_outfit["score"] = max(
-                                    40, min(100, top_outfit["score"] + insight["score_adjustment"])
-                                )
-                except Exception as exc:
-                    logger.warning("Gemini outfit pairing evaluation skipped: %s", exc)
+            except Exception as exc:
+                logger.warning("Gemini outfit pairing evaluation skipped: %s", exc)
 
         return {
             "wardrobe_size": len(items),
