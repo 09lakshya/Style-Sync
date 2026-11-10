@@ -94,6 +94,30 @@ TRADITIONAL_BOTTOMS = {
     "churidar", "dhoti", "palazzo", "sharara", "gharara", "patiala salwar", "lungi",
 }
 
+# Traditional/ethnic layering items (outer garments)
+ETHNIC_LAYERS = {"nehru jacket", "bandhgala", "phiran", "waistcoat"}
+
+# Western casual outerwear that clashes when worn over traditional garments
+WESTERN_CASUAL_LAYERS = {
+    "jacket", "coat", "hoodie", "cardigan", "blazer", "sweater"
+}
+
+# Fabrics that clash structurally or sensorially
+HEAVY_LEATHER_OR_WINTER = {"leather", "shearling", "fleece", "heavy wool", "down"}
+DELICATE_SUMMER_FABRICS = {"linen", "chiffon", "georgette", "silk"}
+
+# Traditional/ethnic layering items (outer garments)
+ETHNIC_LAYERS = {"nehru jacket", "bandhgala", "phiran", "waistcoat"}
+
+# Western casual outerwear that clashes when worn over traditional garments
+WESTERN_CASUAL_LAYERS = {
+    "jacket", "coat", "hoodie", "cardigan", "blazer", "sweater"
+}
+
+# Fabrics that clash structurally or sensorially
+HEAVY_LEATHER_OR_WINTER = {"leather", "shearling", "fleece", "heavy wool", "down"}
+DELICATE_SUMMER_FABRICS = {"linen", "chiffon", "georgette", "silk"}
+
 
 def slot_of(item: dict[str, Any]) -> str | None:
     """Which part of an outfit this garment fills."""
@@ -140,9 +164,73 @@ def pattern_of(item: dict[str, Any]) -> str:
 
 def is_ethnic(item: dict[str, Any]) -> bool:
     garment = str(item.get("type") or "").lower()
-    return garment in ETHNIC_TYPES or "ethnic" in {
-        str(t).lower() for t in (item.get("tags") or [])
-    }
+    name = str(item.get("name") or "").lower()
+    tags = {str(t).lower() for t in (item.get("tags") or [])}
+    if garment in ETHNIC_TYPES or "ethnic" in tags:
+        return True
+    return any(ethnic_type in name for ethnic_type in ETHNIC_TYPES)
+
+
+def is_leather_item(item: dict[str, Any]) -> bool:
+    fabric = str(item.get("fabric") or "").lower()
+    name = str(item.get("name") or "").lower()
+    tags = {str(t).lower() for t in (item.get("tags") or [])}
+    return fabric == "leather" or "leather" in name or "leather" in tags
+
+
+def can_layer(layer: dict[str, Any], core_pieces: list[dict[str, Any]]) -> tuple[bool, str]:
+    """Determines whether a layer item can tastefully sit on top of core pieces."""
+    layer_type = str(layer.get("type") or "").lower()
+    layer_is_ethnic = is_ethnic(layer) or layer_type in ETHNIC_LAYERS
+    layer_is_leather = is_leather_item(layer)
+
+    # 1. Tradition & Cultural Silhouette Compatibility:
+    has_ethnic_top = any(
+        is_ethnic(p) and slot_of(p) in {"top", "one_piece"}
+        for p in core_pieces
+    )
+
+    if has_ethnic_top:
+        # A traditional top (kurta, kurti, saree, anarkali) can only be layered with ethnic outerwear.
+        # Casual Western outerwear like leather jackets or hoodies strictly clash.
+        if not layer_is_ethnic:
+            return False, f"A western {layer_type or 'jacket'} clashes culturally and structurally over a traditional top."
+
+    # Conversely, an ethnic outer garment (like a formal bandhgala) shouldn't layer over casual western tees/hoodies
+    has_casual_western_top = any(
+        not is_ethnic(p) and str(p.get("type") or "").lower() in {"t-shirt", "hoodie", "tank top"}
+        for p in core_pieces
+    )
+    if has_casual_western_top and layer_is_ethnic and layer_type != "waistcoat":
+        return False, f"A traditional {layer_type} clashes over casual western separates."
+
+    # 2. Fabric Physics & Material Harmony:
+    # Heavy leather jackets over light linen/silk create an absurd textural clash
+    has_delicate_summer_fabric = any(
+        str(p.get("fabric") or "").lower() in DELICATE_SUMMER_FABRICS
+        or "linen" in str(p.get("name") or "").lower()
+        or "linen" in str(p.get("fabric") or "").lower()
+        for p in core_pieces
+    )
+    if layer_is_leather and has_delicate_summer_fabric:
+        return False, "Heavy leather outerwear clashes with delicate or breathable linen/summer fabrics."
+
+    # 3. Season Harmony:
+    layer_seasons = seasons_of(layer)
+    if layer_seasons and layer_seasons != {"all_season"}:
+        core_seasons = shared_seasons(core_pieces)
+        if core_seasons and core_seasons != {"all_season"}:
+            if not (layer_seasons & core_seasons):
+                return False, "Layer season conflicts with the base outfit."
+
+    # 4. Color Clash:
+    outfit_colors: set[str] = set()
+    for p in core_pieces:
+        outfit_colors |= colors_of(p)
+    if clashes(colors_of(layer), outfit_colors):
+        return False, "Layer color clashes with the outfit."
+
+    return True, ""
 
 
 def occasions_of(item: dict[str, Any]) -> set[str]:

@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     ai_device: str = "cpu"
     enable_clahe_preprocessing: bool = True
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-3.5-flash"
+    gemini_model: str = "gemini-3-flash-preview"
 
     @property
     def is_gemini_configured(self) -> bool:

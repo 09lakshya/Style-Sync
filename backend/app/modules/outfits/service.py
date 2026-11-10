@@ -15,9 +15,7 @@ from app.modules.wardrobe.service import wardrobe_service
 
 logger = logging.getLogger("stylesync.outfits")
 
-# Ceiling on pairings scored per request. A 60-piece wardrobe is 900 top/bottom
-# combinations, which is fine; this only stops a pathological wardrobe from
-# turning one request into a long job.
+# Ceiling on pairings scored per request.
 MAX_COMBINATIONS = 4000
 
 
@@ -53,7 +51,7 @@ class OutfitService:
             ]
 
         if sort == "fresh":
-            # Least-worn first: the point is to wear what is hanging unused.
+            # Least-worn first: wear what is hanging unused
             outfits.sort(key=lambda o: (o["total_wears"], -o["score"]))
         else:
             outfits.sort(key=lambda o: (-o["score"], o["total_wears"]))
@@ -61,25 +59,36 @@ class OutfitService:
         outfits_to_return = outfits[: max(limit, 1)]
         from app.modules.ai.gemini_service import gemini_service
         if gemini_service.is_configured and outfits_to_return:
-            top_outfit = outfits_to_return[0]
-            try:
-                insight = await gemini_service.evaluate_outfit_pairing(
-                    pieces=top_outfit.get("pieces", []),
-                    occasion=occasion,
-                    season=season,
-                )
-                if insight:
-                    if insight.get("aesthetic"):
-                        top_outfit["style"] = insight["aesthetic"]
-                        top_outfit.setdefault("style_labels", {})[insight["aesthetic"]] = insight["aesthetic"]
-                    if insight.get("stylist_rationale"):
-                        top_outfit["reasons"].insert(0, f"AI Stylist: {insight['stylist_rationale']}")
-                    if insight.get("elevation_tip"):
-                        top_outfit["reasons"].append(f"Stylist Tip: {insight['elevation_tip']}")
-                    if isinstance(insight.get("score_adjustment"), int):
-                        top_outfit["score"] = max(50, min(100, top_outfit["score"] + insight["score_adjustment"]))
-            except Exception as exc:
-                logger.warning("Gemini outfit pairing evaluation skipped: %s", exc)
+            for top_outfit in outfits_to_return[:2]:
+                try:
+                    insight = await gemini_service.evaluate_outfit_pairing(
+                        pieces=top_outfit.get("pieces", []),
+                        occasion=occasion,
+                        season=season,
+                    )
+                    if insight:
+                        if not insight.get("is_cohesive", True):
+                            top_outfit["warnings"].append(
+                                f"AI Stylist Caution: {insight.get('stylist_rationale', 'Aesthetic mismatch detected.')}"
+                            )
+                            top_outfit["score"] = max(
+                                20,
+                                min(100, top_outfit["score"] + min(-20, insight.get("score_adjustment", -25))),
+                            )
+                        else:
+                            if insight.get("aesthetic"):
+                                top_outfit["style"] = insight["aesthetic"]
+                                top_outfit.setdefault("style_labels", {})[insight["aesthetic"]] = insight["aesthetic"]
+                            if insight.get("stylist_rationale"):
+                                top_outfit["reasons"].insert(0, f"AI Stylist: {insight['stylist_rationale']}")
+                            if insight.get("elevation_tip"):
+                                top_outfit["reasons"].append(f"Stylist Tip: {insight['elevation_tip']}")
+                            if isinstance(insight.get("score_adjustment"), int):
+                                top_outfit["score"] = max(
+                                    40, min(100, top_outfit["score"] + insight["score_adjustment"])
+                                )
+                except Exception as exc:
+                    logger.warning("Gemini outfit pairing evaluation skipped: %s", exc)
 
         return {
             "wardrobe_size": len(items),
@@ -98,25 +107,70 @@ class OutfitService:
 
         pairs = itertools.islice(itertools.product(tops, bottoms), MAX_COMBINATIONS)
         for top, bottom in pairs:
-            outfit = self._score([("top", top), ("bottom", bottom)], layers, accessories)
-            if outfit:
-                outfits.append(outfit)
+            # 1. Base clean 2-piece outfit
+            base_outfit = self._score([("top", top), ("bottom", bottom)], layer=None, accessories=accessories)
+            if base_outfit:
+                outfits.append(base_outfit)
 
-        # A saree or a jumpsuit is already an outfit; it only needs what goes over it.
+            # 2. Layered outfit variant (Top + Bottom + Layer) - ONLY if layer is strictly compatible
+            if layers:
+                compatible_layer = self._best_compatible_layer(layers, [top, bottom])
+                if compatible_layer:
+                    layered_outfit = self._score(
+                        [("top", top), ("bottom", bottom)],
+                        layer=compatible_layer,
+                        accessories=accessories,
+                    )
+                    if layered_outfit:
+                        outfits.append(layered_outfit)
+
+        # One-piece garments (saree, jumpsuit, dress)
         for piece in by_slot.get("one_piece", []):
-            outfit = self._score([("one_piece", piece)], layers, accessories)
-            if outfit:
-                outfits.append(outfit)
+            base_outfit = self._score([("one_piece", piece)], layer=None, accessories=accessories)
+            if base_outfit:
+                outfits.append(base_outfit)
+            if layers:
+                compatible_layer = self._best_compatible_layer(layers, [piece])
+                if compatible_layer:
+                    layered_outfit = self._score(
+                        [("one_piece", piece)],
+                        layer=compatible_layer,
+                        accessories=accessories,
+                    )
+                    if layered_outfit:
+                        outfits.append(layered_outfit)
 
         return outfits
+
+    def _best_compatible_layer(
+        self, candidates: list[dict[str, Any]], core_pieces: list[dict[str, Any]]
+    ) -> dict[str, Any] | None:
+        """Find the most harmonious layer that satisfies all tradition, fabric, season, and color rules."""
+        usable: list[dict[str, Any]] = []
+        for candidate in candidates:
+            allowed, _ = rules.can_layer(candidate, core_pieces)
+            if allowed:
+                usable.append(candidate)
+
+        if not usable:
+            return None
+
+        # Prefer a neutral, then the least-worn, so extras also get used
+        usable.sort(
+            key=lambda c: (not rules.is_neutral(c), int(c.get("wear_count") or 0))
+        )
+        return usable[0]
 
     def _score(
         self,
         core: list[tuple[str, dict[str, Any]]],
-        layers: list[dict[str, Any]],
-        accessories: list[dict[str, Any]],
+        layer: dict[str, Any] | None = None,
+        accessories: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any] | None:
         pieces = [item for _, item in core]
+        if layer:
+            pieces.append(layer)
+
         reasons: list[str] = []
         warnings: list[str] = []
         score = 50
@@ -124,9 +178,9 @@ class OutfitService:
         names = {role: item.get("name") for role, item in core}
 
         # --- colour ----------------------------------------------------------
-        if len(pieces) == 2:
-            top_colors = rules.colors_of(pieces[0])
-            bottom_colors = rules.colors_of(pieces[1])
+        if len(core) == 2:
+            top_colors = rules.colors_of(core[0][1])
+            bottom_colors = rules.colors_of(core[1][1])
 
             if rules.clashes(top_colors, bottom_colors):
                 score -= 22
@@ -140,12 +194,29 @@ class OutfitService:
                     f"{', '.join(sorted(top_colors))} and {', '.join(sorted(bottom_colors))} "
                     "sit in the same family, so it reads as one tonal outfit."
                 )
-            elif rules.is_neutral(pieces[0]) or rules.is_neutral(pieces[1]):
+            elif rules.is_neutral(core[0][1]) or rules.is_neutral(core[1][1]):
                 score += 14
-                neutral = names["top"] if rules.is_neutral(pieces[0]) else names["bottom"]
+                neutral = names["top"] if rules.is_neutral(core[0][1]) else names["bottom"]
                 reasons.append(f"{neutral} is a neutral, so it carries the other piece.")
             else:
                 score += 4
+
+        # Layer colour check
+        if layer:
+            layer_colors = rules.colors_of(layer)
+            core_colors: set[str] = set()
+            for _, item in core:
+                core_colors |= rules.colors_of(item)
+
+            if rules.clashes(layer_colors, core_colors):
+                score -= 18
+                warnings.append("The outer layer color clashes with the core pieces.")
+            elif rules.same_family(layer_colors, core_colors):
+                score += 6
+                reasons.append(f"{layer.get('name')} tonally harmonizes with the outfit.")
+            elif rules.is_neutral(layer):
+                score += 4
+                reasons.append(f"{layer.get('name')} adds a balanced neutral outer layer.")
 
         # --- pattern ---------------------------------------------------------
         patterns = [rules.pattern_of(piece) for piece in pieces]
@@ -155,20 +226,20 @@ class OutfitService:
             warnings.append(
                 f"Two patterns competing ({' and '.join(loud)}) - keep one of them plain."
             )
-        elif len(loud) == 1 and len(pieces) == 2:
+        elif len(loud) == 1 and len(core) == 2 and not layer:
             score += 12
             plain = names["bottom"] if patterns[0] == loud[0] else names["top"]
             reasons.append(f"One patterned piece against plain {plain} keeps the balance right.")
-        elif len(pieces) == 2:
+        elif len(core) == 2 and not layer:
             score += 6
             reasons.append("Both pieces are plain, so the cut does the talking.")
 
         # --- tradition -------------------------------------------------------
-        if len(pieces) == 2:
-            top_type = str(pieces[0].get("type") or "").lower()
-            bottom_type = str(pieces[1].get("type") or "").lower()
-            top_ethnic = rules.is_ethnic(pieces[0])
-            bottom_ethnic = rules.is_ethnic(pieces[1])
+        if len(core) == 2:
+            top_type = str(core[0][1].get("type") or "").lower()
+            bottom_type = str(core[1][1].get("type") or "").lower()
+            top_ethnic = rules.is_ethnic(core[0][1])
+            bottom_ethnic = rules.is_ethnic(core[1][1])
 
             if top_ethnic and bottom_ethnic:
                 score += 10
@@ -178,8 +249,6 @@ class OutfitService:
                 )
                 if crossover:
                     score += 8
-                    # The caveat differs: denim is the relaxed version of this
-                    # pairing, tailoring is the one that can tip into costume.
                     reasons.append(
                         "Keep the kurta unstarched and it reads as everyday wear."
                         if bottom_type == "jeans"
@@ -191,6 +260,24 @@ class OutfitService:
                         "Mixing a traditional piece with a western one here needs care."
                     )
 
+        # Layer tradition check
+        if layer:
+            top_item = core[0][1]
+            top_ethnic = rules.is_ethnic(top_item)
+            layer_ethnic = rules.is_ethnic(layer) or str(layer.get("type") or "").lower() in rules.ETHNIC_LAYERS
+
+            if top_ethnic:
+                if layer_ethnic:
+                    score += 8
+                    reasons.append(f"{layer.get('name')} elegantly elevates the traditional silhouette.")
+                else:
+                    score -= 35
+                    warnings.append(f"{layer.get('name')} clashes culturally and structurally with traditional wear.")
+            else:
+                if not layer_ethnic:
+                    score += 6
+                    reasons.append(f"{layer.get('name')} layers cleanly over western separates.")
+
         # --- occasion and season ---------------------------------------------
         style, styles, style_note = rules.resolve_styles(pieces)
         if style_note:
@@ -200,7 +287,7 @@ class OutfitService:
         if agreed:
             score += 12
             reasons.append(
-                f"Both pieces are logged for {occasion.replace('_', ' ')}."
+                f"Pieces agree on {occasion.replace('_', ' ')}."
             )
         else:
             score -= 6
@@ -212,7 +299,7 @@ class OutfitService:
         seasons = rules.shared_seasons(pieces)
         if not seasons:
             score -= 10
-            warnings.append("These are logged for different seasons.")
+            warnings.append("These pieces are logged for different seasons.")
             seasons = {"all_season"}
 
         # --- rotation ---------------------------------------------------------
@@ -220,37 +307,39 @@ class OutfitService:
         total_wears = sum(wears)
         if total_wears == 0:
             score += 8
-            reasons.append("Neither piece has been worn yet.")
+            reasons.append("Pieces are unworn - a fresh combination to try.")
         elif min(wears) == 0:
             score += 5
             unworn = names["top"] if wears[0] == 0 else names.get("bottom")
-            reasons.append(f"{unworn} is still unworn - this is a way to start.")
+            if unworn:
+                reasons.append(f"{unworn} is still unworn - this is a way to start.")
 
         if score < 25:
             return None
 
         pieces_out = [self._piece(role, item) for role, item in core]
+        if layer:
+            pieces_out.append(self._piece("layer", layer))
 
-        # A layer and a dupatta are optional extras, added only when they agree
-        # with the outfit rather than to pad the card out.
-        extra = self._best_extra(layers, pieces, "layer")
-        if extra:
-            pieces_out.append(self._piece("layer", extra))
-            reasons.append(f"{extra.get('name')} layers over it without fighting the colours.")
-        if occasion in {"festive", "wedding", "party"}:
-            dupatta = self._best_extra(accessories, pieces, "accessory")
-            if dupatta:
-                pieces_out.append(self._piece("accessory", dupatta))
-                reasons.append(f"{dupatta.get('name')} finishes it for the occasion.")
+        # Dupatta is added only for traditional/festive outfits
+        if accessories and occasion in {"festive", "wedding", "party"}:
+            if any(rules.is_ethnic(p) for p in pieces):
+                dupatta = self._best_extra(accessories, pieces, "accessory")
+                if dupatta:
+                    pieces_out.append(self._piece("accessory", dupatta))
+                    reasons.append(f"{dupatta.get('name')} finishes it for the occasion.")
+
+        core_id = "-".join(str(item.get("id")) for _, item in core)
+        outfit_id = f"{core_id}-{layer.get('id')}" if layer else core_id
 
         return {
-            "id": "-".join(str(item.get("id")) for _, item in core),
+            "id": outfit_id,
             "pieces": pieces_out,
             "occasion": occasion,
             "occasions": occasions,
             "style": style,
             "styles": styles,
-            "style_labels": {s: rules.STYLE_LABELS[s] for s in styles},
+            "style_labels": {s: rules.STYLE_LABELS.get(s, s.title()) for s in styles},
             "occasion_labels": {
                 o: rules.OCCASION_LABELS.get(o, o.replace("_", " ").title()) for o in occasions
             },
@@ -267,7 +356,6 @@ class OutfitService:
     def _best_extra(
         self, candidates: list[dict[str, Any]], pieces: list[dict[str, Any]], slot: str
     ) -> dict[str, Any] | None:
-        """The neutral-friendliest extra that does not clash with anything chosen."""
         outfit_colors: set[str] = set()
         for piece in pieces:
             outfit_colors |= rules.colors_of(piece)
@@ -279,7 +367,6 @@ class OutfitService:
         ]
         if not usable:
             return None
-        # Prefer a neutral, then the least-worn, so extras also get used.
         usable.sort(
             key=lambda c: (not rules.is_neutral(c), int(c.get("wear_count") or 0))
         )
@@ -298,7 +385,6 @@ class OutfitService:
         }
 
     def _gaps(self, by_slot: dict[str, list[dict[str, Any]]]) -> list[str]:
-        """Why a wardrobe produced few outfits, in the user's terms."""
         gaps: list[str] = []
         if not by_slot.get("top") and not by_slot.get("one_piece"):
             gaps.append("No tops catalogued yet - add a shirt, kurta or knit.")

@@ -270,3 +270,64 @@ async def test_style_filter_returns_fusion_outfits():
 
     traditional = await OutfitService().suggest(user_id, style="traditional", limit=10)
     assert traditional["count"] == 1, "the fusion outfit is also findable under traditional"
+
+
+# --- layering & tradition compatibility tests ---------------------------
+
+def test_leather_jacket_cannot_layer_over_kurta():
+    kurta = piece(name="Cream linen kurta", type="kurta", primary_color="cream", tags=["ethnic"])
+    pant = piece(name="Linen pant", type="pants", primary_color="white", fabric="linen")
+    leather_jacket = piece(name="Leather jacket", type="jacket", primary_color="black", fabric="leather")
+    
+    can, reason = rules.can_layer(leather_jacket, [kurta, pant])
+    assert can is False
+    assert "clashes" in reason.lower()
+
+
+def test_nehru_jacket_can_layer_over_kurta():
+    kurta = piece(name="Cream kurta", type="kurta", primary_color="cream", tags=["ethnic"])
+    pant = piece(name="Churidar", type="churidar", primary_color="white", tags=["ethnic"])
+    nehru_jacket = piece(name="Nehru jacket", type="nehru jacket", primary_color="beige", tags=["ethnic"])
+    
+    can, _ = rules.can_layer(nehru_jacket, [kurta, pant])
+    assert can is True
+
+
+def test_leather_jacket_cannot_layer_over_linen():
+    shirt = piece(name="Linen shirt", type="shirt", primary_color="white", fabric="linen")
+    pant = piece(name="Linen pant", type="pants", primary_color="beige", fabric="linen")
+    leather_jacket = piece(name="Leather jacket", type="jacket", primary_color="black", fabric="leather")
+    
+    can, reason = rules.can_layer(leather_jacket, [shirt, pant])
+    assert can is False
+    assert "linen" in reason.lower() or "delicate" in reason.lower()
+
+
+def test_leather_jacket_can_layer_over_western_tshirt_and_pants():
+    tee = piece(name="White T-Shirt", type="t-shirt", primary_color="white")
+    jeans = piece(name="Black Jeans", type="jeans", primary_color="black")
+    leather_jacket = piece(name="Leather jacket", type="jacket", primary_color="black", fabric="leather")
+    
+    can, _ = rules.can_layer(leather_jacket, [tee, jeans])
+    assert can is True
+
+
+@pytest.mark.asyncio
+async def test_wardrobe_with_kurta_and_leather_jacket_never_pairs_them():
+    user = await register_user("NoKurtaLeather", "nokurta@example.com", "Password123!")
+    user_id = str(user["id"])
+    for item in [
+        piece(name="Embroidered Linen Kurta", type="kurta", primary_color="cream", tags=["ethnic"], fabric="linen"),
+        piece(name="Lenin Pant", type="pants", primary_color="white", fabric="linen"),
+        piece(name="Leather Jacket", type="jacket", primary_color="black", fabric="leather"),
+    ]:
+        await wardrobe_repository.create_item({**item, "user_id": user_id})
+
+    res = await OutfitService().suggest(user_id, limit=10)
+    assert res["count"] >= 1
+    for outfit in res["outfits"]:
+        piece_names = [p["name"] for p in outfit["pieces"]]
+        if "Embroidered Linen Kurta" in piece_names:
+            assert "Leather Jacket" not in piece_names, (
+                f"Absurd combination found: Kurta was paired with Leather Jacket! Pieces: {piece_names}"
+            )

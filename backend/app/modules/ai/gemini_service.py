@@ -127,10 +127,10 @@ Return ONLY valid JSON matching this exact structure:
 """
 
 CANDIDATE_MODELS = [
+    "gemini-3-flash-preview",
     settings.gemini_model,
     "gemini-3.5-flash",
     "gemini-3.8-flash",
-    "gemini-3.7-flash",
     "gemini-flash-latest",
 ]
 
@@ -292,25 +292,27 @@ Return ONLY valid JSON matching this exact structure:
     ) -> Optional[dict[str, Any]]:
         """Generate high-fashion AI stylist rationales and elevation tips for a wardrobe outfit pairing."""
         pieces_desc = "\n".join(
-            f"- {p.get('role', 'piece').upper()}: {p.get('name')} ({p.get('color', '')} {p.get('pattern', '')} {p.get('type', '')})"
+            f"- {p.get('role', 'piece').upper()}: {p.get('name')} (Type: {p.get('type', '')}, Color: {p.get('color', '')}, Pattern: {p.get('pattern', '')})"
             for p in pieces
         )
-        prompt = f"""You are an elite personal fashion stylist.
+        prompt = f"""You are an elite, critical personal fashion stylist and image consultant.
 Evaluate this outfit combination assembled from a user's real wardrobe:
 {pieces_desc}
-Occasion: {occasion or 'Any occasion'}
-Season: {season or 'All season'}
+Target Occasion: {occasion or 'Any occasion'}
+Target Season: {season or 'All season'}
 
-Provide high-fashion, personalized feedback:
-1. aesthetic: Precise aesthetic subgenre (e.g. 'Effortless Smart Casual', 'Modern Preppy', 'Minimalist Streetwear', 'Indo-Western Fusion')
-2. stylist_rationale: 1-2 sentences on why these exact pieces, cuts, and colors harmonize.
-3. elevation_tip: One concrete, actionable tip on how to style/wear this combination (e.g., tucking, cuffing, shoe or accessory pairing).
-4. score_adjustment: integer between -5 and +10 reflecting fashion synergy.
+Provide an honest, high-fashion styling evaluation:
+1. is_cohesive: boolean. True if this is an aesthetically pleasing, culturally coherent, and wearable outfit. False if there is any jarring clash in tradition (e.g. leather jacket over traditional kurta/saree), fabric weights (heavy winter leather over breezy summer linen), or formality.
+2. aesthetic: Specific aesthetic subgenre (e.g. 'Effortless Linen Minimalist', 'Elevated Streetwear', 'Contemporary Indo-Western', 'Classic Smart Casual').
+3. stylist_rationale: 1-2 sentences on why these exact pieces, cuts, and colors harmonize (or why they clash if is_cohesive is false).
+4. elevation_tip: One concrete, actionable tip on how to style/wear this combination (e.g., footwear pairing, sleeve roll, jewelry/watch, or belt).
+5. score_adjustment: integer between -40 and +10 reflecting fashion synergy. If is_cohesive is false or there is an absurd clash, use a negative adjustment between -25 and -40. If highly cohesive, use +5 to +10.
 
-Return ONLY valid JSON:
+Return ONLY valid JSON matching this structure:
 {{
+  "is_cohesive": true,
   "aesthetic": "Aesthetic style name",
-  "stylist_rationale": "Why this pairing works",
+  "stylist_rationale": "Why this pairing works or clashes",
   "elevation_tip": "How to elevate the look",
   "score_adjustment": 5
 }}"""

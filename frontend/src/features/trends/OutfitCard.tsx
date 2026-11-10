@@ -16,7 +16,7 @@ export function OutfitCard({ outfit, onViewItem }: OutfitCardProps) {
               outfit by its pieces instead of repeating it. */}
           <h3 className="truncate text-base font-semibold text-[#1f2328]">
             {outfit.pieces
-              .filter((piece) => piece.role === 'top' || piece.role === 'bottom' || piece.role === 'one_piece')
+              .filter((piece) => piece.role === 'top' || piece.role === 'bottom' || piece.role === 'one_piece' || piece.role === 'layer')
               .map((piece) => piece.name)
               .join(' + ')}
           </h3>
