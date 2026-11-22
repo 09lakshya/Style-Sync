@@ -189,5 +189,11 @@ def _public_item(item: dict[str, object]) -> dict[str, object]:
         res["color"] = res["primary_color"]
     if "last_worn_at" in res and "last_worn_date" not in res:
         res["last_worn_date"] = res["last_worn_at"]
+    # Without Cloudinary all three sizes are the same base64 photo. Send it once;
+    # clients fall back to image_url when a size is missing.
+    image_url = res.get("image_url")
+    for key in ("thumbnail_url", "medium_url"):
+        if res.get(key) and res.get(key) == image_url:
+            res[key] = None
     return res
 

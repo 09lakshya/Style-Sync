@@ -27,7 +27,8 @@ export interface StylistCritique {
 
 export interface OutfitAnalysis {
   engine?: 'gemini_multimodal_vision' | 'local_vision_models'
-  outfit_score?: number
+  /** Null when the backup model answered: it cannot judge an outfit. */
+  outfit_score?: number | null
   aesthetic?: string
   summary?: string
   detected_pieces?: OutfitPiece[]

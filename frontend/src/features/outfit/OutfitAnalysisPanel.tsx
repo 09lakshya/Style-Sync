@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
+  AlertCircle,
   CheckCircle2,
   CloudUpload,
   Layers,
@@ -133,6 +134,18 @@ export function OutfitAnalysisPanel({ token }: OutfitAnalysisPanelProps) {
 
           {result && (
             <div className="space-y-4">
+              {result.engine === 'local_vision_models' && (
+                <p
+                  role="status"
+                  className="flex items-start gap-2 rounded-lg border border-[#e6cfa5] bg-[#fbf5e9] px-3 py-2 text-xs leading-5 text-[#7a5a1e]"
+                >
+                  <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  Gemini wasn&rsquo;t available, so this is the backup model&rsquo;s reading. It sees
+                  only the main garment and is often wrong about it. Try again later for the full
+                  analysis.
+                </p>
+              )}
+
               {/* Top Aesthetic Header & Score */}
               <div className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface)] p-4 shadow-xs">
                 <div className="flex flex-wrap items-start justify-between gap-3">

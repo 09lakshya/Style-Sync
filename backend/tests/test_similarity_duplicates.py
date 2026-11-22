@@ -88,3 +88,10 @@ def test_metadata_match_ignores_case_of_edited_labels():
 
 def test_missing_metadata_never_counts_as_a_match():
     assert matching_attributes({}, {"primary_color": "", "type": None, "pattern": ""}) == []
+
+
+def test_identical_photo_scores_as_identical_even_when_details_disagree():
+    # The stored details may come from Gemini and the query's from the local
+    # model; a byte-identical photo must not drop to 94% because of that.
+    score = score_match(visual_cosine=1.0, metadata_score=0.0)
+    assert score == MAX_REPORTED_SIMILARITY

@@ -44,6 +44,13 @@ def _remember_evaluation(key: tuple[str, str, str], insight: dict[str, Any]) -> 
     _evaluation_cache[key] = (time.monotonic(), insight)
 
 
+def _and_join(words: list[str]) -> str:
+    """"cream", "cream and white", "black, cream and white"."""
+    if len(words) <= 1:
+        return "".join(words)
+    return f"{', '.join(words[:-1])} and {words[-1]}"
+
+
 class OutfitService:
     async def suggest(
         self,
@@ -223,10 +230,17 @@ class OutfitService:
                 )
             elif rules.same_family(top_colors, bottom_colors):
                 score += 16
-                reasons.append(
-                    f"{', '.join(sorted(top_colors))} and {', '.join(sorted(bottom_colors))} "
-                    "sit in the same family, so it reads as one tonal outfit."
-                )
+                if top_colors == bottom_colors:
+                    reasons.append(
+                        f"Both pieces are {_and_join(sorted(top_colors))}, "
+                        "so it reads as one tonal outfit."
+                    )
+                else:
+                    reasons.append(
+                        f"{_and_join(sorted(top_colors)).capitalize()} with "
+                        f"{_and_join(sorted(bottom_colors))} stays in one colour family, "
+                        "so it reads as one tonal outfit."
+                    )
             elif rules.is_neutral(core[0][1]) or rules.is_neutral(core[1][1]):
                 score += 14
                 neutral = names["top"] if rules.is_neutral(core[0][1]) else names["bottom"]

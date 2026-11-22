@@ -4,6 +4,17 @@ from typing import Any
 
 from app.modules.recommendations import style_rules
 
+# Swatch colours for the colour names the local models produce, so a chip
+# labelled "Pink" is pink rather than one fixed grey.
+COLOR_HEX = {
+    "black": "#1f1f1f", "white": "#f7f7f5", "cream": "#f2ead8", "grey": "#8e8e8e",
+    "silver": "#c0c0c0", "blue": "#3b6fb6", "navy": "#1f2f57", "teal": "#2a8582",
+    "green": "#4f8a4b", "olive": "#6b6b2e", "red": "#c0392b", "maroon": "#6d1f2a",
+    "pink": "#e891a8", "magenta": "#c2187a", "peach": "#f4b99a", "purple": "#7a4b9a",
+    "yellow": "#efc94c", "mustard": "#c99a2e", "orange": "#e67e22", "gold": "#c9a227",
+    "beige": "#d8c3a5", "brown": "#7b5435",
+}
+
 logger = logging.getLogger("stylesync.recommendations")
 
 
@@ -219,11 +230,13 @@ class OutfitAnalysisService:
             tags = []
 
         aesthetic = styling.get("style") or predicted_category or "Casual Style"
-        outfit_score = 75 if predicted_category else 50
+        # No score: the local models cannot judge how well an outfit works, and a
+        # fixed 75 read as a real verdict.
+        outfit_score = None
         detected_pieces = []
         if attributes.get("type"):
             detected_pieces.append({
-                "slot": attributes.get("category", "garment"),
+                "slot": "main piece",
                 "name": attributes.get("suggested_name") or attributes.get("type"),
                 "color": primary_color,
                 "pattern": pattern,
@@ -233,7 +246,11 @@ class OutfitAnalysisService:
         color_palette = {
             "primary_color": primary_color,
             "secondary_colors": secondary_colors,
-            "color_chips": [{"name": primary_color.title(), "hex": "#7d847d"}],
+            "color_chips": [
+                {"name": name.title(), "hex": COLOR_HEX.get(name.lower(), "#9a9a9a")}
+                for name in [primary_color, *secondary_colors][:4]
+                if name
+            ],
             "harmony_type": "Neutral Anchor" if primary_color in {"black", "white", "grey", "navy"} else "Tonal",
             "harmony_evaluation": f"Dominated by {primary_color} tones.",
         }
@@ -258,7 +275,10 @@ class OutfitAnalysisService:
             "engine": "local_vision_models",
             "outfit_score": outfit_score,
             "aesthetic": aesthetic,
-            "summary": f"Analyzed as a {aesthetic} ensemble.",
+            "summary": (
+                "Read by the backup model, which sees only the main garment and its "
+                "colours. Gemini gives the full outfit breakdown when it is available."
+            ),
             "detected_pieces": detected_pieces,
             "color_palette": color_palette,
             "silhouette_and_proportions": {

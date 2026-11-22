@@ -54,6 +54,11 @@ def score_match(visual_cosine: float, metadata_score: float) -> float:
     visual = max(0.0, min(1.0, visual_cosine))
     metadata_norm = max(0.0, min(1.0, metadata_score / MAX_METADATA_SCORE)) if MAX_METADATA_SCORE else 0.0
     combined = VISUAL_WEIGHT * visual + METADATA_WEIGHT * metadata_norm
+    # Past the duplicate gate the images themselves agree, and that settles it:
+    # the stored details may come from Gemini and the query's from the local
+    # model, which can disagree about the very same photo.
+    if visual >= VISUAL_DUPLICATE_GATE:
+        combined = max(combined, visual)
     return max(0.0, min(MAX_REPORTED_SIMILARITY, combined))
 
 
