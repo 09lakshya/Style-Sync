@@ -102,6 +102,14 @@ def _merge_detection(metadata: dict[str, Any], detected: dict[str, Any] | None) 
     return merged
 
 
+def _from_gemini(detected: dict[str, Any] | None) -> bool:
+    if not isinstance(detected, dict):
+        return False
+    if detected.get("detected_by") == "gemini":
+        return True
+    return str(detected.get("model_version") or "").lower().startswith("gemini")
+
+
 class WardrobeService:
     async def get_user_items(self, user_id: str, item_type: str | None = None) -> list[dict[str, Any]]:
         """Retrieve user wardrobe items, ensuring initial demo items exist for new accounts."""
@@ -141,13 +149,26 @@ class WardrobeService:
                 file_bytes=file_bytes, mime_type=mime_type
             )
             if gemini_result:
+                gemini_result["detected_by"] = "gemini"
+                gemini_result["backup_reason"] = None
                 return gemini_result
 
         metadata = ai_service.extract_clothing_metadata(file_bytes=file_bytes, filename=filename)
 
         predicted_category, confidence, predicted_axes, model_version = _classify(file_bytes)
 
+        # Said out loud so the form can warn the user: the local models get the
+        # garment wrong far more often than Gemini does.
+        if not gemini_service.is_configured:
+            backup_reason = "not_configured"
+        elif gemini_service.is_paused:
+            backup_reason = "quota"
+        else:
+            backup_reason = "unavailable"
+
         return {
+            "detected_by": "backup",
+            "backup_reason": backup_reason,
             "name": metadata.get("suggested_name"),
             "type": metadata.get("type"),
             "type_alternatives": metadata.get("type_alternatives", []),
@@ -228,6 +249,12 @@ class WardrobeService:
         # 2.5 Run Custom Classification Model
         pred_cat, pred_conf, pred_axes, mod_ver = (
             _classify(file_bytes) if file_bytes is not None else (None, None, {}, None))
+        # When Gemini filled the form, record that it did, rather than the local
+        # classifier's weaker reading of the same photo.
+        if _from_gemini(detected):
+            pred_axes = detected.get("predicted_axes") or pred_axes
+            mod_ver = str(detected.get("model_version") or "gemini")
+            pred_conf = None
 
         # A blank name is normal now that detection runs on upload: the detected
         # attributes read better than IMG_2831, so the filename is only a last resort.

@@ -255,7 +255,7 @@ export function AddDressModal({
         <div className="mb-6">
           <h2 className="text-2xl font-semibold tracking-tight text-[#f7f4ef]">Add to wardrobe</h2>
           <p className="mt-1 text-sm text-stone-400">
-            Upload your dress photo and enter metadata details.
+            Add a photo and the details fill themselves in. Check them before saving.
           </p>
         </div>
 
@@ -276,7 +276,7 @@ export function AddDressModal({
               <div className="relative h-64 w-full overflow-hidden rounded-lg border border-[#38332c] bg-stone-900">
                 <img src={previewUrl} alt="Preview" className="h-full w-full object-contain" />
                 <div className="absolute right-3 top-3 flex gap-2">
-                  <label className="cursor-pointer rounded-md bg-stone-900/90 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-md hover:bg-stone-800">
+                  <label className="cursor-pointer rounded-md border border-white/30 bg-black/80 px-3 py-1.5 text-xs font-semibold text-white shadow-md backdrop-blur-md hover:bg-black">
                     Replace
                     <input
                       type="file"
@@ -330,11 +330,27 @@ export function AddDressModal({
                 <>
                   <p className="flex items-center gap-2 text-sm font-medium text-stone-200">
                     <Sparkles className="h-4 w-4 text-[var(--accent)]" />
-                    Detected automatically
+                    {detection.detected_by === 'backup' ? 'Detected by the backup model' : 'Detected by Gemini'}
                     <span className="ml-auto text-xs font-normal text-stone-500">
                       edit anything below
                     </span>
                   </p>
+                  {detection.detected_by === 'backup' && (
+                    <p
+                      role="status"
+                      className="mt-2 flex items-start gap-2 rounded-md border border-amber-700/50 bg-amber-950/40 p-2 text-xs text-amber-200"
+                    >
+                      <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                      <span>
+                        {detection.backup_reason === 'quota'
+                          ? "Gemini's usage limit was reached, so a less accurate local model read this photo."
+                          : detection.backup_reason === 'not_configured'
+                            ? 'Gemini is not set up, so a less accurate local model read this photo.'
+                            : "Gemini didn't answer, so a less accurate local model read this photo."}{' '}
+                        Check the type, colour and pattern before saving.
+                      </span>
+                    </p>
+                  )}
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {[
                       { label: detection.type, hint: `type ${formatConfidence(detection.confidence.type)}` },

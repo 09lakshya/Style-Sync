@@ -1,8 +1,18 @@
 import React, { useState } from 'react'
 import { X, Edit2, RefreshCw, Trash2, AlertTriangle, Check, Loader2 } from 'lucide-react'
 import type { WardrobeItem } from '../../types/wardrobe'
-import { formatScore } from '../../lib/utils'
-import { occasionLabel } from '../../lib/vocabulary'
+import { occasionLabel, seasonLabel } from '../../lib/vocabulary'
+
+/** Where the item's details came from, in words. */
+function detectedByLabel(modelVersion?: string): string {
+  if (modelVersion?.toLowerCase().startsWith('gemini')) {
+    return 'Details detected by Gemini. Edit them if anything is off.'
+  }
+  if (modelVersion) {
+    return 'Details detected by the backup model, which is less accurate. Worth checking them.'
+  }
+  return 'Details entered by hand.'
+}
 
 interface DressDetailModalProps {
   item: WardrobeItem | null
@@ -165,52 +175,14 @@ export function DressDetailModal({
                   </div>
                 </div>
 
-                <div className="mt-4 rounded-lg border border-[var(--accent)]/30 bg-[#241a14]/50 p-4">
-                  <h4 className="mb-2 text-sm font-semibold text-[#d99b77]">AI Classification</h4>
-                  {item.predictedAxes || item.predictedCategory ? (
-                    <div className="space-y-3 text-xs">
-                      {item.predictedAxes ? (
-                        // Three independent answers, not one label. A kurta is
-                        // ethnic and summer and casual at once, and collapsing
-                        // that to a single chip threw two thirds of it away.
-                        <div className="grid grid-cols-3 gap-4">
-                          <AxisReading label="Occasion" value={item.predictedAxes.occasion} />
-                          {/* The classifier's season head learned catalogue
-                              seasons, not weather, and is withheld; items saved
-                              before that still carry its reading, so show the
-                              item's own (CLIP) season instead. */}
-                          <AxisReading label="Season" value={item.season} />
-                          <AxisReading label="Style" value={item.predictedAxes.tradition} />
-                        </div>
-                      ) : (
-                        // Items added before the model answered three axes only
-                        // ever stored one label, so show what there is instead
-                        // of three empty readings.
-                        <div>
-                          <span className="text-stone-400">Predicted Category</span>
-                          <p className="mt-0.5 font-medium capitalize text-stone-200">
-                            {item.predictedCategory}
-                          </p>
-                        </div>
-                      )}
-                      <div className="grid grid-cols-2 gap-4 border-t border-[#38332c] pt-3">
-                        <div>
-                          <span className="text-stone-400">Confidence Score</span>
-                          <p className="mt-0.5 font-medium text-stone-200">
-                            {formatScore(item.predictionConfidence, 1) ?? 'Not available'}
-                          </p>
-                        </div>
-                        {item.modelVersion && (
-                          <div>
-                            <span className="text-stone-400">Model</span>
-                            <p className="mt-0.5 font-medium text-stone-200">{item.modelVersion}</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-stone-400">Not available</p>
-                  )}
+                {/* The item's own season, which the user can correct. The local
+                    classifier's separate reading used to sit here with a high
+                    confidence score, and it often contradicted these details. */}
+                <div className="mt-4 rounded-lg border border-[#2b2722] bg-[#211f1c] p-3 text-sm">
+                  <AxisReading label="Season" value={item.season.map(seasonLabel)} />
+                  <p className="mt-3 border-t border-[#38332c] pt-2 text-xs text-stone-400">
+                    {detectedByLabel(item.modelVersion)}
+                  </p>
                 </div>
 
                 {/* Dates Section */}

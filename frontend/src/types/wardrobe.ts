@@ -75,6 +75,10 @@ export interface WardrobeItem {
 
 /** What `POST /wardrobe/detect` returns for a photo, before anything is saved. */
 export interface DetectedDressMetadata {
+  /** Which detector answered: Gemini, or the less accurate local models. */
+  detected_by?: 'gemini' | 'backup'
+  /** Why the backup answered: Gemini's quota ran out, it isn't set up, or it failed. */
+  backup_reason?: 'quota' | 'not_configured' | 'unavailable' | null
   name: string | null
   type: string | null
   /** Runner-up garment readings, best first, so the form can offer them. */
