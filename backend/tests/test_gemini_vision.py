@@ -128,3 +128,13 @@ def test_outfit_analysis_uses_gemini_when_configured(monkeypatch):
     assert result["classification"]["available"] is True
     assert result["classification"]["predicted_category"] == "Formal"
     assert result["styling"]["available"] is True
+
+
+def test_shorten_item_name_drops_filler_and_caps_length():
+    from app.modules.ai.gemini_service import shorten_item_name
+
+    assert shorten_item_name("Elegant Ombre Ruched Mermaid Gown") == "Ombre Ruched Mermaid Gown"
+    assert shorten_item_name("Stunning Chic Vintage Washed Oversized Graphic Tee") == "Washed Oversized Graphic Tee"
+    assert shorten_item_name("Spaghetti Bodycon Maxi Dress") == "Spaghetti Bodycon Maxi Dress"
+    assert shorten_item_name("Elegant") is None
+    assert shorten_item_name(None) is None

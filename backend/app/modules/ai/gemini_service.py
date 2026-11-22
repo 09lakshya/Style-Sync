@@ -75,11 +75,34 @@ Return ONLY valid JSON matching this exact structure:
 }
 """
 
+# Words Gemini adds to make a name sound like a product listing. They say
+# nothing about the garment, so they are dropped before the name is shown.
+_NAME_FILLER_WORDS = {
+    "elegant", "stunning", "chic", "luxe", "luxurious", "classic", "beautiful",
+    "gorgeous", "timeless", "sophisticated", "graceful", "glamorous", "trendy",
+    "stylish", "exquisite", "premium", "lovely", "statement", "effortless",
+}
+_NAME_MAX_WORDS = 4
+
+
+def shorten_item_name(name: Any) -> Optional[str]:
+    """Keep an item name short: drop filler adjectives and cap its length.
+
+    The prompt already asks for 2-4 words; this holds the line when the model
+    ignores it. The garment noun comes last, so the trailing words are kept.
+    Returns None for an empty name so the caller's fallback naming applies.
+    """
+    words = [w for w in str(name or "").split() if w.lower().strip(",.") not in _NAME_FILLER_WORDS]
+    if not words:
+        return None
+    return " ".join(words[-_NAME_MAX_WORDS:])
+
+
 CLOTHING_ITEM_DETECTION_PROMPT = """You are an expert fashion stylist and computer vision garment analyst.
 Analyze this single clothing item image and extract precise attributes.
 
 Rules:
-1. name: Descriptive, elegant fashion title (e.g. "Vintage Washed Oversized Graphic Tee", "Slim Fit Dark Indigo Chinos", "Hand-Embroidered Raw Silk Kurti", "Pleated Linen Wide-Leg Trousers").
+1. name: A short, plain shopping-style name of 2-4 words, the way a shopper would describe it to a friend: the one or two most identifying features (straps/neckline, fit, length) followed by the garment (e.g. "Spaghetti Bodycon Maxi Dress", "Oversized Graphic Tee", "Slim Indigo Chinos", "Embroidered Silk Kurti", "Wide-Leg Linen Trousers"). No marketing adjectives (elegant, stunning, chic, luxe, classic), no colour, and no long chains of descriptors.
 2. type: The single best garment type from:
    ["shirt", "blouse", "top", "t-shirt", "skirt", "pants", "jeans", "shorts", "jumpsuit", "romper", "jacket", "coat", "blazer", "sweater", "hoodie", "cardigan", "waistcoat", "saree", "lehenga", "choli", "anarkali", "salwar kameez", "patiala salwar", "churidar", "palazzo", "sharara", "gharara", "kurta", "kurti", "angrakha", "sherwani", "bandhgala", "nehru jacket", "pathani suit", "dhoti", "lungi", "dupatta", "dress", "gown"]
 3. type_alternatives: 2-3 other plausible alternative garment type labels with confidence scores (e.g. [["t-shirt", 0.95], ["top", 0.85]]).
@@ -246,6 +269,7 @@ class GeminiVisionService:
                 formatted_alts.append([item, 0.85])
 
         result["type_alternatives"] = formatted_alts
+        result["name"] = shorten_item_name(result.get("name")) or str(result.get("type") or "Wardrobe Item").title()
         result["model_version"] = result.get("model_used", "gemini-3.5-flash")
         result["predicted_axes"] = {
             "occasion": result.get("occasion", []),
