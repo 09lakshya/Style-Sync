@@ -51,7 +51,7 @@ export function WardrobeGrid({
           className="mt-6 inline-flex items-center gap-2 rounded-lg bg-[var(--accent)] px-6 py-3 text-sm font-semibold text-white shadow-lg hover:bg-[var(--accent-hover)] transition-all hover:scale-105"
         >
           <Plus className="h-5 w-5" />
-          Add Dress
+          Add item
         </button>
       </div>
     )

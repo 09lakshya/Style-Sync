@@ -253,7 +253,7 @@ export function AddDressModal({
         </button>
 
         <div className="mb-6">
-          <h2 className="text-2xl font-semibold tracking-tight text-[#f7f4ef]">Add Dress to Wardrobe</h2>
+          <h2 className="text-2xl font-semibold tracking-tight text-[#f7f4ef]">Add to wardrobe</h2>
           <p className="mt-1 text-sm text-stone-400">
             Upload your dress photo and enter metadata details.
           </p>
@@ -270,7 +270,7 @@ export function AddDressModal({
           {/* Image Dropzone & Preview */}
           <div>
             <label className="block text-xs font-medium uppercase tracking-wider text-stone-400 mb-2">
-              Dress Image (Optional)
+              Photo (optional)
             </label>
             {previewUrl ? (
               <div className="relative h-64 w-full overflow-hidden rounded-lg border border-[#38332c] bg-stone-900">
@@ -364,11 +364,11 @@ export function AddDressModal({
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="block text-xs font-medium uppercase tracking-wider text-stone-400 mb-1.5">
-                Dress Name {file ? '' : '*'}
+                Name {file ? '' : '*'}
               </label>
               <input
                 type="text"
-                placeholder={file ? 'Detected from the photo' : 'e.g. Blue Floral Summer Dress'}
+                placeholder={file ? 'Detected from the photo' : 'e.g. Slim Indigo Chinos'}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 placeholder-stone-500 focus:border-[var(--accent)] focus:outline-none"

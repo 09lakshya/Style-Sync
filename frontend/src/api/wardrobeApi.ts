@@ -20,7 +20,7 @@ export function toWardrobeItem(item: ApiWardrobeItem): WardrobeItem {
   return {
     id: item.id,
     userId: item.user_id,
-    name: item.name || 'Untitled Dress',
+    name: item.name || 'Untitled item',
     imageUrl: primaryImg,
     thumbnailUrl: thumbImg,
     mediumUrl: mediumImg,

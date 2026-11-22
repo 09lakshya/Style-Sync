@@ -34,6 +34,7 @@ import { WardrobeFilterBar } from './features/wardrobe/WardrobeFilterBar'
 import { WardrobeGrid } from './features/wardrobe/WardrobeGrid'
 import { DuplicateAlertModal } from './features/shopping/DuplicateAlertModal'
 import { OutfitAnalysisPanel } from './features/outfit/OutfitAnalysisPanel'
+import { TrendFeedSection } from './features/trends/TrendFeedSection'
 import { TrendsSection } from './features/trends/TrendsSection'
 import type { DuplicateCheckResult, DuplicateDecision, ShoppingAdvisorInsight, SimilarItem } from './types/shopping'
 import type {
@@ -134,6 +135,15 @@ export function App() {
     enabled: Boolean(session?.token),
   })
 
+  // Everything on the page that is computed from the wardrobe. A change to any
+  // item re-reads all of it, not just the grid, so outfits, trends and the
+  // analytics never show the wardrobe as it was before the change.
+  function refreshWardrobeViews() {
+    for (const key of ['wardrobe-items', 'wardrobe-analytics', 'outfits', 'trend-feed', 'trend-signals']) {
+      void queryClient.invalidateQueries({ queryKey: [key] })
+    }
+  }
+
   // TanStack Mutations
   const addDressMutation = useMutation({
     mutationFn: (input: CreateDressInput) => createWardrobeItem(input, session?.token ?? ''),
@@ -151,9 +161,7 @@ export function App() {
         ['wardrobe-items', session?.token],
         (current = []) => [item, ...current]
       )
-      void queryClient.invalidateQueries({ queryKey: ['wardrobe-items', session?.token] })
-      void queryClient.invalidateQueries({ queryKey: ['wardrobe-analytics', session?.token] })
-      void queryClient.invalidateQueries({ queryKey: ['outfit-recommendations', session?.token] })
+      refreshWardrobeViews()
     },
     onError: (error) => setNotice(error instanceof Error ? error.message : 'Upload failed.'),
   })
@@ -170,7 +178,7 @@ export function App() {
         ['wardrobe-items', session?.token],
         (current = []) => current.map((i) => (i.id === updatedItem.id ? updatedItem : i))
       )
-      void queryClient.invalidateQueries({ queryKey: ['wardrobe-items', session?.token] })
+      refreshWardrobeViews()
     },
     onError: (error) => setNotice(error instanceof Error ? error.message : 'Update failed.'),
   })
@@ -190,8 +198,7 @@ export function App() {
         ['wardrobe-items', session?.token],
         (current = []) => current.map((i) => (i.id === updatedItem.id ? updatedItem : i))
       )
-      void queryClient.invalidateQueries({ queryKey: ['wardrobe-items', session?.token] })
-      void queryClient.invalidateQueries({ queryKey: ['wardrobe-analytics', session?.token] })
+      refreshWardrobeViews()
     },
     onError: (error) =>
       setNotice(error instanceof Error ? error.message : 'Could not record the wearing.'),
@@ -209,7 +216,7 @@ export function App() {
         ['wardrobe-items', session?.token],
         (current = []) => current.map((i) => (i.id === updatedItem.id ? updatedItem : i))
       )
-      void queryClient.invalidateQueries({ queryKey: ['wardrobe-items', session?.token] })
+      refreshWardrobeViews()
     },
     onError: (error) => setNotice(error instanceof Error ? error.message : 'Image replacement failed.'),
   })
@@ -225,9 +232,7 @@ export function App() {
         ['wardrobe-items', session?.token],
         (current = []) => current.filter((item) => item.id !== data.deleted_item_id)
       )
-      void queryClient.invalidateQueries({ queryKey: ['wardrobe-items', session?.token] })
-      void queryClient.invalidateQueries({ queryKey: ['wardrobe-analytics', session?.token] })
-      void queryClient.invalidateQueries({ queryKey: ['outfit-recommendations', session?.token] })
+      refreshWardrobeViews()
     },
     onError: (error) => setNotice(error instanceof Error ? error.message : 'Delete failed.'),
   })
@@ -474,7 +479,7 @@ export function App() {
                     className="inline-flex items-center gap-2 rounded-lg bg-[var(--accent)] px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-[var(--accent-hover)] transition-colors"
                   >
                     <Plus className="h-4 w-4" />
-                    Add Dress to Wardrobe
+                    Add to wardrobe
                   </button>
                 </div>
               </div>
@@ -570,6 +575,14 @@ export function App() {
           }}
         />
 
+        <TrendFeedSection
+          token={session.token}
+          onViewItem={(itemId) => {
+            const matchedItem = items.find((item) => item.id === itemId)
+            if (matchedItem) setSelectedDetailItem(matchedItem)
+          }}
+        />
+
         {/* Wardrobe Section */}
         <section id="wardrobe" className="scroll-mt-4 space-y-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -583,7 +596,7 @@ export function App() {
               className="inline-flex items-center gap-2 rounded-lg bg-[#1f2328] px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 transition-colors"
             >
               <Plus className="h-4 w-4" />
-              Add Dress
+              Add item
             </button>
           </div>
 

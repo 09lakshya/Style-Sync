@@ -231,7 +231,7 @@ export function DressDetailModal({
                   className="inline-flex items-center gap-1.5 text-xs font-medium text-rose-400 hover:text-rose-300 transition-colors disabled:opacity-50"
                 >
                   <Trash2 className="h-4 w-4" />
-                  Delete Dress
+                  Delete item
                 </button>
 
                 <button
@@ -254,7 +254,7 @@ export function DressDetailModal({
           <div className="w-full max-w-md rounded-xl border border-rose-900/50 bg-[#1c1917] p-6 text-[#f7f4ef] shadow-2xl">
             <div className="flex items-center gap-3 text-rose-400 mb-3">
               <AlertTriangle className="h-6 w-6" />
-              <h3 className="text-lg font-semibold">Delete this dress?</h3>
+              <h3 className="text-lg font-semibold">Delete this item?</h3>
             </div>
             <p className="text-sm text-stone-300">
               This will remove &ldquo;{item.name}&rdquo; from your digital wardrobe and delete its image asset permanently.
