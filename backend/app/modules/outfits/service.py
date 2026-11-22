@@ -206,6 +206,7 @@ class OutfitService:
                 score += 4
 
         # Layer colour check
+        layer_colour_reason = False
         if layer:
             layer_colors = rules.colors_of(layer)
             core_colors: set[str] = set()
@@ -218,22 +219,29 @@ class OutfitService:
             elif rules.same_family(layer_colors, core_colors):
                 score += 6
                 reasons.append(f"{layer.get('name')} tonally harmonizes with the outfit.")
+                layer_colour_reason = True
             elif rules.is_neutral(layer):
                 score += 4
                 reasons.append(f"{layer.get('name')} adds a balanced neutral outer layer.")
+                layer_colour_reason = True
 
         # --- pattern ---------------------------------------------------------
         patterns = [rules.pattern_of(piece) for piece in pieces]
         loud = [p for p in patterns if p not in rules.QUIET_PATTERNS]
         if len(loud) >= 2:
             score -= 18
-            warnings.append(
-                f"Two patterns competing ({' and '.join(loud)}) - keep one of them plain."
-            )
+            kinds = sorted(set(loud))
+            described = f"both {kinds[0]}" if len(kinds) == 1 else " and ".join(kinds)
+            warnings.append(f"Two busy pieces competing ({described}) - keep one of them plain.")
         elif len(loud) == 1 and len(core) == 2 and not layer:
             score += 12
-            plain = names["bottom"] if patterns[0] == loud[0] else names["top"]
-            reasons.append(f"One patterned piece against plain {plain} keeps the balance right.")
+            quiet_index = 1 if patterns[0] == loud[0] else 0
+            quiet_name = names["bottom"] if quiet_index == 1 else names["top"]
+            # Striped or checked is quieter than a print, but it is not plain.
+            plain = "plain" if patterns[quiet_index] == "solid" else "quieter"
+            reasons.append(
+                f"Only one busy piece - the {plain} {quiet_name} keeps the balance right."
+            )
         elif len(core) == 2 and not layer:
             score += 6
             reasons.append("Both pieces are plain, so the cut does the talking.")
@@ -251,7 +259,13 @@ class OutfitService:
                 crossover = (
                     top_type in rules.CROSSOVER_TOPS and bottom_type in rules.CROSSOVER_BOTTOMS
                 )
-                if crossover:
+                western_friendly = (
+                    not top_ethnic and bottom_type in rules.WESTERN_FRIENDLY_BOTTOMS
+                )
+                if western_friendly:
+                    # The style note already explains this pairing.
+                    score += 8
+                elif crossover:
                     score += 8
                     reasons.append(
                         "Keep the kurta unstarched and it reads as everyday wear."
@@ -280,7 +294,9 @@ class OutfitService:
             else:
                 if not layer_ethnic:
                     score += 6
-                    reasons.append(f"{layer.get('name')} layers cleanly over western separates.")
+                    # One sentence about the layer is enough.
+                    if not layer_colour_reason:
+                        reasons.append(f"{layer.get('name')} layers cleanly over western separates.")
 
         # --- occasion and season ---------------------------------------------
         style, styles, style_note = rules.resolve_styles(pieces)

@@ -20,8 +20,10 @@ from app.modules.ai.service import (
     TOP_TYPES,
 )
 
-# Colours that sit under anything.
-NEUTRALS = {"black", "white", "cream", "grey", "beige", "navy", "brown", "silver"}
+# Colours that sit under anything. "denim" is not a colour an item is logged
+# with: colors_of() adds it for jeans and denim pieces, because a light-wash
+# blue jean goes with a pink top as easily as white trousers do.
+NEUTRALS = {"black", "white", "cream", "grey", "beige", "navy", "brown", "silver", "denim"}
 
 # Rough temperature, used only to spot two loud colours fighting.
 WARM = {"red", "maroon", "orange", "peach", "yellow", "mustard", "gold", "brown", "beige"}
@@ -89,22 +91,15 @@ STYLE_ORDER = ["western", "fusion", "traditional"]
 # keep more of their traditional weight.
 SHORT_ETHNIC_TOPS = {"kurti", "choli"}
 
+# Ethnic bottoms that are just as much everyday western wear. A sweater or a
+# peplum top over a palazzo is a western outfit, not a traditional one, and
+# pairing them is no clash.
+WESTERN_FRIENDLY_BOTTOMS = {"palazzo"}
+
 # Bottoms that make a traditional top read as a full traditional outfit.
 TRADITIONAL_BOTTOMS = {
     "churidar", "dhoti", "palazzo", "sharara", "gharara", "patiala salwar", "lungi",
 }
-
-# Traditional/ethnic layering items (outer garments)
-ETHNIC_LAYERS = {"nehru jacket", "bandhgala", "phiran", "waistcoat"}
-
-# Western casual outerwear that clashes when worn over traditional garments
-WESTERN_CASUAL_LAYERS = {
-    "jacket", "coat", "hoodie", "cardigan", "blazer", "sweater"
-}
-
-# Fabrics that clash structurally or sensorially
-HEAVY_LEATHER_OR_WINTER = {"leather", "shearling", "fleece", "heavy wool", "down"}
-DELICATE_SUMMER_FABRICS = {"linen", "chiffon", "georgette", "silk"}
 
 # Traditional/ethnic layering items (outer garments)
 ETHNIC_LAYERS = {"nehru jacket", "bandhgala", "phiran", "waistcoat"}
@@ -138,7 +133,15 @@ def slot_of(item: dict[str, Any]) -> str | None:
 def colors_of(item: dict[str, Any]) -> set[str]:
     colors = {str(item.get("primary_color") or item.get("color") or "").lower()}
     colors |= {str(c).lower() for c in (item.get("secondary_colors") or [])}
+    if is_denim(item):
+        colors.add("denim")
     return {c for c in colors if c}
+
+
+def is_denim(item: dict[str, Any]) -> bool:
+    garment = str(item.get("type") or "").lower()
+    fabric = str(item.get("fabric") or "").lower()
+    return garment == "jeans" or "denim" in fabric
 
 
 def is_neutral(item: dict[str, Any]) -> bool:
@@ -276,6 +279,17 @@ def resolve_styles(pieces: list[dict[str, Any]]) -> tuple[str, list[str], str]:
 
     top_type = str(pieces[0].get("type") or "").lower()
     bottom_type = str(pieces[1].get("type") or "").lower() if len(pieces) > 1 else ""
+
+    # A western top decides the outfit: an ethnic bottom under it can add an
+    # indo-western note, but never makes a sweater or a tee traditional.
+    if not is_ethnic(pieces[0]):
+        if bottom_type in WESTERN_FRIENDLY_BOTTOMS:
+            return (
+                "western",
+                ["western", "fusion"],
+                f"A {top_type} with a {bottom_type} is everyday western wear.",
+            )
+        return "fusion", ["fusion"], f"A {top_type} over a {bottom_type} is an indo-western mix."
 
     if bottom_type in TRADITIONAL_BOTTOMS:
         return "traditional", ["traditional"], f"A {top_type} over a {bottom_type} reads traditional."

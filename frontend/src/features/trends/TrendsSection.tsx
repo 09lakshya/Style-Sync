@@ -25,8 +25,12 @@ const SORT_LABELS: Record<OutfitSort, string> = {
  *  sections. On the style axis, a kurta with jeans is indo-western and, a
  *  little, traditional - so it is findable in both, while a kurta with a
  *  churidar is traditional outright. A value the wardrobe cannot fill gets no
- *  heading at all. */
-function groupOutfits(outfits: Outfit[], axis: OutfitGrouping) {
+ *  heading at all.
+ *
+ *  When the filter on the same axis picks one value (Wearing it for: casual),
+ *  only that section is shown. The outfit still covers its other occasions,
+ *  but listing it under them would show sections the user just filtered out. */
+function groupOutfits(outfits: Outfit[], axis: OutfitGrouping, selected: string) {
   const order: readonly string[] = axis === 'style' ? STYLE_ORDER : OCCASION_ORDER
   const groups = new Map<string, { label: string; outfits: Outfit[] }>()
 
@@ -35,8 +39,9 @@ function groupOutfits(outfits: Outfit[], axis: OutfitGrouping) {
       axis === 'style'
         ? (outfit.styles?.length ? outfit.styles : [outfit.style])
         : (outfit.occasions?.length ? outfit.occasions : [outfit.occasion])
+    const shown = selected === 'All' ? keys : keys.filter((key) => key === selected)
 
-    for (const key of keys) {
+    for (const key of shown) {
       const label =
         axis === 'style'
           ? (outfit.style_labels?.[key] ?? key)
@@ -95,7 +100,13 @@ export function TrendsSection({ token, onViewItem }: TrendsSectionProps) {
 
   const data = outfitsQuery.data
   const signals = signalsQuery.data?.signals ?? []
-  const groups = data ? groupOutfits(data.outfits, filters.groupBy) : []
+  const groups = data
+    ? groupOutfits(
+        data.outfits,
+        filters.groupBy,
+        filters.groupBy === 'style' ? filters.style : filters.occasion,
+      )
+    : []
 
   return (
     <section id="trends" className="scroll-mt-4 space-y-4">

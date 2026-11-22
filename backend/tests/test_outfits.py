@@ -340,3 +340,70 @@ async def test_wardrobe_with_kurta_and_leather_jacket_never_pairs_them():
             assert "Leather Jacket" not in piece_names, (
                 f"Absurd combination found: Kurta was paired with Leather Jacket! Pieces: {piece_names}"
             )
+
+
+# --- western tops over ethnic bottoms -----------------------------------
+
+def test_a_sweater_with_a_palazzo_is_western_not_traditional():
+    style, styles, note = rules.resolve_styles(
+        [piece(type="sweater", primary_color="maroon"), piece(type="palazzo", primary_color="cream")]
+    )
+    assert style == "western"
+    assert "traditional" not in styles
+    assert "traditional" not in note
+
+
+def test_a_western_top_never_makes_an_outfit_traditional():
+    _, styles, _ = rules.resolve_styles([piece(type="t-shirt"), piece(type="churidar")])
+    assert styles == ["fusion"]
+
+
+@pytest.mark.asyncio
+async def test_a_western_top_with_a_palazzo_is_not_warned_as_a_clash():
+    user = await register_user("Palazzo", "palazzo@example.com", "Password123!")
+    result = await build(
+        str(user["id"]),
+        [
+            piece(name="Maroon sweater", type="sweater", primary_color="maroon"),
+            piece(name="Cream palazzo", type="palazzo", primary_color="cream"),
+        ],
+    )
+    outfit = result["outfits"][0]
+    assert outfit["style"] == "western"
+    assert not any("needs care" in w for w in outfit["warnings"])
+
+
+def test_jeans_are_a_neutral_so_a_pink_top_does_not_clash_with_them():
+    top = piece(type="top", primary_color="pink")
+    jeans = piece(type="jeans", primary_color="blue")
+    assert not rules.clashes(rules.colors_of(top), rules.colors_of(jeans))
+
+
+@pytest.mark.asyncio
+async def test_a_striped_top_is_not_called_plain():
+    user = await register_user("Stripe", "stripe@example.com", "Password123!")
+    result = await build(
+        str(user["id"]),
+        [
+            piece(name="Striped top", type="top", pattern="striped", primary_color="pink"),
+            piece(name="Embroidered palazzo", type="palazzo", pattern="embroidered", primary_color="cream"),
+        ],
+    )
+    reasons = " ".join(result["outfits"][0]["reasons"])
+    assert "plain Striped top" not in reasons
+    assert "quieter Striped top" in reasons
+
+
+@pytest.mark.asyncio
+async def test_two_pieces_with_the_same_pattern_are_described_once():
+    user = await register_user("Same", "same@example.com", "Password123!")
+    result = await build(
+        str(user["id"]),
+        [
+            piece(name="Kurti", type="kurti", pattern="embroidered", primary_color="maroon", tags=["ethnic"]),
+            piece(name="Palazzo", type="palazzo", pattern="embroidered", primary_color="cream"),
+        ],
+    )
+    warnings = " ".join(result["outfits"][0]["warnings"])
+    assert "both embroidered" in warnings
+    assert "embroidered and embroidered" not in warnings
