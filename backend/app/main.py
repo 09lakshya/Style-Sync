@@ -1,6 +1,10 @@
+import logging
+import re
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exceptions import HTTPException
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
@@ -15,6 +19,8 @@ from app.modules.recommendations.router import router as recommendations_router
 from app.modules.shopping.router import router as shopping_router
 from app.modules.trends.router import router as trends_router
 from app.modules.wardrobe.router import router as wardrobe_router
+
+logger = logging.getLogger("stylesync.server")
 
 
 @asynccontextmanager
@@ -39,49 +45,49 @@ allowed_origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
+ALLOWED_ORIGIN_PATTERN = re.compile(r"http://(localhost|127\.0\.0\.1)(:\d+)?")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
-    allow_origin_regex=r"http://(localhost|127\.0\.0\.1)(:\d+)?",
+    allow_origin_regex=ALLOWED_ORIGIN_PATTERN.pattern,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
-from fastapi import Request
-from fastapi.responses import JSONResponse
-from fastapi.exceptions import HTTPException
+def _cors_headers(request: Request) -> dict[str, str]:
+    """CORS headers for an error response, for the app's own origins only.
+
+    An unhandled exception is answered outside CORSMiddleware, so without these
+    the browser hides the error from the frontend. They must not echo any
+    origin that asks: with credentials allowed, that would let any site read
+    the response.
+    """
+    origin = request.headers.get("origin", "")
+    if origin in allowed_origins or ALLOWED_ORIGIN_PATTERN.fullmatch(origin):
+        return {"Access-Control-Allow-Origin": origin, "Access-Control-Allow-Credentials": "true", "Vary": "Origin"}
+    return {}
 
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
-    origin = request.headers.get("origin", "*")
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"detail": exc.detail},
-        headers={
-            "Access-Control-Allow-Origin": origin if origin != "*" else "*",
-            "Access-Control-Allow-Credentials": "true",
-        },
-    )
+    # Keep the exception's own headers (Retry-After, WWW-Authenticate).
+    headers = {**(exc.headers or {}), **_cors_headers(request)}
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail}, headers=headers)
 
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    origin = request.headers.get("origin", "*")
-    import logging
-    logging.getLogger("stylesync.server").error("Unhandled exception: %s", exc, exc_info=True)
+    # The details go to the log, not to the client: exception text can name
+    # tables, file paths and config.
+    logger.error("Unhandled exception on %s %s: %s", request.method, request.url.path, exc, exc_info=True)
     return JSONResponse(
         status_code=500,
-        content={"detail": f"Internal Server Error: {str(exc)}"},
-        headers={
-            "Access-Control-Allow-Origin": origin if origin != "*" else "*",
-            "Access-Control-Allow-Credentials": "true",
-        },
+        content={"detail": "Something went wrong on our side. Please try again."},
+        headers=_cors_headers(request),
     )
-
 
 
 @app.get("/health")

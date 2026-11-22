@@ -1,10 +1,11 @@
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, EmailStr, Field
 
 from app.modules.auth.service import authenticate_user, create_access_token, register_user
 from app.modules.auth.dependencies import require_user
+from app.modules.auth.rate_limit import login_rate_limiter
 from app.modules.auth.repository import user_repository
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -34,10 +35,20 @@ async def register(payload: RegisterRequest) -> dict[str, object]:
 
 
 @router.post("/login")
-async def login(payload: AuthRequest) -> dict[str, object]:
+async def login(payload: AuthRequest, request: Request) -> dict[str, object]:
+    client = request.client.host if request.client else "unknown"
+    wait = login_rate_limiter.retry_after(payload.email, client)
+    if wait:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Too many failed sign-in attempts. Try again in {max(1, round(wait / 60))} minute(s).",
+            headers={"Retry-After": str(wait)},
+        )
     user = await authenticate_user(payload.email, payload.password)
     if not user:
+        login_rate_limiter.record_failure(payload.email, client)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
+    login_rate_limiter.reset(payload.email, client)
 
     token = create_access_token(str(user["id"]))
     return {"user": _public_user(user), "access_token": token, "token_type": "bearer"}

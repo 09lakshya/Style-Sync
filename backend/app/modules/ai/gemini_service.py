@@ -1,6 +1,7 @@
 import base64
 import json
 import logging
+import time
 from typing import Any, Optional
 
 import httpx
@@ -159,7 +160,33 @@ CANDIDATE_MODELS = [
 ]
 
 
+# All models share one API key and so one quota: once any of them says the
+# quota is spent (HTTP 429), trying the next model only adds a wait. Gemini is
+# then skipped for this long (or for the server's Retry-After, up to the cap)
+# and every caller falls straight back to the local models.
+QUOTA_PAUSE_SECONDS = 60
+QUOTA_PAUSE_MAX_SECONDS = 300
+
+GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+
+
+def _retry_after_seconds(response: Any) -> float:
+    try:
+        value = float(response.headers.get("retry-after", ""))
+    except (TypeError, ValueError, AttributeError):
+        return QUOTA_PAUSE_SECONDS
+    return max(1.0, min(value, QUOTA_PAUSE_MAX_SECONDS))
+
+
 class GeminiVisionService:
+    def __init__(self) -> None:
+        # time.monotonic() before which Gemini is not called (see QUOTA_PAUSE_SECONDS).
+        self._paused_until = 0.0
+
+    @property
+    def is_paused(self) -> bool:
+        return time.monotonic() < self._paused_until
+
     @property
     def is_configured(self) -> bool:
         return settings.is_gemini_configured
@@ -173,6 +200,9 @@ class GeminiVisionService:
         api_key = settings.effective_gemini_api_key
         if not api_key:
             logger.info("Gemini API key is not configured.")
+            return None
+        if self.is_paused:
+            logger.info("Gemini quota pause in effect; using the local models.")
             return None
 
         parts: list[dict[str, Any]] = [{"text": prompt}]
@@ -200,14 +230,17 @@ class GeminiVisionService:
             if m and m not in models_to_try:
                 models_to_try.append(m)
 
-        timeout = httpx.Timeout(45.0, connect=10.0)
+        # The key goes in a header, not the URL: request URLs end up in HTTP
+        # client and proxy logs.
+        headers = {"x-goog-api-key": api_key}
+        timeout = httpx.Timeout(30.0, connect=5.0)
         async with httpx.AsyncClient(timeout=timeout) as client:
             last_error: Optional[Exception] = None
             for model_name in models_to_try:
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
+                url = GEMINI_URL.format(model=model_name)
                 try:
                     logger.info("Calling Gemini with model %s...", model_name)
-                    response = await client.post(url, json=payload)
+                    response = await client.post(url, json=payload, headers=headers)
                     if response.status_code == 200:
                         data = response.json()
                         candidates = data.get("candidates", [])
@@ -220,7 +253,16 @@ class GeminiVisionService:
                             parsed["model_used"] = model_name
                             parsed["engine"] = "gemini_multimodal_vision"
                             return parsed
-                    elif response.status_code in (400, 404, 429, 500, 503):
+                    elif response.status_code == 429:
+                        pause = _retry_after_seconds(response)
+                        self._paused_until = time.monotonic() + pause
+                        logger.warning(
+                            "Gemini quota exhausted (HTTP 429 from %s); using the local models for %.0fs.",
+                            model_name,
+                            pause,
+                        )
+                        return None
+                    elif response.status_code in (400, 404, 500, 503):
                         logger.warning(
                             "Model %s returned HTTP %s. Trying next candidate model...",
                             model_name,

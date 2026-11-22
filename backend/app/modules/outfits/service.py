@@ -6,8 +6,10 @@ produced the score. Nothing editorial: if the wardrobe cannot make an outfit,
 the honest answer is an empty list and a note saying what is missing.
 """
 
+import asyncio
 import itertools
 import logging
+import time
 from typing import Any
 
 from app.modules.outfits import rules
@@ -17,6 +19,29 @@ logger = logging.getLogger("stylesync.outfits")
 
 # Ceiling on pairings scored per request.
 MAX_COMBINATIONS = 4000
+
+# The stylist's verdict on an outfit does not change between page loads, so it
+# is remembered instead of costing a Gemini call every time the outfit section
+# is opened or a filter changes. Keyed by outfit and the filters it was asked
+# for; a None result (timeout, quota) is not cached, so it is retried later.
+EVALUATION_TTL_SECONDS = 6 * 60 * 60
+EVALUATION_CACHE_MAX = 500
+_evaluation_cache: dict[tuple[str, str, str], tuple[float, dict[str, Any]]] = {}
+
+
+def _cached_evaluation(key: tuple[str, str, str]) -> dict[str, Any] | None:
+    hit = _evaluation_cache.get(key)
+    if hit and time.monotonic() - hit[0] < EVALUATION_TTL_SECONDS:
+        return hit[1]
+    _evaluation_cache.pop(key, None)
+    return None
+
+
+def _remember_evaluation(key: tuple[str, str, str], insight: dict[str, Any]) -> None:
+    if len(_evaluation_cache) >= EVALUATION_CACHE_MAX:
+        oldest = min(_evaluation_cache, key=lambda k: _evaluation_cache[k][0])
+        _evaluation_cache.pop(oldest, None)
+    _evaluation_cache[key] = (time.monotonic(), insight)
 
 
 class OutfitService:
@@ -57,19 +82,23 @@ class OutfitService:
             outfits.sort(key=lambda o: (-o["score"], o["total_wears"]))
 
         outfits_to_return = outfits[: max(limit, 1)]
-        import asyncio
         from app.modules.ai.gemini_service import gemini_service
-        if gemini_service.is_configured and outfits_to_return:
+        if gemini_service.is_configured and not gemini_service.is_paused and outfits_to_return:
             top_outfit = outfits_to_return[0]
             try:
-                insight = await asyncio.wait_for(
-                    gemini_service.evaluate_outfit_pairing(
-                        pieces=top_outfit.get("pieces", []),
-                        occasion=occasion,
-                        season=season,
-                    ),
-                    timeout=4.0,
-                )
+                cache_key = (str(top_outfit["id"]), occasion or "", season or "")
+                insight = _cached_evaluation(cache_key)
+                if insight is None:
+                    insight = await asyncio.wait_for(
+                        gemini_service.evaluate_outfit_pairing(
+                            pieces=top_outfit.get("pieces", []),
+                            occasion=occasion,
+                            season=season,
+                        ),
+                        timeout=4.0,
+                    )
+                    if insight:
+                        _remember_evaluation(cache_key, insight)
                 if insight:
                     if not insight.get("is_cohesive", True):
                         top_outfit["warnings"].append(
