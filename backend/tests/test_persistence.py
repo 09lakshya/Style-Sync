@@ -149,15 +149,11 @@ async def test_api_endpoints_via_fastapi_client():
         wardrobe_data = wardrobe_res.json()
         assert "items" in wardrobe_data
 
-        # 3. Get Recommendations
-        rec_res = await client.get("/api/v1/recommendations/outfits", headers=headers)
-        assert rec_res.status_code == 200
-        rec_data = rec_res.json()
-        assert "recommendations" in rec_data
-
-        # 4. Get Analytics
+        # 3. Get Analytics
         ana_res = await client.get("/api/v1/analytics/wardrobe", headers=headers)
         assert ana_res.status_code == 200
         ana_data = ana_res.json()
         assert "total_items" in ana_data
         assert "category_distribution" in ana_data
+        assert ana_data["duplicate_checks_today"] == 0
+        assert ana_data["long_unused_items"] == 0

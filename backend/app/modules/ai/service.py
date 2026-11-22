@@ -624,11 +624,12 @@ def cosine_similarity(left: list[float], right: list[float]) -> float:
 
 def wardrobe_summary(items: list[dict[str, object]]) -> dict[str, object]:
     """Aggregate wardrobe summary stats."""
-    colors = Counter(str(item.get("primary_color", "unknown")) for item in items)
+    # Lowercased so "Maroon" and "maroon" are one colour, even on rows saved
+    # before writes were normalised.
+    colors = Counter(str(item.get("primary_color") or "unknown").strip().lower() for item in items)
     types = Counter(str(item.get("type", "unknown")) for item in items)
     return {
         "total_items": len(items),
         "most_common_color": colors.most_common(1)[0][0] if colors else None,
         "category_distribution": dict(types),
-        "least_used_items": sum(1 for item in items if int(item.get("wear_count", 0)) <= 2),
     }

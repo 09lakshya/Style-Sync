@@ -1,6 +1,8 @@
 from typing import Any
 
-from sqlalchemy import select
+from datetime import datetime
+
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session_maker, serialize_model
@@ -44,6 +46,17 @@ class ShoppingRepository:
             result = await session.execute(stmt)
             checks = result.scalars().all()
             return [serialize_model(check) for check in checks]
+
+    async def count_since(self, user_id: str, since: datetime) -> int:
+        """How many duplicate checks the user has run since a point in time."""
+        maker = get_session_maker()
+        async with maker() as session:
+            stmt = (
+                select(func.count(ShoppingCheck.id))
+                .where(ShoppingCheck.user_id == user_id)
+                .where(ShoppingCheck.created_at >= since)
+            )
+            return int((await session.execute(stmt)).scalar_one())
 
 
 shopping_repository = ShoppingRepository()

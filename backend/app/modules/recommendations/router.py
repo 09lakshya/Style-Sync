@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, s
 from app.modules.auth.dependencies import require_user
 from app.modules.auth.service import get_styling_gender
 from app.modules.media.validator import validate_image_bytes
-from app.modules.recommendations.service import outfit_analysis_service, recommendation_service
+from app.modules.recommendations.service import outfit_analysis_service
 
 router = APIRouter(prefix="/recommendations", tags=["recommendations"])
 
@@ -29,17 +29,4 @@ async def analyze_outfit(
         filename=image.filename or "outfit.jpg",
         gender=gender,
         profile_gender=await get_styling_gender(user_id),
-    )
-
-
-@router.get("/outfits")
-async def recommend_outfits(
-    occasion: str | None = None,
-    season: str | None = None,
-    user_id: str = Depends(require_user),
-) -> dict[str, object]:
-    return await recommendation_service.get_outfit_recommendations(
-        user_id=user_id,
-        occasion=occasion,
-        season=season,
     )

@@ -45,14 +45,11 @@ import type {
 
 type Analytics = {
   total_items: number
-  most_common_color: string
-  least_used_items: number
-}
-
-type Recommendation = {
-  items: { id: string; name: string }[]
-  score: number
-  reasons: string[]
+  most_common_color: string | null
+  /** Not worn for 90 days, or never worn and added over 30 days ago. */
+  long_unused_items: number
+  /** From the server's check log, counted from the viewer's local midnight. */
+  duplicate_checks_today: number
 }
 
 const API_BASE_URL =
@@ -92,7 +89,6 @@ export function App() {
   const [duplicateDecision, setDuplicateDecision] = useState<DuplicateDecision | null>(null)
   const [shoppingAdvisor, setShoppingAdvisor] = useState<ShoppingAdvisorInsight | null>(null)
   const [isDuplicateAlertOpen, setIsDuplicateAlertOpen] = useState(false)
-  const [duplicateChecks, setDuplicateChecks] = useState<number>(0)
   const [notice, setNotice] = useState<string>(
     'Upload clothing photos or check new shopping finds for duplicates.'
   )
@@ -135,12 +131,6 @@ export function App() {
   const analyticsQuery = useQuery({
     queryKey: ['wardrobe-analytics', session?.token],
     queryFn: () => fetchAnalytics(session?.token ?? ''),
-    enabled: Boolean(session?.token),
-  })
-
-  const recommendationsQuery = useQuery({
-    queryKey: ['outfit-recommendations', session?.token],
-    queryFn: () => fetchRecommendations(session?.token ?? ''),
     enabled: Boolean(session?.token),
   })
 
@@ -248,7 +238,9 @@ export function App() {
       setSimilarItems(result.similarItems)
       setDuplicateDecision(result.decision)
       setShoppingAdvisor(result.advisor ?? null)
-      setDuplicateChecks((count) => count + 1)
+      // The count lives in the check log now, so re-read it rather than
+      // keeping a tally that resets on reload.
+      void queryClient.invalidateQueries({ queryKey: ['wardrobe-analytics', session?.token] })
 
       const hasMatch = result.decision !== 'no_strong_duplicate' && result.similarItems.length > 0
       setIsDuplicateAlertOpen(hasMatch)
@@ -276,7 +268,7 @@ export function App() {
   // the filters, accent and copy below all key on it.
   const items = useMemo(() => wardrobeQuery.data ?? [], [wardrobeQuery.data])
   const analytics = analyticsQuery.data
-  const recommendations = recommendationsQuery.data ?? []
+  const wearNext = useMemo(() => pickWearNext(items, 3), [items])
 
   // Filtered & Sorted Items
   const filteredItems = useMemo(() => {
@@ -360,8 +352,6 @@ export function App() {
   )
 
   const topColor = analytics?.most_common_color ?? 'n/a'
-  const underused =
-    analytics?.least_used_items ?? items.filter((item) => item.wearCount <= 2).length
 
   function handleDuplicateCheck(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -615,19 +605,30 @@ export function App() {
             />
 
             <aside id="insights" className="scroll-mt-4 space-y-4">
-              <Panel title="Recommendations">
-                {recommendations.slice(0, 3).map((recommendation) => (
-                  <RecommendationCard
-                    key={recommendation.items.map((item) => item.id).join('-')}
-                    recommendation={recommendation}
-                  />
-                ))}
+              <Panel title="Wear next">
+                {wearNext.length > 0 ? (
+                  wearNext.map((item) => (
+                    <WearNextRow
+                      key={item.id}
+                      item={item}
+                      onSelect={() => setSelectedDetailItem(item)}
+                    />
+                  ))
+                ) : (
+                  <p className="text-xs text-[#687068]">Add a few pieces and the ones waiting longest show up here.</p>
+                )}
               </Panel>
 
               <Panel title="Analytics">
-                <StatLine label="Duplicate risk checks" value={`${duplicateChecks} today`} />
+                <StatLine
+                  label="Duplicate checks today"
+                  value={analytics ? String(analytics.duplicate_checks_today) : '–'}
+                />
                 <StatLine label="Most common color" value={topColor} />
-                <StatLine label="Long-unused pieces" value={underused.toString()} />
+                <StatLine
+                  label="Not worn in 90 days"
+                  value={analytics ? String(analytics.long_unused_items) : '–'}
+                />
               </Panel>
 
               <Panel title="Color guidance">
@@ -702,18 +703,11 @@ export function App() {
 }
 
 async function fetchAnalytics(token: string) {
-  const response = await fetch(`${API_BASE_URL}/analytics/wardrobe`, {
+  const params = new URLSearchParams({ tz_offset_minutes: String(new Date().getTimezoneOffset()) })
+  const response = await fetch(`${API_BASE_URL}/analytics/wardrobe?${params.toString()}`, {
     headers: getAuthHeader(token),
   })
   return parseResponse<Analytics>(response)
-}
-
-async function fetchRecommendations(token: string) {
-  const response = await fetch(`${API_BASE_URL}/recommendations/outfits`, {
-    headers: getAuthHeader(token),
-  })
-  const payload = await parseResponse<{ recommendations: Recommendation[] }>(response)
-  return payload.recommendations
 }
 
 async function checkShoppingImage(file: File, token: string): Promise<DuplicateCheckResult> {
@@ -881,23 +875,46 @@ function Panel({
   )
 }
 
-function RecommendationCard({ recommendation }: { recommendation: Recommendation }) {
-  const title = recommendation.items.map((item) => item.name).join(' + ')
+/** The pieces that have waited longest: never-worn first (oldest added
+ *  first), then the ones last worn longest ago. */
+function pickWearNext(items: WardrobeItem[], count: number): WardrobeItem[] {
+  const lastWorn = (item: WardrobeItem) =>
+    item.lastWornDate && item.lastWornDate !== 'Not worn yet' ? item.lastWornDate : null
+  return [...items]
+    .sort((a, b) => {
+      const aWorn = lastWorn(a)
+      const bWorn = lastWorn(b)
+      if (!aWorn && bWorn) return -1
+      if (aWorn && !bWorn) return 1
+      if (aWorn && bWorn) return aWorn.localeCompare(bWorn)
+      return (a.createdAt ?? '').localeCompare(b.createdAt ?? '')
+    })
+    .slice(0, count)
+}
+
+function WearNextRow({ item, onSelect }: { item: WardrobeItem; onSelect: () => void }) {
+  const worn = item.lastWornDate && item.lastWornDate !== 'Not worn yet'
   return (
-    <div className="rounded-lg border border-[#e3ddd2] bg-[var(--surface)] p-3">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="font-medium text-xs">{title}</p>
-          <p className="mt-1 text-xs leading-4 text-[#687068]">
-            {recommendation.reasons.join(' / ')}
-          </p>
-        </div>
-        <span className="rounded-full bg-[var(--surface-raised)] px-2 py-0.5 text-[11px] font-semibold text-[#557660]">
-          {Math.round(recommendation.score * 100)}%
+    <button
+      type="button"
+      onClick={onSelect}
+      className="flex w-full items-center gap-3 rounded-lg border border-[#e3ddd2] bg-[var(--surface)] p-2 text-left hover:border-[var(--accent)]"
+    >
+      <img className="h-10 w-10 shrink-0 rounded-md object-cover" src={item.thumbnailUrl} alt="" />
+      <span className="min-w-0">
+        <span className="block truncate text-xs font-medium text-[#1f2328]">{item.name}</span>
+        <span className="block text-[11px] text-[#687068]">
+          {worn ? `Last worn ${formatShortDate(item.lastWornDate)}` : 'Never worn'}
         </span>
-      </div>
-    </div>
+      </span>
+    </button>
   )
+}
+
+function formatShortDate(isoDate: string): string {
+  const parsed = new Date(`${isoDate}T00:00:00`)
+  if (Number.isNaN(parsed.getTime())) return isoDate
+  return parsed.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 function StatLine({ label, value }: { label: string; value: string }) {
