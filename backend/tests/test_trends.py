@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta, timezone
+
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
@@ -7,7 +9,7 @@ from app.core.models import Base
 from app.main import app
 from app.modules.auth.service import create_access_token, register_user
 from app.modules.trends import catalog
-from app.modules.trends.service import TrendsService, _score_piece
+from app.modules.trends.service import TrendsService, _owns, _score_piece
 from app.modules.wardrobe.repository import wardrobe_repository
 
 
@@ -138,13 +140,65 @@ async def test_signals_report_colour_rotation():
         {**item(name="Worn navy coat", primary_color="navy", wear_count=12), "user_id": user_id}
     )
     await wardrobe_repository.create_item(
-        {**item(name="Unworn pink dress", type="dress", primary_color="pink"), "user_id": user_id}
+        {
+            **item(name="Unworn pink dress", type="dress", primary_color="pink"),
+            "user_id": user_id,
+            "created_at": datetime.now(timezone.utc) - timedelta(days=120),
+        }
     )
 
     result = await TrendsService().get_signals(user_id)
     rotation = next(s for s in result["signals"] if s["id"] == "colour-rotation")
     assert rotation["value"] == "navy"
     assert any(s["id"] == "falling-out" for s in result["signals"])
+
+
+@pytest.mark.asyncio
+async def test_pieces_added_this_week_are_not_out_of_rotation():
+    user = await register_user("Fresh", "fresh-trends@example.com", "Password123!")
+    user_id = str(user["id"])
+    for name in ("New tee", "New jeans"):
+        await wardrobe_repository.create_item({**item(name=name, type="t-shirt"), "user_id": user_id})
+
+    result = await TrendsService().get_signals(user_id)
+    ids = {s["id"] for s in result["signals"]}
+    assert "falling-out" not in ids
+    # Nothing has been worn, so no category can be "hardest-working".
+    assert "category-momentum" not in ids
+
+
+# --- what counts as owning a piece --------------------------------------
+
+def test_a_jacket_without_stripes_is_not_a_striped_blazer():
+    piece = {"label": "Striped blazer", "types": ["blazer", "jacket"], "patterns": ["striped"]}
+    assert not _owns(piece, item(type="jacket", name="Gold Geometric Jacket", pattern="geometric"))
+    assert _owns(piece, item(type="blazer", name="Navy blazer", pattern="striped"))
+    # Pattern spellings that mean the same thing still count.
+    assert _owns(piece, item(type="blazer", name="Grey blazer", pattern="pinstripe"))
+
+
+def test_colour_is_a_preference_not_a_requirement():
+    piece = {"label": "Camel coat", "types": ["coat"], "colors": ["beige"]}
+    assert _owns(piece, item(primary_color="green"))
+
+
+@pytest.mark.asyncio
+async def test_near_miss_is_not_ready_to_wear():
+    user = await register_user("Near", "near-trends@example.com", "Password123!")
+    user_id = str(user["id"])
+    for piece in [
+        item(name="Gold Geometric Jacket", type="jacket", pattern="geometric", primary_color="gold"),
+        item(name="Grey trousers", type="pants", category="separates", primary_color="grey"),
+        item(name="White shirt", type="shirt", category="separates", primary_color="white"),
+    ]:
+        await wardrobe_repository.create_item({**piece, "user_id": user_id})
+
+    trend = await TrendsService().get_trend(user_id, "pinstripe-return")
+    blazer = trend["match"]["pieces"][0]
+    assert blazer["owned"] is False
+    assert blazer["match"] is None
+    assert "Gold Geometric Jacket" in blazer["note"]
+    assert trend["match"]["verdict"] != "ready to wear"
 
 
 # --- routes --------------------------------------------------------------

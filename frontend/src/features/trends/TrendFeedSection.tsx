@@ -145,6 +145,9 @@ function TrendCard({ trend, onViewItem }: { trend: Trend; onViewItem: (itemId: s
                     {piece.match.name}
                   </button>
                 </>
+              ) : piece.note.startsWith('Closest') ? (
+                // A near miss: the right garment without the look's pattern.
+                <span className="text-[#8a8f89]"> &ndash; {piece.note}</span>
               ) : (
                 <span className="text-[#8a8f89]"> &ndash; not in your wardrobe yet</span>
               )}

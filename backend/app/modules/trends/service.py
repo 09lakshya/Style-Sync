@@ -21,12 +21,37 @@ from app.modules.wardrobe.service import wardrobe_service
 
 logger = logging.getLogger("stylesync.trends")
 
-# A piece is "owned" once the garment type matches; colour and pattern only
-# raise the strength from there.
+# Strength of a match: the garment type is most of it, colour and pattern add to
+# it. Whether a piece counts as owned is decided separately by `_owns`.
 TYPE_WEIGHT = 0.60
 COLOR_WEIGHT = 0.25
 PATTERN_WEIGHT = 0.15
 OWNED_THRESHOLD = TYPE_WEIGHT
+
+# Pattern words that name the same thing as a catalogue pattern.
+PATTERN_SYNONYMS = {
+    "stripe": "striped",
+    "stripes": "striped",
+    "pinstripe": "striped",
+    "pinstriped": "striped",
+    "pin stripe": "striped",
+    "check": "checked",
+    "checks": "checked",
+    "plaid": "checked",
+    "gingham": "checked",
+    "tartan": "checked",
+    "leopard": "animal print",
+    "leopard print": "animal print",
+    "zebra": "animal print",
+    "snake print": "animal print",
+    "plain": "solid",
+    "flowers": "floral",
+    "embroidery": "embroidered",
+}
+
+# A gap after which a lightly worn piece counts as out of rotation. A piece added
+# more recently than this has simply not had the chance to be worn yet.
+OUT_OF_ROTATION_DAYS = 60
 
 # How the two halves of a trend's fit score are balanced.
 PIECE_WEIGHT = 0.75
@@ -100,11 +125,35 @@ def _colors_overlap(item_colors: set[str], wanted: set[str]) -> bool:
     return False
 
 
+def _item_pattern(item: dict[str, Any]) -> str:
+    pattern = str(item.get("pattern") or "").lower().replace("_", " ").strip()
+    return PATTERN_SYNONYMS.get(pattern, pattern)
+
+
+def _pattern_fits(piece: dict[str, Any], item: dict[str, Any]) -> bool:
+    wanted = {p.lower() for p in piece.get("patterns", [])}
+    return not wanted or _item_pattern(item) in wanted
+
+
+def _type_fits(piece: dict[str, Any], item: dict[str, Any]) -> bool:
+    wanted = {t.lower() for t in piece.get("types", [])}
+    return bool(wanted & _item_tokens(item))
+
+
+def _owns(piece: dict[str, Any], item: dict[str, Any] | None) -> bool:
+    """Whether this item covers the piece.
+
+    The garment has to be right, and so does the pattern when the piece names
+    one: for a "striped blazer" the stripes are the point, so a plain or
+    geometric jacket is a near miss, not a match. Colour stays a preference,
+    reported in the note, since most pieces can be worn off-palette.
+    """
+    return item is not None and _type_fits(piece, item) and _pattern_fits(piece, item)
+
+
 def _score_piece(piece: dict[str, Any], item: dict[str, Any]) -> float:
     """0 when the garment is wrong, up to 1.0 for the right garment in the right colour."""
-    wanted_types = {t.lower() for t in piece.get("types", [])}
-    tokens = _item_tokens(item)
-    if not wanted_types & tokens:
+    if not _type_fits(piece, item):
         return 0.0
 
     score = TYPE_WEIGHT
@@ -113,9 +162,7 @@ def _score_piece(piece: dict[str, Any], item: dict[str, Any]) -> float:
     if not wanted_colors or _colors_overlap(_item_colors(item), wanted_colors):
         score += COLOR_WEIGHT
 
-    wanted_patterns = {p.lower() for p in piece.get("patterns", [])}
-    item_pattern = str(item.get("pattern") or "").lower()
-    if not wanted_patterns or item_pattern in wanted_patterns:
+    if _pattern_fits(piece, item):
         score += PATTERN_WEIGHT
 
     return round(score, 3)
@@ -228,26 +275,26 @@ class TrendsService:
         pieces: list[dict[str, Any]] = []
         for piece in trend["key_pieces"]:
             best_item: dict[str, Any] | None = None
-            best_score = 0.0
+            best_key: tuple[bool, float, int] = (False, 0.0, -1)
             for item in items:
                 score = _score_piece(piece, item)
-                # Ties go to the better-worn item: it is the one they reach for.
-                if score > best_score or (
-                    score == best_score
-                    and score > 0
-                    and best_item is not None
-                    and int(item.get("wear_count") or 0) > int(best_item.get("wear_count") or 0)
-                ):
-                    best_score, best_item = score, item
+                if score <= 0:
+                    continue
+                # An item that covers the piece beats a closer-scoring near miss;
+                # ties go to the better-worn item, the one they reach for.
+                key = (_owns(piece, item), score, int(item.get("wear_count") or 0))
+                if key > best_key:
+                    best_key, best_item = key, item
 
-            owned = best_score >= OWNED_THRESHOLD
+            owned, best_score = best_key[0], best_key[1]
             pieces.append(
                 {
                     "label": piece["label"],
                     "owned": owned,
-                    "strength": round(best_score, 3),
+                    # A near miss counts for less than a match in the trend score.
+                    "strength": round(best_score if owned else best_score * 0.5, 3),
                     "match": _item_summary(best_item) if owned and best_item else None,
-                    "note": self._piece_note(piece, best_item, best_score),
+                    "note": self._piece_note(piece, best_item, best_score, owned),
                 }
             )
 
@@ -283,19 +330,22 @@ class TrendsService:
         }
 
     def _piece_note(
-        self, piece: dict[str, Any], item: dict[str, Any] | None, score: float
+        self, piece: dict[str, Any], item: dict[str, Any] | None, score: float, owned: bool
     ) -> str:
         if not item or score < OWNED_THRESHOLD:
             return "Nothing in your wardrobe covers this yet."
+        if not owned:
+            wanted_patterns = sorted({p.lower() for p in piece.get("patterns", [])})
+            return (
+                f"Closest is {item.get('name')}, but this look needs "
+                f"{' or '.join(wanted_patterns)}."
+            )
         if score >= TYPE_WEIGHT + COLOR_WEIGHT + PATTERN_WEIGHT - 0.001:
             return f"{item.get('name')} is an exact fit for this piece."
         gaps: list[str] = []
         wanted_colors = {c.lower() for c in piece.get("colors", [])}
         if wanted_colors and not _colors_overlap(_item_colors(item), wanted_colors):
             gaps.append(f"the trend leans {', '.join(sorted(wanted_colors))}")
-        wanted_patterns = {p.lower() for p in piece.get("patterns", [])}
-        if wanted_patterns and str(item.get("pattern") or "").lower() not in wanted_patterns:
-            gaps.append(f"look for {', '.join(sorted(wanted_patterns))}")
         if not gaps:
             return f"{item.get('name')} works here."
         return f"{item.get('name')} works, but {'; '.join(gaps)}."
@@ -357,7 +407,9 @@ class TrendsService:
         for item in items:
             key = str(item.get("type") or item.get("category") or "unknown").lower()
             by_category.setdefault(key, []).append(int(item.get("wear_count") or 0))
-        if by_category:
+        # Only once something has been worn: with no wears every category ties at
+        # 0.0 and the "winner" is just whichever came first.
+        if by_category and total_wears:
             averages = {k: sum(v) / len(v) for k, v in by_category.items()}
             top = max(averages, key=lambda k: averages[k])
             signals.append(
@@ -373,15 +425,18 @@ class TrendsService:
                 }
             )
 
-        # 3. What is falling out of rotation.
+        # 3. What is falling out of rotation: worn once or never, and not in the
+        # last two months. A never-worn piece is measured from the day it was
+        # added, so something added this week is not counted as neglected.
+        def _idle_days(item: dict[str, Any]) -> int | None:
+            since = _parse_dt(item.get("last_worn_at")) or _parse_dt(item.get("created_at"))
+            return (now - since).days if since else None
+
         stale = [
             item
             for item in items
             if int(item.get("wear_count") or 0) <= 1
-            and (
-                _parse_dt(item.get("last_worn_at")) is None
-                or (now - _parse_dt(item.get("last_worn_at"))).days >= 60
-            )
+            and (_idle_days(item) is None or _idle_days(item) >= OUT_OF_ROTATION_DAYS)
         ]
         if stale:
             signals.append(
@@ -391,7 +446,7 @@ class TrendsService:
                     "value": str(len(stale)),
                     "detail": (
                         f"{len(stale)} piece(s) have one wear or fewer and nothing logged in "
-                        "the last two months - e.g. "
+                        "the last two months, e.g. "
                         + ", ".join(str(i.get("name")) for i in stale[:3])
                         + "."
                     ),
