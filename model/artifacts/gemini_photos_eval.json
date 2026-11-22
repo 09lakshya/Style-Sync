@@ -1,0 +1,423 @@
+{
+ "evaluated_at": "2026-11-22T08:06:48.735353+00:00",
+ "totals": {
+  "occasion": {
+   "correct": 13,
+   "scored": 13
+  },
+  "season": {
+   "correct": 8,
+   "scored": 8
+  },
+  "tradition": {
+   "correct": 12,
+   "scored": 12
+  },
+  "type": {
+   "correct": 12,
+   "scored": 13
+  },
+  "colour": {
+   "correct": 13,
+   "scored": 13
+  },
+  "pattern": {
+   "correct": 13,
+   "scored": 13
+  }
+ },
+ "unanswered": 0,
+ "results": [
+  {
+   "file": "black.jpg",
+   "answered": true,
+   "name": "Oversized Crewneck T-shirt",
+   "model": "gemini-3-flash-preview",
+   "seconds": 6.0,
+   "predictions": {
+    "occasion": [
+     "casual",
+     "day_out"
+    ],
+    "season": [
+     "summer",
+     "spring",
+     "fall",
+     "all_season"
+    ],
+    "tradition": "western",
+    "type": "t-shirt",
+    "colour": "black",
+    "pattern": "solid"
+   },
+   "correct": {
+    "occasion": true,
+    "season": true,
+    "tradition": true,
+    "type": true,
+    "colour": true,
+    "pattern": true
+   }
+  },
+  {
+   "file": "ethinic.jpg",
+   "answered": true,
+   "name": "Embroidered Velvet Jacket",
+   "model": "gemini-3-flash-preview",
+   "seconds": 7.5,
+   "predictions": {
+    "occasion": [
+     "wedding",
+     "festive",
+     "party"
+    ],
+    "season": [
+     "winter",
+     "fall"
+    ],
+    "tradition": "ethnic",
+    "type": "jacket",
+    "colour": "blue",
+    "pattern": "embroidered"
+   },
+   "correct": {
+    "occasion": true,
+    "season": true,
+    "tradition": true,
+    "type": false,
+    "colour": true,
+    "pattern": true
+   }
+  },
+  {
+   "file": "jacket.jpg",
+   "answered": true,
+   "name": "Zip-Up Leather Jacket",
+   "model": "gemini-3-flash-preview",
+   "seconds": 4.8,
+   "predictions": {
+    "occasion": [
+     "casual",
+     "day_out",
+     "party"
+    ],
+    "season": [
+     "winter",
+     "fall",
+     "spring"
+    ],
+    "tradition": "western",
+    "type": "jacket",
+    "colour": "black",
+    "pattern": "solid"
+   },
+   "correct": {
+    "occasion": true,
+    "season": true,
+    "tradition": true,
+    "type": true,
+    "colour": true,
+    "pattern": true
+   }
+  },
+  {
+   "file": "kp1.jpg",
+   "answered": true,
+   "name": "Pleated Baggy Trousers",
+   "model": "gemini-3-flash-preview",
+   "seconds": 8.1,
+   "predictions": {
+    "occasion": [
+     "formal",
+     "work",
+     "casual"
+    ],
+    "season": [
+     "all_season",
+     "spring",
+     "fall"
+    ],
+    "tradition": "western",
+    "type": "pants",
+    "colour": "black",
+    "pattern": "solid"
+   },
+   "correct": {
+    "occasion": true,
+    "tradition": true,
+    "type": true,
+    "colour": true,
+    "pattern": true
+   }
+  },
+  {
+   "file": "lp1.jpg",
+   "answered": true,
+   "name": "Pleated Linen Trousers",
+   "model": "gemini-3-flash-preview",
+   "seconds": 6.1,
+   "predictions": {
+    "occasion": [
+     "casual",
+     "day_out",
+     "work"
+    ],
+    "season": [
+     "summer",
+     "spring"
+    ],
+    "tradition": "western",
+    "type": "pants",
+    "colour": "white",
+    "pattern": "solid"
+   },
+   "correct": {
+    "occasion": true,
+    "season": true,
+    "tradition": true,
+    "type": true,
+    "colour": true,
+    "pattern": true
+   }
+  },
+  {
+   "file": "lp2.jpg",
+   "answered": true,
+   "name": "V-neck Textured Top",
+   "model": "gemini-3-flash-preview",
+   "seconds": 29.1,
+   "predictions": {
+    "occasion": [
+     "casual",
+     "day_out"
+    ],
+    "season": [
+     "summer",
+     "spring"
+    ],
+    "tradition": "western",
+    "type": "top",
+    "colour": "cream",
+    "pattern": "solid"
+   },
+   "correct": {
+    "occasion": true,
+    "season": true,
+    "tradition": true,
+    "type": true,
+    "colour": true,
+    "pattern": true
+   }
+  },
+  {
+   "file": "nj1.jpg",
+   "answered": true,
+   "name": "Paisley Nehru Jacket",
+   "model": "gemini-3-flash-preview",
+   "seconds": 9.2,
+   "predictions": {
+    "occasion": [
+     "festive",
+     "wedding",
+     "party"
+    ],
+    "season": [
+     "summer",
+     "spring",
+     "fall"
+    ],
+    "tradition": "ethnic",
+    "type": "nehru jacket",
+    "colour": "teal",
+    "pattern": "paisley"
+   },
+   "correct": {
+    "occasion": true,
+    "tradition": true,
+    "type": true,
+    "colour": true,
+    "pattern": true
+   }
+  },
+  {
+   "file": "nj2.jpg",
+   "answered": true,
+   "name": "Block Print Nehru Jacket",
+   "model": "gemini-3-flash-preview",
+   "seconds": 7.2,
+   "predictions": {
+    "occasion": [
+     "festive",
+     "wedding",
+     "formal"
+    ],
+    "season": [
+     "summer",
+     "spring",
+     "fall",
+     "all_season"
+    ],
+    "tradition": "ethnic",
+    "type": "nehru jacket",
+    "colour": "grey",
+    "pattern": "block print"
+   },
+   "correct": {
+    "occasion": true,
+    "tradition": true,
+    "type": true,
+    "colour": true,
+    "pattern": true
+   }
+  },
+  {
+   "file": "puff jacket.jpg",
+   "answered": true,
+   "name": "Hooded Puffer Jacket",
+   "model": "gemini-3-flash-preview",
+   "seconds": 7.0,
+   "predictions": {
+    "occasion": [
+     "casual",
+     "day_out",
+     "sports"
+    ],
+    "season": [
+     "winter",
+     "fall"
+    ],
+    "tradition": "western",
+    "type": "jacket",
+    "colour": "black",
+    "pattern": "solid"
+   },
+   "correct": {
+    "occasion": true,
+    "season": true,
+    "tradition": true,
+    "type": true,
+    "colour": true,
+    "pattern": true
+   }
+  },
+  {
+   "file": "shopping.png",
+   "answered": true,
+   "name": "Slim Fit Cotton Shirt",
+   "model": "gemini-3-flash-preview",
+   "seconds": 6.9,
+   "predictions": {
+    "occasion": [
+     "casual",
+     "formal",
+     "work"
+    ],
+    "season": [
+     "summer",
+     "spring",
+     "fall",
+     "all_season"
+    ],
+    "tradition": "western",
+    "type": "shirt",
+    "colour": "white",
+    "pattern": "solid"
+   },
+   "correct": {
+    "occasion": true,
+    "tradition": true,
+    "type": true,
+    "colour": true,
+    "pattern": true
+   }
+  },
+  {
+   "file": "sk1.jpg",
+   "answered": true,
+   "name": "Mandarin Block Print Kurta",
+   "model": "gemini-3-flash-preview",
+   "seconds": 9.7,
+   "predictions": {
+    "occasion": [
+     "casual",
+     "festive",
+     "day_out"
+    ],
+    "season": [
+     "summer",
+     "spring",
+     "all_season"
+    ],
+    "tradition": "ethnic",
+    "type": "kurta",
+    "colour": "white",
+    "pattern": "block print"
+   },
+   "correct": {
+    "occasion": true,
+    "season": true,
+    "type": true,
+    "colour": true,
+    "pattern": true
+   }
+  },
+  {
+   "file": "ts.jpg",
+   "answered": true,
+   "name": "Relaxed Crewneck T-shirt",
+   "model": "gemini-3-flash-preview",
+   "seconds": 6.3,
+   "predictions": {
+    "occasion": [
+     "casual",
+     "day_out"
+    ],
+    "season": [
+     "summer",
+     "spring",
+     "all_season"
+    ],
+    "tradition": "western",
+    "type": "t-shirt",
+    "colour": "white",
+    "pattern": "solid"
+   },
+   "correct": {
+    "occasion": true,
+    "season": true,
+    "tradition": true,
+    "type": true,
+    "colour": true,
+    "pattern": true
+   }
+  },
+  {
+   "file": "women.jpg",
+   "answered": true,
+   "name": "Embroidered Lehenga Set",
+   "model": "gemini-3-flash-preview",
+   "seconds": 6.9,
+   "predictions": {
+    "occasion": [
+     "wedding",
+     "festive",
+     "party"
+    ],
+    "season": [
+     "all_season"
+    ],
+    "tradition": "ethnic",
+    "type": "lehenga",
+    "colour": "pink",
+    "pattern": "embroidered"
+   },
+   "correct": {
+    "occasion": true,
+    "tradition": true,
+    "type": true,
+    "colour": true,
+    "pattern": true
+   }
+  }
+ ]
+}
