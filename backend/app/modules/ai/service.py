@@ -18,8 +18,10 @@ logger = logging.getLogger("stylesync.ai.service")
 # dict key is what gets stored; the value is only ever sent to the model.
 TYPE_PROMPTS: dict[str, str] = {
     # Western
-    "dress": "a dress",
-    "gown": "a long formal evening gown",
+    "dress": "a dress, including fitted maxi and bodycon evening dresses",
+    # Kept to true ball gowns. "A long formal evening gown" also caught fitted
+    # maxi dresses, which people call dresses.
+    "gown": "a formal ball gown with a full, voluminous floor-length skirt",
     "shirt": "a button-up shirt",
     "blouse": "a women's blouse",
     "top": "a casual top",

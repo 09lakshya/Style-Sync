@@ -105,6 +105,7 @@ Rules:
 1. name: A short, plain shopping-style name of 2-4 words, the way a shopper would describe it to a friend: the one or two most identifying features (straps/neckline, fit, length) followed by the garment (e.g. "Spaghetti Bodycon Maxi Dress", "Oversized Graphic Tee", "Slim Indigo Chinos", "Embroidered Silk Kurti", "Wide-Leg Linen Trousers"). No marketing adjectives (elegant, stunning, chic, luxe, classic), no colour, and no long chains of descriptors.
 2. type: The single best garment type from:
    ["shirt", "blouse", "top", "t-shirt", "skirt", "pants", "jeans", "shorts", "jumpsuit", "romper", "jacket", "coat", "blazer", "sweater", "hoodie", "cardigan", "waistcoat", "saree", "lehenga", "choli", "anarkali", "salwar kameez", "patiala salwar", "churidar", "palazzo", "sharara", "gharara", "kurta", "kurti", "angrakha", "sherwani", "bandhgala", "nehru jacket", "pathani suit", "dhoti", "lungi", "dupatta", "dress", "gown"]
+   Use "gown" ONLY for a formal ball gown: a full, voluminous floor-length skirt (bridal, ball or red-carpet). Every other dress is "dress", including fitted, bodycon, mermaid, slip and maxi evening dresses - describe the length and cut in the name instead (e.g. "Spaghetti Bodycon Maxi Dress").
 3. type_alternatives: 2-3 other plausible alternative garment type labels with confidence scores (e.g. [["t-shirt", 0.95], ["top", 0.85]]).
 4. category: "separates" | "one_piece" | "outerwear" | "accessories"
 5. is_ethnic: true if traditional or ethnic Indian/South Asian wear, false if western.
