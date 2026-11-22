@@ -1,6 +1,7 @@
 import React from 'react'
 import { Search } from 'lucide-react'
 import type { WardrobeFilterState } from '../../types/wardrobe'
+import { OCCASIONS } from '../../lib/vocabulary'
 
 interface WardrobeFilterBarProps {
   filters: WardrobeFilterState
@@ -10,7 +11,6 @@ interface WardrobeFilterBarProps {
 
 const COLOR_OPTIONS = ['All', 'Black', 'White', 'Blue', 'Red', 'Green', 'Yellow', 'Pink', 'Purple', 'Brown', 'Beige', 'Grey']
 const PATTERN_OPTIONS = ['All', 'Solid', 'Floral', 'Striped', 'Checked', 'Printed', 'Polka Dot', 'Geometric', 'Embroidered']
-const OCCASION_OPTIONS = ['All', 'Casual', 'Formal', 'Party', 'College', 'Office', 'Wedding', 'Sports', 'Travel', 'Traditional']
 
 export function WardrobeFilterBar({ filters, onChange, totalCount }: WardrobeFilterBarProps) {
   function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -109,9 +109,9 @@ export function WardrobeFilterBar({ filters, onChange, totalCount }: WardrobeFil
               className="bg-transparent text-xs text-stone-200 focus:outline-none cursor-pointer"
             >
               <option value="All" className="bg-[#1a1917]">All Occasions</option>
-              {OCCASION_OPTIONS.filter((o) => o !== 'All').map((o) => (
-                <option key={o} value={o} className="bg-[#1a1917]">
-                  {o}
+              {OCCASIONS.map((o) => (
+                <option key={o.value} value={o.value} className="bg-[#1a1917]">
+                  {o.label}
                 </option>
               ))}
             </select>

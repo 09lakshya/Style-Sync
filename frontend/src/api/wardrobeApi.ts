@@ -1,5 +1,6 @@
 import { getAuthHeader } from '../lib/auth'
 import { parseResponse } from '../lib/apiError'
+import { toOccasion } from '../lib/vocabulary'
 import type {
   ApiWardrobeItem,
   CreateDressInput,
@@ -31,9 +32,11 @@ export function toWardrobeItem(item: ApiWardrobeItem): WardrobeItem {
     brand: item.brand || '',
     purchaseDate: item.purchase_date ? item.purchase_date.split('T')[0] : '',
     fabric: (item.fabric || 'cotton').replace(/_/g, ' '),
-    season: Array.isArray(item.season) ? item.season.map((s) => s.replace(/_/g, ' ')) : ['all season'],
+    // Stored values, not labels: forms and filters compare against them, and
+    // display goes through occasionLabel / seasonLabel.
+    season: Array.isArray(item.season) ? item.season : ['all_season'],
     occasion: Array.isArray(item.occasion)
-      ? item.occasion.map((o) => o.replace(/_/g, ' '))
+      ? item.occasion.map((o) => toOccasion(o) ?? o)
       : ['casual'],
     wearCount: item.wear_count || 0,
     lastWornDate: item.last_worn_date || item.last_worn_at ? (item.last_worn_date || item.last_worn_at)!.split('T')[0] : 'Not worn yet',
@@ -95,6 +98,7 @@ export async function createWardrobeItem(
   if (input.purchaseDate) formData.append('purchase_date', input.purchaseDate)
   if (input.occasion.trim()) formData.append('occasion', input.occasion.trim())
   if (input.lastWornDate) formData.append('last_worn_date', input.lastWornDate)
+  if (input.detected) formData.append('detected', JSON.stringify(input.detected))
 
   const response = await fetch(`${API_BASE_URL}/wardrobe/items`, {
     method: 'POST',
@@ -121,9 +125,11 @@ export async function updateWardrobeItem(
       pattern: input.pattern,
       brand: input.brand,
       purchase_date: input.purchaseDate,
-      occasion: input.occasion,
+      occasion: input.occasions,
       last_worn_date: input.lastWornDate,
       wear_count: input.wearCount,
+      item_type: input.itemType,
+      season: input.seasons,
     }),
   })
   const payload = await parseResponse<{ item: ApiWardrobeItem }>(response)

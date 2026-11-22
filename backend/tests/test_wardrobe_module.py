@@ -59,8 +59,8 @@ async def test_dress_wardrobe_crud_and_user_isolation():
         item_a = resp_upload.json()["item"]
 
         assert item_a["name"] == "Blue Floral Summer Dress"
-        assert item_a["primary_color"] == "Blue"
-        assert item_a["pattern"] == "Floral"
+        assert item_a["primary_color"] == "blue"
+        assert item_a["pattern"] == "floral"
         assert item_a["brand"] == "Zara"
         assert item_a["user_id"] == user_a["id"]
         assert "image_url" in item_a
@@ -104,9 +104,9 @@ async def test_dress_wardrobe_crud_and_user_isolation():
         assert resp_update_a.status_code == 200
         updated_item = resp_update_a.json()["item"]
         assert updated_item["name"] == "Updated Blue Dress"
-        assert updated_item["primary_color"] == "Navy Blue"
+        assert updated_item["primary_color"] == "navy blue"
         assert updated_item["brand"] == "Mango"
-        assert updated_item["occasion"] == ["Formal"]
+        assert updated_item["occasion"] == ["formal"]
 
         # 8. User A replaces image
         files_new = {"image": ("replaced_dress.jpg", jpeg_bytes, "image/jpeg")}

@@ -108,6 +108,8 @@ export interface CreateDressInput {
   purchaseDate: string
   occasion: string
   lastWornDate: string
+  /** The detection result the form was filled from, if any. */
+  detected?: DetectedDressMetadata | null
 }
 
 export interface UpdateDressMetadataInput {
@@ -117,9 +119,13 @@ export interface UpdateDressMetadataInput {
   pattern?: string
   brand?: string
   purchaseDate?: string
-  occasion?: string
+  /** Every occasion the item suits. */
+  occasions?: string[]
   lastWornDate?: string
   wearCount?: number
+  /** Garment type, e.g. to correct a detected "gown" to "dress". */
+  itemType?: string
+  seasons?: string[]
 }
 
 export interface WardrobeFilterState {

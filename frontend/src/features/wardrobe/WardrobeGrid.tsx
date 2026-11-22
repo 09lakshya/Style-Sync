@@ -1,5 +1,6 @@
 import { Plus } from 'lucide-react'
 import type { WardrobeItem } from '../../types/wardrobe'
+import { occasionLabel } from '../../lib/vocabulary'
 
 interface WardrobeGridProps {
   items: WardrobeItem[]
@@ -102,7 +103,7 @@ export function WardrobeGrid({
                   key={occ}
                   className="rounded-full border border-[#332b21] bg-[#241f19] px-2.5 py-0.5 text-[11px] font-medium text-stone-300 capitalize"
                 >
-                  {occ}
+                  {occasionLabel(occ)}
                 </span>
               ))}
             </div>

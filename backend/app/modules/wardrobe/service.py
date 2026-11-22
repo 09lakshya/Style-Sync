@@ -5,15 +5,12 @@ from fastapi import HTTPException, status
 from app.core.config import settings
 from app.modules.ai.repository import embedding_repository
 from app.modules.ai.service import (
-    ACCESSORY_TYPES,
-    ETHNIC_TYPES,
-    ONE_PIECE_TYPES,
-    OUTERWEAR_TYPES,
     ai_service,
     generate_embedding,
     infer_metadata,
 )
 from app.modules.media.cloudinary_service import cloudinary_service
+from app.modules.wardrobe import normalise as norm
 from app.modules.wardrobe.repository import wardrobe_repository
 
 logger = logging.getLogger("stylesync.wardrobe.service")
@@ -81,6 +78,28 @@ def _parse_datetime(val: Any) -> datetime | None:
         except Exception:
             return None
     return None
+
+
+# Fields the add form has no input for. When the form was filled from a
+# detection, these come from it instead of a second, less accurate local read
+# of the same photo.
+_DETECTION_FIELDS = ("season", "fabric", "secondary_colors", "sleeve_type", "occasion", "embellishment", "type")
+
+
+def _merge_detection(metadata: dict[str, Any], detected: dict[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(detected, dict):
+        return metadata
+    merged = dict(metadata)
+    for field in _DETECTION_FIELDS:
+        value = detected.get(field)
+        if value not in (None, "", []):
+            merged[field] = value
+    tags = detected.get("tags")
+    if isinstance(tags, list) and tags:
+        merged["tags"] = [str(t).lstrip("#") for t in tags if t]
+    if detected.get("name"):
+        merged["suggested_name"] = str(detected["name"])
+    return merged
 
 
 class WardrobeService:
@@ -165,6 +184,7 @@ class WardrobeService:
         last_worn_date: str | datetime | None = None,
         image_url: str = "",
         content_type: str | None = None,
+        detected: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """
         Process wardrobe photo upload:
@@ -203,6 +223,7 @@ class WardrobeService:
             metadata = ai_service.extract_clothing_metadata(file_bytes=file_bytes, filename=filename)
         else:
             metadata = infer_metadata(filename)
+        metadata = _merge_detection(metadata, detected)
 
         # 2.5 Run Custom Classification Model
         pred_cat, pred_conf, pred_axes, mod_ver = (
@@ -217,44 +238,26 @@ class WardrobeService:
                 metadata.get("suggested_name")
                 or filename.rsplit(".", 1)[0].replace("-", " ").replace("_", " ").title()
             )
-        primary_color = color.strip() if color and color.strip() else metadata["primary_color"]
-        item_pattern = pattern.strip() if pattern and pattern.strip() else metadata["pattern"]
+        primary_color = norm.normalise_color(color) or norm.normalise_color(metadata["primary_color"])
+        item_pattern = norm.normalise_pattern(pattern) or norm.normalise_pattern(metadata["pattern"])
         item_brand = brand.strip() if brand and brand.strip() else None
 
         # A corrected type has to carry its category with it, or an item the user
         # re-labelled as trousers stays filed under one_piece.
-        if item_type and item_type.strip():
-            resolved_type = item_type.strip().lower()
-            if resolved_type in ONE_PIECE_TYPES:
-                resolved_category = "one_piece"
-            elif resolved_type in OUTERWEAR_TYPES:
-                resolved_category = "outerwear"
-            elif resolved_type in ACCESSORY_TYPES:
-                resolved_category = "accessories"
-            else:
-                resolved_category = "separates"
-            resolved_tags = [
-                tag for tag in metadata.get("tags", []) if tag not in {"ethnic", metadata.get("type")}
-            ]
-            resolved_tags.append(resolved_type)
-            if resolved_type in ETHNIC_TYPES:
-                resolved_tags.append("ethnic")
-        else:
-            resolved_type = metadata.get("type", "dress")
-            resolved_category = metadata.get("category", "dresses")
-            resolved_tags = metadata.get("tags", [item_pattern, primary_color])
+        resolved_type = norm.normalise_type(item_type) or norm.normalise_type(metadata.get("type")) or "dress"
+        resolved_category = norm.category_for(resolved_type)
+        resolved_tags = norm.tags_for_type(metadata.get("tags", []), metadata.get("type"), resolved_type)
         item_purchase_date = _parse_datetime(purchase_date)
         item_last_worn_at = _parse_datetime(last_worn_date)
 
-        if occasion:
-            if isinstance(occasion, str):
-                item_occasion = [occasion.strip()] if occasion.strip() else metadata["occasion"]
-            elif isinstance(occasion, list):
-                item_occasion = [o.strip() for o in occasion if o and o.strip()]
-            else:
-                item_occasion = metadata["occasion"]
+        # The form picks one occasion; detection may have found several. Keep the
+        # detected ones too when they agree with the user's pick, and lead with it.
+        chosen = norm.normalise_occasions(occasion)
+        detected_occasions = norm.normalise_occasions(metadata.get("occasion"))
+        if chosen and chosen[0] in detected_occasions:
+            item_occasion = chosen + [o for o in detected_occasions if o not in chosen]
         else:
-            item_occasion = metadata["occasion"]
+            item_occasion = chosen or detected_occasions or ["casual"]
 
         # 3. Create record in database (includes embedding_id reference)
         item_doc = {
@@ -271,11 +274,11 @@ class WardrobeService:
             "type": resolved_type,
             "category": resolved_category,
             "primary_color": primary_color,
-            "secondary_colors": metadata.get("secondary_colors", []),
+            "secondary_colors": norm.normalise_colors(metadata.get("secondary_colors", [])),
             "pattern": item_pattern,
-            "sleeve_type": metadata.get("sleeve_type", "short_sleeve"),
-            "fabric": metadata.get("fabric", "user_review_needed"),
-            "season": metadata.get("season", ["all_season"]),
+            "sleeve_type": norm.normalise_sleeve(metadata.get("sleeve_type")),
+            "fabric": norm.normalise_fabric(metadata.get("fabric")) or "user_review_needed",
+            "season": norm.normalise_seasons(metadata.get("season")) or ["all_season"],
             "occasion": item_occasion,
             "tags": resolved_tags,
             "confidence": metadata.get("confidence", {}),
@@ -320,7 +323,7 @@ class WardrobeService:
             logger.error("Failed to persist wardrobe item for user_id=%s: %s", user_id, exc, exc_info=True)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Database or storage error while saving wardrobe item: {str(exc)}",
+                detail="Could not save the wardrobe item. Please try again.",
             )
 
     async def update_wardrobe_item_metadata(
@@ -335,25 +338,45 @@ class WardrobeService:
         occasion: str | list[str] | None = None,
         last_worn_date: str | datetime | None = None,
         wear_count: int | None = None,
+        item_type: str | None = None,
+        season: str | list[str] | None = None,
     ) -> dict[str, Any]:
         """Update metadata of an existing wardrobe item after verifying ownership."""
-        await self.get_item_by_id(item_id, user_id)
+        item = await self.get_item_by_id(item_id, user_id)
         updates: dict[str, Any] = {}
         if name is not None and name.strip():
             updates["name"] = name.strip()
         if color is not None and color.strip():
-            updates["primary_color"] = color.strip()
+            updates["primary_color"] = norm.normalise_color(color)
         if pattern is not None and pattern.strip():
-            updates["pattern"] = pattern.strip()
+            updates["pattern"] = norm.normalise_pattern(pattern)
+        new_type = norm.normalise_type(item_type)
+        if new_type and new_type != item.get("type"):
+            # Category and the ethnic tag follow the type, or a "gown" corrected
+            # to "dress" would keep sorting and pairing as the old garment.
+            updates["type"] = new_type
+            updates["category"] = norm.category_for(new_type)
+            updates["tags"] = norm.tags_for_type(item.get("tags") or [], item.get("type"), new_type)
+        if season is not None:
+            seasons = norm.normalise_seasons(season)
+            if not seasons:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="Pick at least one season.",
+                )
+            updates["season"] = seasons
         if brand is not None:
             updates["brand"] = brand.strip() if brand.strip() else None
         if purchase_date is not None:
             updates["purchase_date"] = _parse_datetime(purchase_date)
         if occasion is not None:
-            if isinstance(occasion, str):
-                updates["occasion"] = [occasion.strip()] if occasion.strip() else []
-            elif isinstance(occasion, list):
-                updates["occasion"] = [o.strip() for o in occasion if o and o.strip()]
+            occasions = norm.normalise_occasions(occasion)
+            if not occasions:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="Pick at least one occasion.",
+                )
+            updates["occasion"] = occasions
         if last_worn_date is not None:
             updates["last_worn_at"] = _parse_datetime(last_worn_date)
         if wear_count is not None:
@@ -400,9 +423,9 @@ class WardrobeService:
             content_type=content_type,
         )
 
-        # Re-extract AI metadata
-        metadata = ai_service.extract_clothing_metadata(file_bytes=file_bytes, filename=filename)
-
+        # The item's details are kept: a new photo of the same garment should not
+        # undo a type, season or occasion the user has corrected. Only the image
+        # and its embedding change.
         updates = {
             "image_url": media.image_url,
             "thumbnail_url": media.thumbnail_url,
@@ -412,15 +435,6 @@ class WardrobeService:
             "width": media.width,
             "height": media.height,
             "bytes": media.bytes,
-            "type": metadata["type"],
-            "category": metadata["category"],
-            "primary_color": item.get("primary_color") or metadata["primary_color"],
-            "secondary_colors": metadata.get("secondary_colors", []),
-            "pattern": item.get("pattern") or metadata["pattern"],
-            "sleeve_type": metadata.get("sleeve_type", "short_sleeve"),
-            "season": metadata["season"],
-            "occasion": item.get("occasion") or metadata["occasion"],
-            "confidence": metadata.get("confidence", {}),
         }
 
         updated_item = await wardrobe_repository.update_item(item_id, user_id, updates)

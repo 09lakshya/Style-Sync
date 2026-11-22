@@ -1,3 +1,5 @@
+import json
+
 from pydantic import BaseModel
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 
@@ -17,6 +19,8 @@ class UpdateWardrobeItemSchema(BaseModel):
     occasion: str | list[str] | None = None
     last_worn_date: str | None = None
     wear_count: int | None = None
+    item_type: str | None = None
+    season: str | list[str] | None = None
 
 
 @router.get("/items")
@@ -73,6 +77,7 @@ async def upload_wardrobe_item(
     purchase_date: str | None = Form(default=None),
     occasion: str | None = Form(default=None),
     last_worn_date: str | None = Form(default=None),
+    detected: str | None = Form(default=None),
     user_id: str = Depends(require_user),
 ) -> dict[str, object]:
     """Upload a new wardrobe item image, validate, store in Cloudinary, and save metadata to database."""
@@ -94,6 +99,7 @@ async def upload_wardrobe_item(
         occasion=occasion,
         last_worn_date=last_worn_date,
         content_type=content_type,
+        detected=_parse_detection(detected),
     )
     return {"item": _public_item(item)}
 
@@ -117,6 +123,8 @@ async def update_wardrobe_item(
         occasion=payload.occasion,
         last_worn_date=payload.last_worn_date,
         wear_count=payload.wear_count,
+        item_type=payload.item_type,
+        season=payload.season,
     )
     return {"item": _public_item(item)}
 
@@ -157,6 +165,21 @@ async def record_item_worn(
     """Increment the wear count for a wardrobe item."""
     item = await wardrobe_service.record_item_worn(item_id, user_id)
     return {"item": _public_item(item)}
+
+
+def _parse_detection(raw: str | None) -> dict[str, object] | None:
+    """The /detect result the add form was filled from, sent back as JSON.
+
+    It only fills fields the form has no input for, and every value is
+    normalised before it is stored, so a malformed one is dropped, not fatal.
+    """
+    if not raw:
+        return None
+    try:
+        parsed = json.loads(raw)
+    except (TypeError, ValueError):
+        return None
+    return parsed if isinstance(parsed, dict) else None
 
 
 def _public_item(item: dict[str, object]) -> dict[str, object]:

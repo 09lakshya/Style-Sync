@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { X, Edit2, RefreshCw, Trash2, AlertTriangle, Check, Loader2 } from 'lucide-react'
 import type { WardrobeItem } from '../../types/wardrobe'
 import { formatScore } from '../../lib/utils'
+import { occasionLabel } from '../../lib/vocabulary'
 
 interface DressDetailModalProps {
   item: WardrobeItem | null
@@ -35,7 +36,7 @@ function AxisReading({ label, value }: { label: string; value?: string[] | strin
               key={reading}
               className="rounded-full border border-[var(--accent)]/40 px-2 py-0.5 font-medium capitalize text-stone-200"
             >
-              {reading}
+              {reading.replace(/_/g, ' ')}
             </span>
           ))}
         </div>
@@ -138,7 +139,7 @@ export function DressDetailModal({
                   <div className="rounded-lg border border-[#2b2722] bg-[#211f1c] p-3">
                     <span className="text-xs text-stone-400">Occasion</span>
                     <p className="mt-1 font-semibold text-stone-200 capitalize">
-                      {item.occasion.join(', ')}
+                      {item.occasion.map(occasionLabel).join(', ')}
                     </p>
                   </div>
                   <div className="rounded-lg border border-[#2b2722] bg-[#211f1c] p-3">

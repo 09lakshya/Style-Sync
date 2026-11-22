@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { CloudUpload, X, AlertCircle, Loader2, Sparkles } from 'lucide-react'
 import { detectDressMetadata } from '../../api/wardrobeApi'
 import type { CreateDressInput, DetectedDressMetadata } from '../../types/wardrobe'
+import { GARMENT_GROUPS, OCCASIONS, toOccasion } from '../../lib/vocabulary'
 
 interface AddDressModalProps {
   isOpen: boolean
@@ -64,40 +65,6 @@ const PATTERN_OPTIONS = [
   'Other',
 ]
 
-// Mirrors TYPE_PROMPTS in the backend's ai service. Grouped so the traditional
-// wear is findable rather than buried among the western names.
-const GARMENT_GROUPS: { label: string; types: string[] }[] = [
-  {
-    label: 'Western',
-    types: [
-      'dress', 'gown', 'shirt', 'blouse', 'top', 't-shirt', 'skirt', 'pants',
-      'jeans', 'shorts', 'jumpsuit', 'romper', 'jacket', 'coat', 'blazer',
-      'sweater', 'hoodie', 'cardigan', 'waistcoat',
-    ],
-  },
-  {
-    label: 'Indian traditional',
-    types: [
-      'saree', 'lehenga', 'choli', 'anarkali', 'salwar kameez', 'patiala salwar',
-      'churidar', 'palazzo', 'sharara', 'gharara', 'kurta', 'kurti', 'angrakha',
-      'sherwani', 'bandhgala', 'nehru jacket', 'pathani suit', 'dhoti', 'lungi',
-      'mekhela chador', 'pattu pavadai', 'phiran', 'indo-western gown', 'dupatta',
-    ],
-  },
-]
-
-const OCCASION_OPTIONS = [
-  'Casual',
-  'Formal',
-  'Party',
-  'College',
-  'Office',
-  'Wedding',
-  'Sports',
-  'Travel',
-  'Traditional',
-  'Other',
-]
 
 function formatConfidence(value: number | undefined): string {
   return typeof value === 'number' ? `${Math.round(value * 100)}%` : ''
@@ -124,7 +91,7 @@ export function AddDressModal({
   const [itemType, setItemType] = useState('')
   const [brand, setBrand] = useState('')
   const [purchaseDate, setPurchaseDate] = useState('')
-  const [occasion, setOccasion] = useState('Casual')
+  const [occasion, setOccasion] = useState('casual')
   const [lastWornDate, setLastWornDate] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   // What the model read off the photo. Kept so the form can show what it filled
@@ -135,17 +102,19 @@ export function AddDressModal({
   React.useEffect(() => {
     if (!isOpen) {
       setFile(null)
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl)
-        setPreviewUrl(null)
-      }
+      // Functional update: reads the current preview without making the reset
+      // depend on it, which would re-run it every time a photo is picked.
+      setPreviewUrl((current) => {
+        if (current) URL.revokeObjectURL(current)
+        return null
+      })
       setName('')
       setColor('Blue')
       setPattern('Solid')
       setItemType('')
       setBrand('')
       setPurchaseDate('')
-      setOccasion('Casual')
+      setOccasion('casual')
       setLastWornDate('')
       setErrorMessage(null)
       setDetection(null)
@@ -206,9 +175,7 @@ export function AddDressModal({
         toOption(PATTERN_OPTIONS, detected.pattern)
       if (detectedPattern) setPattern(detectedPattern)
 
-      const detectedOccasion = detected.occasion
-        .map((entry) => toOption(OCCASION_OPTIONS, entry))
-        .find(Boolean)
+      const detectedOccasion = detected.occasion.map(toOccasion).find(Boolean)
       if (detectedOccasion) setOccasion(detectedOccasion)
     } catch (err) {
       // Detection is a convenience, never a blocker: the form still submits.
@@ -267,6 +234,10 @@ export function AddDressModal({
       purchaseDate,
       occasion,
       lastWornDate,
+      // What was detected but has no field on this form (seasons, fabric, the
+      // full occasion list...). Without it the backend re-reads those from the
+      // photo with the much less accurate local model.
+      detected: detection,
     })
   }
 
@@ -538,9 +509,9 @@ export function AddDressModal({
                 onChange={(e) => setOccasion(e.target.value)}
                 className="w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 focus:border-[var(--accent)] focus:outline-none"
               >
-                {OCCASION_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
+                {OCCASIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
                   </option>
                 ))}
               </select>

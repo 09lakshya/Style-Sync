@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { X, Loader2, AlertCircle } from 'lucide-react'
 import type { UpdateDressMetadataInput, WardrobeItem } from '../../types/wardrobe'
+import { GARMENT_GROUPS, OCCASIONS, SEASONS, toOccasion } from '../../lib/vocabulary'
 
 interface EditDressModalProps {
   item: WardrobeItem | null
@@ -50,18 +51,27 @@ const PATTERN_OPTIONS = [
   'Other',
 ]
 
-const OCCASION_OPTIONS = [
-  'Casual',
-  'Formal',
-  'Party',
-  'College',
-  'Office',
-  'Wedding',
-  'Sports',
-  'Travel',
-  'Traditional',
-  'Other',
-]
+/** The pattern option a stored value belongs to, matched case-insensitively.
+ *  A pattern that is not in the list (zari, block print...) is kept as its own
+ *  option rather than being silently replaced. */
+function toPatternOption(stored?: string): string {
+  if (!stored) return 'Solid'
+  return PATTERN_OPTIONS.find((opt) => opt.toLowerCase() === stored.trim().toLowerCase()) ?? stored
+}
+
+function storedOccasions(item: WardrobeItem | null): string[] {
+  const values = (item?.occasion ?? []).map(toOccasion).filter((o): o is string => Boolean(o))
+  return values.length ? [...new Set(values)] : ['casual']
+}
+
+function storedSeasons(item: WardrobeItem | null): string[] {
+  const values = (item?.season ?? []).filter((s) => SEASONS.some((opt) => opt.value === s))
+  return values.length ? values : ['all_season']
+}
+
+function toggle(values: string[], value: string): string[] {
+  return values.includes(value) ? values.filter((v) => v !== value) : [...values, value]
+}
 
 export function EditDressModal({ item, isOpen, onClose, onSubmit, isSubmitting }: EditDressModalProps) {
   const [name, setName] = useState(item?.name || '')
@@ -69,10 +79,12 @@ export function EditDressModal({ item, isOpen, onClose, onSubmit, isSubmitting }
   // and the text field is seeded with it.
   const [color, setColor] = useState(() => toColorOption(item?.color))
   const [customColor, setCustomColor] = useState(() => toCustomColor(item?.color))
-  const [pattern, setPattern] = useState(item?.pattern || 'Solid')
+  const [pattern, setPattern] = useState(() => toPatternOption(item?.pattern))
+  const [itemType, setItemType] = useState(item?.type || '')
   const [brand, setBrand] = useState(item?.brand || '')
   const [purchaseDate, setPurchaseDate] = useState(item?.purchaseDate || '')
-  const [occasion, setOccasion] = useState(item?.occasion[0] || 'Casual')
+  const [occasions, setOccasions] = useState(() => storedOccasions(item))
+  const [seasons, setSeasons] = useState(() => storedSeasons(item))
   const [lastWornDate, setLastWornDate] = useState(item?.lastWornDate !== 'Not worn yet' ? item?.lastWornDate || '' : '')
   // Kept as a string so the field can be cleared while typing.
   const [wearCount, setWearCount] = useState(String(item?.wearCount ?? 0))
@@ -84,10 +96,12 @@ export function EditDressModal({ item, isOpen, onClose, onSubmit, isSubmitting }
       setName(item.name)
       setColor(toColorOption(item.color))
       setCustomColor(toCustomColor(item.color))
-      setPattern(item.pattern)
+      setPattern(toPatternOption(item.pattern))
+      setItemType(item.type)
       setBrand(item.brand || '')
       setPurchaseDate(item.purchaseDate || '')
-      setOccasion(item.occasion[0] || 'Casual')
+      setOccasions(storedOccasions(item))
+      setSeasons(storedSeasons(item))
       setLastWornDate(item.lastWornDate !== 'Not worn yet' ? item.lastWornDate : '')
       setWearCount(String(item.wearCount ?? 0))
     }
@@ -98,7 +112,7 @@ export function EditDressModal({ item, isOpen, onClose, onSubmit, isSubmitting }
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!name.trim()) {
-      setErrorMessage('Please enter a dress name.')
+      setErrorMessage('Please enter a name.')
       return
     }
 
@@ -114,6 +128,16 @@ export function EditDressModal({ item, isOpen, onClose, onSubmit, isSubmitting }
       return
     }
 
+    if (occasions.length === 0) {
+      setErrorMessage('Pick at least one occasion.')
+      return
+    }
+    if (seasons.length === 0) {
+      setErrorMessage('Pick at least one season.')
+      return
+    }
+
+    setErrorMessage(null)
     onSubmit({
       id: item!.id,
       name: name.trim(),
@@ -121,7 +145,9 @@ export function EditDressModal({ item, isOpen, onClose, onSubmit, isSubmitting }
       pattern,
       brand: brand.trim(),
       purchaseDate,
-      occasion,
+      occasions,
+      seasons,
+      itemType,
       lastWornDate,
       wearCount: parsedWearCount,
     })
@@ -139,7 +165,7 @@ export function EditDressModal({ item, isOpen, onClose, onSubmit, isSubmitting }
         </button>
 
         <div className="mb-6">
-          <h2 className="text-2xl font-semibold tracking-tight text-[#f7f4ef]">Edit Dress Metadata</h2>
+          <h2 className="text-2xl font-semibold tracking-tight text-[#f7f4ef]">Edit item</h2>
           <p className="mt-1 text-sm text-stone-400">
             Update attributes for &ldquo;{item.name}&rdquo;.
           </p>
@@ -155,7 +181,7 @@ export function EditDressModal({ item, isOpen, onClose, onSubmit, isSubmitting }
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-medium uppercase tracking-wider text-stone-400 mb-1.5">
-              Dress Name *
+              Name *
             </label>
             <input
               type="text"
@@ -219,7 +245,7 @@ export function EditDressModal({ item, isOpen, onClose, onSubmit, isSubmitting }
                 onChange={(e) => setPattern(e.target.value)}
                 className="w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 focus:border-[var(--accent)] focus:outline-none"
               >
-                {PATTERN_OPTIONS.map((opt) => (
+                {(PATTERN_OPTIONS.includes(pattern) ? PATTERN_OPTIONS : [pattern, ...PATTERN_OPTIONS]).map((opt) => (
                   <option key={opt} value={opt}>
                     {opt}
                   </option>
@@ -228,18 +254,29 @@ export function EditDressModal({ item, isOpen, onClose, onSubmit, isSubmitting }
             </div>
 
             <div>
-              <label className="block text-xs font-medium uppercase tracking-wider text-stone-400 mb-1.5">
-                Occasion *
+              <label
+                htmlFor="edit-dress-type"
+                className="block text-xs font-medium uppercase tracking-wider text-stone-400 mb-1.5"
+              >
+                Garment type *
               </label>
               <select
-                value={occasion}
-                onChange={(e) => setOccasion(e.target.value)}
-                className="w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 focus:border-[var(--accent)] focus:outline-none"
+                id="edit-dress-type"
+                value={itemType}
+                onChange={(e) => setItemType(e.target.value)}
+                className="w-full rounded-md border border-[#38332c] bg-[#211f1c] px-3.5 py-2.5 text-sm text-stone-100 capitalize focus:border-[var(--accent)] focus:outline-none"
               >
-                {OCCASION_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
-                  </option>
+                {!GARMENT_GROUPS.some((group) => group.types.includes(itemType)) && (
+                  <option value={itemType}>{itemType || 'Pick a type'}</option>
+                )}
+                {GARMENT_GROUPS.map((group) => (
+                  <optgroup key={group.label} label={group.label}>
+                    {group.types.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
             </div>
@@ -290,6 +327,20 @@ export function EditDressModal({ item, isOpen, onClose, onSubmit, isSubmitting }
             </div>
           </div>
 
+          <ChipGroup
+            label="Occasions *"
+            options={OCCASIONS}
+            selected={occasions}
+            onToggle={(value) => setOccasions((prev) => toggle(prev, value))}
+          />
+
+          <ChipGroup
+            label="Seasons *"
+            options={SEASONS}
+            selected={seasons}
+            onToggle={(value) => setSeasons((prev) => toggle(prev, value))}
+          />
+
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#38332c]">
             <button
               type="button"
@@ -317,5 +368,45 @@ export function EditDressModal({ item, isOpen, onClose, onSubmit, isSubmitting }
         </form>
       </div>
     </div>
+  )
+}
+
+function ChipGroup({
+  label,
+  options,
+  selected,
+  onToggle,
+}: {
+  label: string
+  options: readonly { value: string; label: string }[]
+  selected: string[]
+  onToggle: (value: string) => void
+}) {
+  return (
+    <fieldset>
+      <legend className="block text-xs font-medium uppercase tracking-wider text-stone-400 mb-1.5">
+        {label}
+      </legend>
+      <div className="flex flex-wrap gap-1.5">
+        {options.map((option) => {
+          const active = selected.includes(option.value)
+          return (
+            <button
+              key={option.value}
+              type="button"
+              aria-pressed={active}
+              onClick={() => onToggle(option.value)}
+              className={
+                active
+                  ? 'rounded-full border border-[var(--accent)] bg-[var(--accent)] px-3 py-1 text-xs font-medium text-white'
+                  : 'rounded-full border border-[#443d34] bg-[#2a2723] px-3 py-1 text-xs text-stone-300 hover:border-[var(--accent)] hover:text-stone-100'
+              }
+            >
+              {option.label}
+            </button>
+          )
+        })}
+      </div>
+    </fieldset>
   )
 }
