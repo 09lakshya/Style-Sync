@@ -1,6 +1,7 @@
 import { AlertTriangle, Plus } from 'lucide-react'
 import type { Outfit } from '../../types/outfits'
 import { ROLE_LABELS } from '../../types/outfits'
+import { seasonLabel } from '../../lib/vocabulary'
 
 interface OutfitCardProps {
   outfit: Outfit
@@ -9,7 +10,7 @@ interface OutfitCardProps {
 
 export function OutfitCard({ outfit, onViewItem }: OutfitCardProps) {
   return (
-    <article className="flex flex-col rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-4 shadow-sm">
+    <article className="flex min-w-0 flex-col rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-4 shadow-sm">
       <div className="mb-3 flex items-start gap-3">
         <div className="min-w-0 flex-1">
           {/* The occasion lives on the section heading, so the card names the
@@ -24,7 +25,7 @@ export function OutfitCard({ outfit, onViewItem }: OutfitCardProps) {
             <span className="rounded-full bg-[var(--accent-soft)] px-2 py-0.5 font-medium text-[var(--accent-ink)]">
               {outfit.style_labels?.[outfit.style] ?? outfit.style}
             </span>
-            {outfit.seasons.map((season) => season.replace(/_/g, ' ')).join(' · ')}
+            {outfit.seasons.map(seasonLabel).join(' · ')}
             {outfit.total_wears === 0 ? ' · never worn' : ''}
           </p>
         </div>

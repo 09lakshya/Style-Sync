@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
+import { ClothesRail } from './components/auth/EditorialVisual'
 import { LoginPage } from './features/auth/LoginPage'
 import { SignupPage } from './features/auth/SignupPage'
 import type { AuthSession, AuthUser } from './features/auth/authTypes'
@@ -377,7 +378,7 @@ export function App() {
   }
 
   function handleShowTrends() {
-    scrollTo('trends')
+    scrollTo('season-trends')
   }
 
   // Reminders surfaces what you own but rarely wear, using the existing sort.
@@ -484,12 +485,9 @@ export function App() {
                 </div>
               </div>
 
+              {/* The user's own pieces, not stock photos of other people. */}
               <div className="relative min-h-[320px] overflow-hidden bg-[#d8d0c3]">
-                <img
-                  className="h-full w-full object-cover"
-                  src={session.user.gender === 'female' ? '/female.jpg' : '/virat.jpg'}
-                  alt={session.user.gender === 'female' ? 'StyleSync – Women\'s Wardrobe' : 'StyleSync Showcase'}
-                />
+                <HeroCollage items={items} />
               </div>
             </div>
           </div>
@@ -862,7 +860,7 @@ function FileInput({
     <label className="flex min-h-24 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface)] px-3 py-4 text-center text-sm text-[#5d655e]">
       <CloudUpload className="mb-2 h-5 w-5 text-[var(--accent)]" />
       <span className="font-medium">{file ? file.name : label}</span>
-      <span className="mt-1 text-xs text-[#7d847d]">JPG, PNG, or WebP up to 5 MB</span>
+      <span className="mt-1 text-xs text-[#7d847d]">JPG, PNG, or WebP up to 10 MB</span>
       <input
         className="sr-only"
         type="file"
@@ -870,6 +868,34 @@ function FileInput({
         onChange={(event) => onChange(event.target.files?.[0] ?? null)}
       />
     </label>
+  )
+}
+
+/** Up to four of the most recently added pieces; a drawing until there are any. */
+function HeroCollage({ items }: { items: WardrobeItem[] }) {
+  const pictured = items.filter((item) => item.thumbnailUrl || item.imageUrl).slice(0, 4)
+  if (pictured.length === 0) {
+    return (
+      <div className="absolute inset-0">
+        <ClothesRail />
+      </div>
+    )
+  }
+  return (
+    <div
+      className={`absolute inset-0 grid gap-1 ${pictured.length === 1 ? 'grid-cols-1' : 'grid-cols-2 grid-rows-2'}`}
+    >
+      {pictured.map((item, index) => (
+        <img
+          key={item.id}
+          src={item.mediumUrl || item.imageUrl}
+          alt={item.name}
+          className={`h-full w-full object-cover ${
+            pictured.length === 3 && index === 0 ? 'row-span-2' : ''
+          } ${pictured.length === 2 ? 'row-span-2' : ''}`}
+        />
+      ))}
+    </div>
   )
 }
 

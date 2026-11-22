@@ -91,8 +91,9 @@ export function PersonalDetailsDropdown({
         onClick={() => setOpen((v) => !v)}
         className="inline-flex items-center gap-2 rounded-lg border border-[#e1dbd0] bg-[var(--surface)] hover:bg-[var(--accent-soft)] transition-colors px-3 py-2 cursor-pointer font-medium text-xs text-[#1f2328]"
         aria-expanded={open}
+        aria-label={`Profile and settings for ${user.name}`}
       >
-        <span className="grid h-6 w-6 place-items-center rounded-full bg-[var(--accent)] text-white text-[11px] font-bold shrink-0">
+        <span aria-hidden="true" className="grid h-6 w-6 place-items-center rounded-full bg-[var(--accent)] text-white text-[11px] font-bold shrink-0">
           {initial}
         </span>
         <span className="hidden sm:inline">{user.name}</span>

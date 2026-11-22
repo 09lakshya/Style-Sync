@@ -258,7 +258,7 @@ export function TrendsSection({ token, onViewItem }: TrendsSectionProps) {
             <details
               key={group.key}
               open={index === 0}
-              className="group rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 shadow-sm"
+              className="group min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 shadow-sm"
             >
               <summary className="flex cursor-pointer list-none items-center gap-2 text-[#1f2328] marker:hidden">
                 <ChevronDown className="h-4 w-4 shrink-0 text-[#8a8f89] transition-transform group-open:rotate-180" />
@@ -268,7 +268,7 @@ export function TrendsSection({ token, onViewItem }: TrendsSectionProps) {
                 </span>
               </summary>
 
-              <div className="mt-4 grid items-start gap-4 border-t border-[var(--rule)] pt-4 lg:grid-cols-2">
+              <div className="mt-4 grid grid-cols-1 items-start gap-4 border-t border-[var(--rule)] pt-4 lg:grid-cols-2">
                 {group.outfits.map((outfit) => (
                   <OutfitCard
                     key={`${group.key}-${outfit.id}`}
