@@ -4,6 +4,27 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>StyleSync</title>
+    <!--
+      Restore the last wardrobe-derived theme before first paint so the default
+      accent never flashes. theme.ts (saveAccent) stores the computed CSS
+      variables under this key; this only copies them back, so no colour maths
+      is duplicated here.
+    -->
+    <script>
+      (function () {
+        try {
+          var vars = JSON.parse(localStorage.getItem('stylesync_accent_theme') || 'null');
+          if (!vars || typeof vars !== 'object') return;
+          var root = document.documentElement;
+          for (var name in vars) {
+            var value = vars[name];
+            if (name.indexOf('--') === 0 && typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value)) {
+              root.style.setProperty(name, value);
+            }
+          }
+        } catch (e) { /* storage blocked or malformed: fall back to CSS defaults */ }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -8,7 +8,7 @@ import {
   Shirt,
   TrendingUp,
 } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import { LoginPage } from './features/auth/LoginPage'
 import { SignupPage } from './features/auth/SignupPage'
@@ -17,7 +17,7 @@ import { PersonalDetailsDropdown } from './features/auth/PersonalDetailsDropdown
 import { getAuthHeader, readStoredSession, removeStoredSession, saveStoredSession } from './lib/auth'
 import { parseResponse } from './lib/apiError'
 import { personalCopy } from './lib/personalisation'
-import { applyAccent, resolveAccent } from './lib/theme'
+import { applyAccent, clearSavedAccent, resolveAccent, saveAccent } from './lib/theme'
 
 import {
   createWardrobeItem,
@@ -337,9 +337,20 @@ export function App() {
   // The interface takes its accent from the wardrobe, so it shifts as the
   // wardrobe does. Gender decides content, never colour.
   const accent = useMemo(() => resolveAccent(items), [items])
-  useEffect(() => {
+
+  // useLayoutEffect applies the theme before the browser paints. While the
+  // wardrobe is still loading, the theme index.html restored stays in place.
+  // Once it has loaded, remember the theme for the next visit, or forget it if
+  // the wardrobe has no colour to give (so an emptied wardrobe does not keep
+  // showing an old accent).
+  const wardrobeLoaded = wardrobeQuery.isSuccess
+  useLayoutEffect(() => {
+    if (!wardrobeLoaded && session) return
     applyAccent(accent)
-  }, [accent])
+    if (!wardrobeLoaded) return
+    if (accent.source === 'default') clearSavedAccent()
+    else saveAccent(accent)
+  }, [accent, wardrobeLoaded, session])
 
   // Copy follows the profile (which garment vocabulary to speak in) and the
   // wardrobe (what is worth saying right now).

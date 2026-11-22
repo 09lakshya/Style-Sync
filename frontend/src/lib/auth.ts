@@ -1,4 +1,5 @@
 import type { AuthSession } from '../features/auth/authTypes'
+import { clearSavedAccent } from './theme'
 
 const SESSION_KEY = 'stylesync-session'
 
@@ -67,6 +68,9 @@ export function removeStoredSession(): void {
   } catch (error) {
     console.error('Failed to remove authentication session:', error)
   }
+  // The saved theme belongs to this user; the next person to sign in on this
+  // browser should not see it.
+  clearSavedAccent()
 }
 
 export function getAuthHeader(token?: string): Record<string, string> {

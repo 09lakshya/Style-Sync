@@ -27,6 +27,14 @@ export const DEFAULT_ACCENT: AccentTheme = {
   accentInk: '#7f4b2f',
 }
 
+/**
+ * localStorage key holding the CSS variables of the last wardrobe-derived theme.
+ * index.html reads it before first paint to avoid flashing the default accent,
+ * so the stored shape (a flat map of `--name` to value) must stay in step with
+ * the restore script there.
+ */
+export const ACCENT_STORAGE_KEY = 'stylesync_accent_theme'
+
 // One entry per colour in the backend's CANDIDATE_COLORS. Each is a muted,
 // readable version of that family rather than the raw hue, so a wardrobe full
 // of bright red does not produce an unusable interface.
@@ -123,21 +131,48 @@ function mix(a: string, b: string, ratio: number): string {
  * a neutral backdrop for photographs of clothes. Text colours are left alone so
  * contrast does not move with the wardrobe.
  */
+export function accentVariables(theme: AccentTheme): Record<string, string> {
+  return {
+    '--accent': theme.accent,
+    '--accent-hover': theme.accentHover,
+    '--accent-soft': theme.accentSoft,
+    '--accent-ink': theme.accentInk,
+    '--bg': mix(BASE.bg, theme.accent, 0.06),
+    '--surface': mix(BASE.surface, theme.accent, 0.035),
+    '--surface-raised': mix('#ffffff', theme.accent, 0.025),
+    '--border': mix(BASE.border, theme.accent, 0.16),
+    '--border-soft': mix(BASE.borderSoft, theme.accent, 0.12),
+    '--rule': mix(BASE.rule, theme.accent, 0.12),
+    '--hero-from': mix(BASE.surface, theme.accent, 0.1),
+    '--hero-to': mix(BASE.surface, theme.accent, 0.02),
+  }
+}
+
 export function applyAccent(theme: AccentTheme): void {
   const root = document.documentElement
-  const set = (name: string, value: string) => root.style.setProperty(name, value)
+  for (const [name, value] of Object.entries(accentVariables(theme))) {
+    root.style.setProperty(name, value)
+  }
+}
 
-  set('--accent', theme.accent)
-  set('--accent-hover', theme.accentHover)
-  set('--accent-soft', theme.accentSoft)
-  set('--accent-ink', theme.accentInk)
+/**
+ * Persist the computed variables so index.html can restore them before the
+ * wardrobe query resolves. Storing the output rather than the inputs keeps the
+ * colour maths in this file only.
+ */
+export function saveAccent(theme: AccentTheme): void {
+  try {
+    localStorage.setItem(ACCENT_STORAGE_KEY, JSON.stringify(accentVariables(theme)))
+  } catch {
+    // Storage unavailable: the page just starts on the default accent.
+  }
+}
 
-  set('--bg', mix(BASE.bg, theme.accent, 0.06))
-  set('--surface', mix(BASE.surface, theme.accent, 0.035))
-  set('--surface-raised', mix('#ffffff', theme.accent, 0.025))
-  set('--border', mix(BASE.border, theme.accent, 0.16))
-  set('--border-soft', mix(BASE.borderSoft, theme.accent, 0.12))
-  set('--rule', mix(BASE.rule, theme.accent, 0.12))
-  set('--hero-from', mix(BASE.surface, theme.accent, 0.1))
-  set('--hero-to', mix(BASE.surface, theme.accent, 0.02))
+/** Forget the saved theme, e.g. on logout or once the wardrobe is empty. */
+export function clearSavedAccent(): void {
+  try {
+    localStorage.removeItem(ACCENT_STORAGE_KEY)
+  } catch {
+    // Storage unavailable: nothing was saved.
+  }
 }
