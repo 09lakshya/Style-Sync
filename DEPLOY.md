@@ -3,11 +3,11 @@
 | Piece    | Host                                     | Cost                                         |
 |----------|------------------------------------------|----------------------------------------------|
 | Frontend | Vercel                                   | Free                                         |
-| Backend  | DigitalOcean Droplet (Docker + Caddy)    | $12/month, covered by the GitHub Student Pack's $200 credit |
+| Backend  | Azure VM, Standard B1ms (Docker + Caddy) | About $20/month, from Azure for Students' $100 credit |
 | Database | TiDB Cloud Starter (MySQL)               | Free                                         |
 | Images   | Cloudinary                               | Free                                         |
 
-The backend needs about 2 GB of RAM for CLIP, which rules out the 512 MB free tiers. A Droplet
+The backend needs about 2 GB of RAM for CLIP, which rules out the 512 MB free tiers. A VM
 is always on, so there are no cold starts.
 
 ## 1. Database: TiDB Cloud Starter
@@ -24,14 +24,19 @@ is always on, so there are no cold starts.
    URL-encode `@ : / # ?` in the password. The backend creates the `stylesync` database's tables on first start
    (create the database itself with `CREATE DATABASE stylesync;`).
 
-## 2. Backend: DigitalOcean Droplet
+## 2. Backend: Azure VM
 
-1. Claim the DigitalOcean credit from https://education.github.com/pack.
-2. Create a Droplet:
-   - Image **Ubuntu 24.04**
-   - Size **Basic → Regular → 2 GB / 1 CPU** ($12/month)
-   - Region **New York**, the same area as the database
-   - Authentication **SSH key**: paste the deploy machine's `~/.ssh/id_ed25519.pub`
+1. Activate **Azure for Students** (https://azure.microsoft.com/free/students). It gives $100 of credit and needs no card.
+2. Create a virtual machine:
+   - Image **Ubuntu Server 24.04 LTS (x64)**
+   - Region **East US**, the same area as the database
+   - Size **Standard_B1ms** (1 vCPU, 2 GiB)
+   - Authentication **SSH public key**, username `azureuser`. Choose "Use existing public key" and paste the deploy
+     machine's `~/.ssh/id_ed25519.pub`.
+   - Inbound ports: **SSH (22), HTTP (80), HTTPS (443)**
+   - Disk: **Standard SSD**
+   - After creating it, open its **Public IP address** resource and set the assignment to **Static**, so the address
+     (and the API URL) never changes.
 3. Fill in the secrets:
 
    ```
@@ -41,19 +46,21 @@ is always on, so there are no cold starts.
 4. One-time server setup (installs Docker, adds swap, sets up the firewall, clones the repo):
 
    ```
-   ssh root@<ip> 'bash -s' < backend/deploy/server_setup.sh
+   ssh azureuser@<ip> 'sudo bash -s' < backend/deploy/server_setup.sh
    ```
 
 5. Deploy. Run the same command again for every later update; it pulls `main` from GitHub:
 
    ```
-   bash backend/deploy/deploy_server.sh <ip>
+   bash backend/deploy/deploy_server.sh azureuser@<ip>
    ```
 
    The first build takes about 10 minutes. The API is then at `https://<ip-with-dashes>.sslip.io/api/v1`.
    sslip.io maps that name to the IP, and Caddy gets a free HTTPS certificate for it automatically.
 
-Logs: `ssh root@<ip> 'cd /opt/stylesync && docker compose -f backend/deploy/docker-compose.yml logs -f api'`
+Logs: `ssh azureuser@<ip> 'cd /opt/stylesync && docker compose -f backend/deploy/docker-compose.yml logs -f api'`
+
+To stop spending credit, **Stop** the VM in the portal. A stopped (deallocated) VM costs only its disk and IP.
 
 ## 3. Frontend: Vercel
 

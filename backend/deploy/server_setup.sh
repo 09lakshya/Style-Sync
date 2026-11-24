@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# One-time setup on a fresh Ubuntu server, run as root:
-#   bash server_setup.sh
+# One-time setup on a fresh Ubuntu server:
+#   ssh <user>@<ip> 'sudo bash -s' < backend/deploy/server_setup.sh
 # Installs Docker, adds swap (building torch needs it on a 2 GB server),
 # opens the firewall for SSH/HTTP/HTTPS, and clones the repo to /opt/stylesync.
 set -euo pipefail
@@ -24,5 +24,11 @@ ufw --force enable
 
 if [ ! -d /opt/stylesync ]; then
   git clone https://github.com/09lakshya/Style-Sync.git /opt/stylesync
+fi
+
+# Let the login user (e.g. azureuser) pull and run docker without sudo.
+if [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != root ]; then
+  chown -R "$SUDO_USER:$SUDO_USER" /opt/stylesync
+  usermod -aG docker "$SUDO_USER"
 fi
 echo "Setup done."
