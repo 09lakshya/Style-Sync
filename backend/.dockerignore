@@ -1,0 +1,10 @@
+**/__pycache__
+**/*.pyc
+.pytest_cache
+.env
+*.db
+tests
+scripts
+deploy
+app/modules/ai/checkpoints/*.candidate.pth
+app/modules/ai/checkpoints/mobilenetv2_fashion.pth

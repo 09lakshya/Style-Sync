@@ -1,4 +1,5 @@
 import logging
+import ssl
 from typing import AsyncGenerator, Any
 
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
@@ -8,6 +9,20 @@ from app.core.config import settings
 from app.core.models import Base
 
 logger = logging.getLogger("stylesync.database")
+
+def _engine_kwargs() -> dict[str, Any]:
+    """Engine options for the configured backend.
+
+    Hosted MySQL closes idle connections, so they are checked before use and
+    recycled before the server's timeout.
+    """
+    if not settings.database_url.startswith("mysql"):
+        return {}
+    kwargs: dict[str, Any] = {"pool_pre_ping": True, "pool_recycle": 280}
+    if settings.database_ssl:
+        kwargs["connect_args"] = {"ssl": ssl.create_default_context()}
+    return kwargs
+
 
 class DatabaseManager:
     engine = None
@@ -42,6 +57,7 @@ async def connect_db() -> None:
         db_manager.engine = create_async_engine(
             settings.database_url,
             echo=False,
+            **_engine_kwargs(),
         )
         
         # Create session factory
@@ -54,7 +70,8 @@ async def connect_db() -> None:
         # Initialize tables & auto-migrate missing columns
         async with db_manager.engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
-            await _migrate_sqlite_columns(conn)
+            if conn.dialect.name == "sqlite":
+                await _migrate_sqlite_columns(conn)
             
         logger.info("Successfully connected to SQL database and initialized tables.")
     except Exception as exc:
@@ -76,6 +93,7 @@ def get_session_maker() -> async_sessionmaker[AsyncSession]:
         db_manager.engine = create_async_engine(
             settings.database_url,
             echo=False,
+            **_engine_kwargs(),
         )
         db_manager.session_maker = async_sessionmaker(
             bind=db_manager.engine,

@@ -1,7 +1,17 @@
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import Column, String, Integer, Float, JSON, DateTime, ForeignKey
+from sqlalchemy import Column, String, Text, Integer, Float, JSON, DateTime, ForeignKey
+from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import declarative_base, relationship
+
+
+@compiles(String, "mysql")
+def _mysql_string(type_, compiler, **kw):
+    # SQLite takes a bare String, MySQL needs a length. 255 covers every
+    # id, name and label here; URL columns are Text instead.
+    if type_.length is None and not isinstance(type_, Text):
+        return "VARCHAR(255)"
+    return compiler.visit_string(type_, **kw)
 
 Base = declarative_base()
 
@@ -34,9 +44,9 @@ class WardrobeItem(Base):
     name = Column(String, nullable=False)
     
     # Media
-    image_url = Column(String)
-    thumbnail_url = Column(String)
-    medium_url = Column(String)
+    image_url = Column(Text)  # may hold a base64 data URI when Cloudinary is off
+    thumbnail_url = Column(Text)  # may hold a base64 data URI when Cloudinary is off
+    medium_url = Column(Text)  # may hold a base64 data URI when Cloudinary is off
     public_id = Column(String)
     format = Column(String)
     width = Column(Integer)
@@ -97,7 +107,7 @@ class ShoppingCheck(Base):
 
     id = Column(String, primary_key=True, default=generate_uuid, index=True)
     user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    query_image_url = Column(String)
+    query_image_url = Column(Text)  # may hold a base64 data URI when Cloudinary is off
     similar_items = Column(JSON, default=list)
     decision = Column(String)
     highest_similarity = Column(Float)

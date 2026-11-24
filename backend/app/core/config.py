@@ -5,11 +5,14 @@ import os
 class Settings(BaseSettings):
     app_name: str = "StyleSync"
     api_v1_prefix: str = "/api/v1"
+    # Comma-separated, e.g. "https://stylesync.vercel.app,https://www.example.com"
     frontend_origin: str = "http://localhost:5173"
     jwt_secret: str = "stylesync-dev-super-secret-key-change-in-production"
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60 * 24  # 24 hours
     database_url: str = "sqlite+aiosqlite:///./stylesync.db"
+    # Hosted MySQL (TiDB Cloud, Aiven) requires TLS; set DATABASE_SSL=true there.
+    database_ssl: bool = False
     cloudinary_cloud_name: str = ""
     cloudinary_api_key: str = ""
     cloudinary_api_secret: str = ""
