@@ -1,81 +1,69 @@
-# Deploying StyleSync (free tier)
+# Deploying StyleSync
 
-| Piece    | Host                              | Why                                                        |
-|----------|-----------------------------------|------------------------------------------------------------|
-| Frontend | Vercel                            | Free, global CDN, builds from GitHub on every push         |
-| Backend  | Hugging Face Space (Docker)       | Free 2 vCPU / 16 GB RAM: enough for CLIP; sleeps only after 48 h idle |
-| Database | TiDB Cloud Serverless (MySQL)     | Free, persistent; the Space's disk is wiped on restart     |
-| Images   | Cloudinary                        | Already wired in                                           |
+| Piece    | Host                                     | Cost                                         |
+|----------|------------------------------------------|----------------------------------------------|
+| Frontend | Vercel                                   | Free                                         |
+| Backend  | DigitalOcean Droplet (Docker + Caddy)    | $12/month, covered by the GitHub Student Pack's $200 credit |
+| Database | TiDB Cloud Starter (MySQL)               | Free                                         |
+| Images   | Cloudinary                               | Free                                         |
 
-Do the steps in order: the backend URL goes into Vercel, and the Vercel URL goes back into the backend.
+The backend needs about 2 GB of RAM for CLIP, which rules out the 512 MB free tiers. A Droplet
+is always on, so there are no cold starts.
 
-## 1. Database: TiDB Cloud Serverless
+## 1. Database: TiDB Cloud Starter
 
-1. Sign up at https://tidbcloud.com and create a **Serverless** cluster (free).
-2. Click **Connect**, choose **General**, and generate a password.
-3. Create the database: in the SQL editor, run `CREATE DATABASE stylesync;`
-4. Build the URL: replace the `mysql://` scheme with `mysql+aiomysql://`:
+1. At https://tidbcloud.com, create a **Starter** cluster (AWS, `us-east-1`, MySQL compatibility).
+2. Under **Networking**, add a rule allowing `0.0.0.0` – `255.255.255.255`. Every connection still needs the
+   password and TLS.
+3. Click **Connect**, choose **General**, generate a password, and build the URL:
 
    ```
    mysql+aiomysql://<user>:<password>@<host>:4000/stylesync
    ```
 
-   If the password contains `@ : / #`, URL-encode it.
+   URL-encode `@ : / # ?` in the password. The backend creates the `stylesync` database's tables on first start
+   (create the database itself with `CREATE DATABASE stylesync;`).
 
-Tables are created automatically the first time the backend starts.
+## 2. Backend: DigitalOcean Droplet
 
-## 2. Backend: Hugging Face Space
-
-1. Sign up at https://huggingface.co and create a token with **Write** access
-   (Settings → Access Tokens).
-2. Fill in the secrets:
+1. Claim the DigitalOcean credit from https://education.github.com/pack.
+2. Create a Droplet:
+   - Image **Ubuntu 24.04**
+   - Size **Basic → Regular → 2 GB / 1 CPU** ($12/month)
+   - Region **New York**, the same area as the database
+   - Authentication **SSH key**: paste the deploy machine's `~/.ssh/id_ed25519.pub`
+3. Fill in the secrets:
 
    ```
    cp backend/deploy/env.production.example backend/.env.production   # git-ignored
    ```
 
-   For now, set `FRONTEND_ORIGIN=https://placeholder.vercel.app`. You'll fix it in step 4.
-3. Push:
+4. One-time server setup (installs Docker, adds swap, sets up the firewall, clones the repo):
 
    ```
-   pip install huggingface_hub
-   huggingface-cli login
-   python backend/scripts/deploy_hf_space.py <your-hf-username>/stylesync-api --env-file backend/.env.production
+   ssh root@<ip> 'bash -s' < backend/deploy/server_setup.sh
    ```
 
-4. Watch the build at `https://huggingface.co/spaces/<user>/stylesync-api`. The first build takes about 10 minutes
-   (torch plus the baked-in CLIP model). When it's done, this should return `{"status":"ok"}`:
+5. Deploy. Run the same command again for every later update; it pulls `main` from GitHub:
 
    ```
-   https://<user>-stylesync-api.hf.space/health
+   bash backend/deploy/deploy_server.sh <ip>
    ```
 
-Re-run the same command after any backend change. Leave off `--env-file` if the secrets haven't changed.
+   The first build takes about 10 minutes. The API is then at `https://<ip-with-dashes>.sslip.io/api/v1`.
+   sslip.io maps that name to the IP, and Caddy gets a free HTTPS certificate for it automatically.
 
-> The Space must be **public** for the browser to reach the API. A public Space shows its
-> source code (but never its secrets). If the code must stay private, use a paid
-> private Space or another host.
+Logs: `ssh root@<ip> 'cd /opt/stylesync && docker compose -f backend/deploy/docker-compose.yml logs -f api'`
 
 ## 3. Frontend: Vercel
 
-1. Push this repo to GitHub, then at https://vercel.com click **Add New → Project** and import it.
+1. At https://vercel.com, click **Add New → Project** and import the GitHub repo.
 2. Set **Root Directory** to `frontend`. `frontend/vercel.json` handles the build settings and SPA routing.
-3. Under **Environment Variables**, add:
-
-   ```
-   VITE_API_URL = https://<user>-stylesync-api.hf.space/api/v1
-   ```
-
-4. Deploy. Note the URL, e.g. `https://stylesync.vercel.app`.
+3. Add the environment variable `VITE_API_URL = https://<ip-with-dashes>.sslip.io/api/v1`, then deploy.
 
 ## 4. Connect them
 
-In the Space, open **Settings → Variables and secrets** and set `FRONTEND_ORIGIN` to the Vercel URL
-(no trailing slash; separate several URLs with commas). The Space restarts on its own.
+Set `FRONTEND_ORIGIN` in `backend/.env.production` to the Vercel URL (no trailing slash; separate several URLs
+with commas), then re-run `deploy_server.sh`.
 
-## Notes
-
-- **Sleep:** a free Space sleeps after 48 h with no requests, and the first request after that takes about 1 minute.
-  A free uptime pinger (e.g. UptimeRobot hitting `/health` every few hours) keeps it awake.
-- **Local development is unchanged:** SQLite and `localhost` still work with the existing `.env`.
-- **Run the image elsewhere:** `docker build -t stylesync-api backend && docker run -p 7860:7860 --env-file backend/.env.production stylesync-api`
+Local development is unchanged: SQLite and `localhost` still work with the existing `.env`.

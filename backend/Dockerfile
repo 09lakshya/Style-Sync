@@ -1,4 +1,4 @@
-# Backend image for a Hugging Face Docker Space (also runs on any Docker host).
+# Backend image. Run behind Caddy with backend/deploy/docker-compose.yml.
 FROM python:3.12-slim
 
 # libglib2.0-0 is what opencv-python-headless still links against.
@@ -6,7 +6,7 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends libglib2.0-0 ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Spaces run the container as uid 1000.
+# Run as an unprivileged user.
 RUN useradd -m -u 1000 user
 USER user
 ENV HOME=/home/user \

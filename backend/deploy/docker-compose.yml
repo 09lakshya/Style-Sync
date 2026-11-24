@@ -1,0 +1,28 @@
+# Runs the API behind Caddy (automatic HTTPS) on a single server.
+#   DOMAIN=<ip-with-dashes>.sslip.io docker compose -f backend/deploy/docker-compose.yml up -d --build
+services:
+  api:
+    build: ..
+    env_file: ../.env.production
+    restart: unless-stopped
+    expose:
+      - "7860"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN, e.g. 1-2-3-4.sslip.io}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+
+volumes:
+  caddy_data:
+  caddy_config:
