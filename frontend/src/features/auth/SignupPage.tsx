@@ -17,7 +17,7 @@ export function SignupPage({ onSessionSuccess, onNavigateToLogin }: SignupPagePr
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  // Asked here because it decides the trend mix and styling rules from the
+  // Asked here because it decides the styling rules from the
   // first session; there is no sensible way to infer it later.
   const [gender, setGender] = useState<ProfileGender | ''>('')
   const [errors, setErrors] = useState<FormErrors>({})
@@ -65,7 +65,7 @@ export function SignupPage({ onSessionSuccess, onNavigateToLogin }: SignupPagePr
     }
 
     if (!genderVal) {
-      newErrors.gender = 'Choose an option so your trends and styling can be tailored.'
+      newErrors.gender = 'Choose an option so your styling can be tailored.'
     }
 
     setErrors(newErrors)
@@ -216,7 +216,7 @@ export function SignupPage({ onSessionSuccess, onNavigateToLogin }: SignupPagePr
                 ))}
               </div>
               <p className="mt-2 text-[11px] leading-5 text-[#62605A]">
-                This selects which trends and styling conventions you are shown. Your theme comes
+                This selects which styling conventions you are shown. Your theme comes
                 from your own wardrobe, not from this answer.
               </p>
               {errors.gender && (

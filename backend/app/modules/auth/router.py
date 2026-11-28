@@ -18,7 +18,7 @@ class AuthRequest(BaseModel):
 
 class RegisterRequest(AuthRequest):
     name: str = Field(min_length=2, max_length=80)
-    # Asked at sign-up because it decides which trends and styling rules apply.
+    # Asked at sign-up because it decides which styling rules apply.
     # "unspecified" is a real answer, not a missing one, and is styled as unisex.
     gender: Literal["female", "male", "non-binary", "unspecified"] = "unspecified"
 

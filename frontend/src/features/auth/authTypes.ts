@@ -1,4 +1,4 @@
-/** What the user tells us at sign-up. Drives which trends and styling rules
+/** What the user tells us at sign-up. Drives which styling rules
  *  apply, never a colour on its own. "unspecified" is a real answer. */
 export type ProfileGender = 'female' | 'male' | 'non-binary' | 'unspecified'
 

@@ -5,7 +5,7 @@ import type { WardrobeItem } from '../types/wardrobe'
  *
  * Two people of the same gender own different clothes, so tying the theme to
  * gender would say less about them than their own rail does. Gender decides
- * which trends and styling conventions apply; this decides what the app looks
+ * which styling conventions apply; this decides what the app looks
  * like. A wardrobe of olive and cream gets an olive app.
  */
 export interface AccentTheme {

@@ -66,13 +66,13 @@ export function personalCopy(
   let heroBody: string
   if (count === 0) {
     heroBody =
-      'Add your first piece and StyleSync reads its type, colour, pattern and fabric from the photo — including traditional wear — then scores this season’s trends against what you own.'
+      'Add your first piece and StyleSync reads its type, colour, pattern and fabric from the photo — including traditional wear — then builds outfits from what you own.'
   } else if (worn === 0) {
-    heroBody = `${count} piece${count === 1 ? '' : 's'} catalogued, none worn yet. Mark what you wear and your trends, reminders and palette start following your real rotation.`
+    heroBody = `${count} piece${count === 1 ? '' : 's'} catalogued, none worn yet. Mark what you wear and your outfits, reminders and palette start following your real rotation.`
   } else if (hasPalette) {
-    heroBody = `${count} pieces, ${worn} in rotation. Your wardrobe reads ${accentSource} — the app is tinted to match, and your trends are scored against these clothes.`
+    heroBody = `${count} pieces, ${worn} in rotation. Your wardrobe reads ${accentSource} — the app is tinted to match, and your outfits are built from these clothes.`
   } else {
-    heroBody = `${count} pieces, ${worn} in rotation. Trends below are scored against what you actually own, not a generic list.`
+    heroBody = `${count} pieces, ${worn} in rotation. Outfits below are built from what you actually own, not a generic list.`
   }
 
   const wardrobeSubtitle =

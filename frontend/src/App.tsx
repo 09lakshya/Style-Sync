@@ -6,7 +6,6 @@ import {
   Plus,
   Search,
   Shirt,
-  TrendingUp,
 } from 'lucide-react'
 import { useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
@@ -34,8 +33,7 @@ import { WardrobeFilterBar } from './features/wardrobe/WardrobeFilterBar'
 import { WardrobeGrid } from './features/wardrobe/WardrobeGrid'
 import { DuplicateAlertModal } from './features/shopping/DuplicateAlertModal'
 import { OutfitAnalysisPanel } from './features/outfit/OutfitAnalysisPanel'
-import { TrendFeedSection } from './features/trends/TrendFeedSection'
-import { TrendsSection } from './features/trends/TrendsSection'
+import { OutfitsSection } from './features/outfits/OutfitsSection'
 import type { DuplicateCheckResult, DuplicateDecision, ShoppingAdvisorInsight, SimilarItem } from './types/shopping'
 import type {
   CreateDressInput,
@@ -136,10 +134,10 @@ export function App() {
   })
 
   // Everything on the page that is computed from the wardrobe. A change to any
-  // item re-reads all of it, not just the grid, so outfits, trends and the
+  // item re-reads all of it, not just the grid, so outfits and the
   // analytics never show the wardrobe as it was before the change.
   function refreshWardrobeViews() {
-    for (const key of ['wardrobe-items', 'wardrobe-analytics', 'outfits', 'trend-feed', 'trend-signals']) {
+    for (const key of ['wardrobe-items', 'wardrobe-analytics', 'outfits']) {
       void queryClient.invalidateQueries({ queryKey: [key] })
     }
   }
@@ -376,10 +374,6 @@ export function App() {
     scrollTo('wardrobe')
   }
 
-  function handleShowTrends() {
-    scrollTo('season-trends')
-  }
-
   // Reminders surfaces what you own but rarely wear, using the existing sort.
   function handleShowReminders() {
     setFilters((prev) => ({ ...prev, sortBy: 'least_recently_worn' }))
@@ -450,7 +444,6 @@ export function App() {
           onSignOut={handleSignOut}
           onUpdateUser={handleUpdateUser}
           onShowWardrobe={handleShowWardrobe}
-          onShowTrends={handleShowTrends}
           onShowReminders={handleShowReminders}
         />
 
@@ -567,15 +560,7 @@ export function App() {
 
         <OutfitAnalysisPanel token={session.token} />
 
-        <TrendsSection
-          token={session.token}
-          onViewItem={(itemId) => {
-            const matchedItem = items.find((item) => item.id === itemId)
-            if (matchedItem) setSelectedDetailItem(matchedItem)
-          }}
-        />
-
-        <TrendFeedSection
+        <OutfitsSection
           token={session.token}
           onViewItem={(itemId) => {
             const matchedItem = items.find((item) => item.id === itemId)
@@ -765,7 +750,6 @@ function TopBar({
   onSignOut,
   onUpdateUser,
   onShowWardrobe,
-  onShowTrends,
   onShowReminders,
 }: {
   user: AuthUser
@@ -773,7 +757,6 @@ function TopBar({
   onSignOut: () => void
   onUpdateUser: (updated: AuthUser) => void
   onShowWardrobe: () => void
-  onShowTrends: () => void
   onShowReminders: () => void
 }) {
   return (
@@ -789,7 +772,6 @@ function TopBar({
       </div>
       <nav className="flex flex-wrap gap-2 text-sm text-[#4f574f]">
         <NavPill icon={Layers3} label="My Wardrobe" onClick={onShowWardrobe} />
-        <NavPill icon={TrendingUp} label="Trends" onClick={onShowTrends} />
         <NavPill icon={CalendarDays} label="Reminders" onClick={onShowReminders} />
         <PersonalDetailsDropdown
           user={user}

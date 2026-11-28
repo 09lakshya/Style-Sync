@@ -1,8 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
-import { ArrowDownRight, ArrowUpRight, ChevronDown, Loader2, Sparkles } from 'lucide-react'
+import { ChevronDown, Loader2, Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import { fetchOutfits } from '../../api/outfitsApi'
-import { fetchTrendSignals } from '../../api/trendsApi'
 import type { Outfit, OutfitFilters, OutfitGrouping, OutfitSort } from '../../types/outfits'
 import {
   OCCASION_ORDER,
@@ -67,7 +66,7 @@ function groupOutfits(outfits: Outfit[], axis: OutfitGrouping, selected: string)
     .map(([key, group]) => ({ key, ...group }))
 }
 
-interface TrendsSectionProps {
+interface OutfitsSectionProps {
   token: string
   onViewItem: (itemId: string) => void
 }
@@ -77,7 +76,7 @@ interface TrendsSectionProps {
  * wear it. The pairings and the reasoning come from the backend's rule set, so
  * every card can say why it is on screen.
  */
-export function TrendsSection({ token, onViewItem }: TrendsSectionProps) {
+export function OutfitsSection({ token, onViewItem }: OutfitsSectionProps) {
   const [filters, setFilters] = useState<OutfitFilters>({
     occasion: 'All',
     season: 'All',
@@ -92,14 +91,7 @@ export function TrendsSection({ token, onViewItem }: TrendsSectionProps) {
     enabled: Boolean(token),
   })
 
-  const signalsQuery = useQuery({
-    queryKey: ['trend-signals'],
-    queryFn: () => fetchTrendSignals(token),
-    enabled: Boolean(token),
-  })
-
   const data = outfitsQuery.data
-  const signals = signalsQuery.data?.signals ?? []
   const groups = data
     ? groupOutfits(
         data.outfits,
@@ -109,7 +101,7 @@ export function TrendsSection({ token, onViewItem }: TrendsSectionProps) {
     : []
 
   return (
-    <section id="trends" className="scroll-mt-4 space-y-4">
+    <section id="outfits" className="scroll-mt-4 space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="flex items-center gap-2 text-2xl font-bold text-[#1f2328]">
@@ -123,31 +115,6 @@ export function TrendsSection({ token, onViewItem }: TrendsSectionProps) {
           </p>
         </div>
       </div>
-
-      {/* Wardrobe signals: colour rotation, momentum, what is going unworn. */}
-      {signals.length > 0 && (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {signals.map((signal) => (
-            <div
-              key={signal.id}
-              className="rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-3 shadow-sm"
-            >
-              <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-[#8a8f89]">
-                {signal.direction === 'up' ? (
-                  <ArrowUpRight className="h-3.5 w-3.5 text-[#4a6540]" />
-                ) : (
-                  <ArrowDownRight className="h-3.5 w-3.5 text-[#8c3f27]" />
-                )}
-                {signal.label}
-              </div>
-              <p className="mt-1 truncate text-lg font-semibold capitalize text-[#1f2328]">
-                {signal.value}
-              </p>
-              <p className="mt-1 text-xs leading-5 text-[#687068]">{signal.detail}</p>
-            </div>
-          ))}
-        </div>
-      )}
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2.5 shadow-sm">
@@ -251,13 +218,11 @@ export function TrendsSection({ token, onViewItem }: TrendsSectionProps) {
         </div>
       ) : groups.length > 0 ? (
         <div className="space-y-3">
-          {/* Each category is its own dropdown. The first opens by default so the
-              section is never a wall of closed headings; <details> gives the
-              open/close behaviour and keyboard support without extra state. */}
-          {groups.map((group, index) => (
+          {/* Each category is its own dropdown, closed until opened; <details>
+              gives the open/close behaviour and keyboard support without extra state. */}
+          {groups.map((group) => (
             <details
               key={group.key}
-              open={index === 0}
               className="group min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 shadow-sm"
             >
               <summary className="flex cursor-pointer list-none items-center gap-2 text-[#1f2328] marker:hidden">
