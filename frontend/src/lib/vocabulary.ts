@@ -24,6 +24,13 @@ export const GARMENT_GROUPS: { label: string; types: string[] }[] = [
       'mekhela chador', 'pattu pavadai', 'phiran', 'indo-western gown', 'dupatta',
     ],
   },
+  {
+    label: 'Footwear',
+    types: [
+      'boots', 'sneakers', 'formal shoes', 'loafers', 'heels', 'flats', 'sandals',
+      'juttis', 'kolhapuris',
+    ],
+  },
 ]
 
 export interface VocabularyOption {

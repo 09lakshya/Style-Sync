@@ -16,6 +16,7 @@ from app.modules.ai.service import (
     CANDIDATE_SEASONS,
     CANDIDATE_SLEEVES,
     ETHNIC_TYPES,
+    FOOTWEAR_TYPES,
     ONE_PIECE_TYPES,
     OUTERWEAR_TYPES,
 )
@@ -51,6 +52,25 @@ TYPE_SYNONYMS = {
     "palazzos": "palazzo",
     "palazzo pants": "palazzo",
     "stole": "dupatta",
+    "boot": "boots",
+    "ankle boots": "boots",
+    "chelsea boots": "boots",
+    "sneaker": "sneakers",
+    "trainers": "sneakers",
+    "oxfords": "formal shoes",
+    "derby shoes": "formal shoes",
+    "brogues": "formal shoes",
+    "loafer": "loafers",
+    "heel": "heels",
+    "pumps": "heels",
+    "stilettos": "heels",
+    "ballet flats": "flats",
+    "sandal": "sandals",
+    "slides": "sandals",
+    "jutti": "juttis",
+    "mojari": "juttis",
+    "mojaris": "juttis",
+    "kolhapuri": "kolhapuris",
 }
 
 # Occasion words Gemini and older versions of the form use, mapped onto the
@@ -153,7 +173,7 @@ def category_for(garment: str) -> str:
         return "one_piece"
     if garment in OUTERWEAR_TYPES:
         return "outerwear"
-    if garment in ACCESSORY_TYPES:
+    if garment in ACCESSORY_TYPES or garment in FOOTWEAR_TYPES:
         return "accessories"
     return "separates"
 

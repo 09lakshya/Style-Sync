@@ -407,3 +407,48 @@ async def test_two_pieces_with_the_same_pattern_are_described_once():
     warnings = " ".join(result["outfits"][0]["warnings"])
     assert "both embroidered" in warnings
     assert "embroidered and embroidered" not in warnings
+
+
+# --- footwear ------------------------------------------------------------
+
+def test_footwear_has_its_own_slot():
+    assert rules.slot_of(piece(type="boots")) == "footwear"
+    assert rules.slot_of(piece(type="juttis")) == "footwear"
+
+
+@pytest.mark.asyncio
+async def test_boots_finish_a_western_outfit():
+    user = await register_user("Booted", "boots@example.com", "Password123!")
+    result = await build(
+        str(user["id"]),
+        [
+            piece(name="White shirt", type="shirt"),
+            piece(name="Blue jeans", type="jeans", primary_color="blue"),
+            piece(name="Chelsea boots", type="boots", primary_color="black", season=["fall", "winter"]),
+        ],
+    )
+    # Shoes finish an outfit; they are not an outfit of their own.
+    assert result["count"] == 1
+    roles = [p["role"] for p in result["outfits"][0]["pieces"]]
+    assert roles == ["top", "bottom", "footwear"]
+
+
+@pytest.mark.asyncio
+async def test_boots_are_kept_off_a_traditional_outfit_and_out_of_summer():
+    user = await register_user("Juttis", "juttis@example.com", "Password123!")
+    user_id = str(user["id"])
+    for item in [
+        piece(name="Red saree", type="saree", primary_color="red"),
+        piece(name="Shirt", type="shirt"),
+        piece(name="Trousers", type="pants", primary_color="navy"),
+        piece(name="Chelsea boots", type="boots", primary_color="black", season=["fall", "winter"]),
+    ]:
+        await wardrobe_repository.create_item({**item, "user_id": user_id})
+
+    result = await OutfitService().suggest(user_id, limit=20)
+    by_core = {o["pieces"][0]["name"]: o for o in result["outfits"]}
+    assert "footwear" not in {p["role"] for p in by_core["Red saree"]["pieces"]}
+    assert "footwear" in {p["role"] for p in by_core["Shirt"]["pieces"]}
+
+    summer = await OutfitService().suggest(user_id, season="summer", limit=20)
+    assert all(p["role"] != "footwear" for o in summer["outfits"] for p in o["pieces"])

@@ -1,4 +1,4 @@
-export type OutfitRole = 'top' | 'bottom' | 'one_piece' | 'layer' | 'accessory'
+export type OutfitRole = 'top' | 'bottom' | 'one_piece' | 'layer' | 'accessory' | 'footwear'
 
 export interface OutfitPiece {
   role: OutfitRole
@@ -92,4 +92,5 @@ export const ROLE_LABELS: Record<OutfitRole, string> = {
   one_piece: 'Whole outfit',
   layer: 'Layer',
   accessory: 'Finish',
+  footwear: 'Shoes',
 }

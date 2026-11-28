@@ -15,6 +15,7 @@ from app.modules.ai.service import (
     ACCESSORY_TYPES,
     BOTTOM_TYPES,
     ETHNIC_TYPES,
+    FOOTWEAR_TYPES,
     ONE_PIECE_TYPES,
     OUTERWEAR_TYPES,
     TOP_TYPES,
@@ -109,6 +110,10 @@ WESTERN_CASUAL_LAYERS = {
     "jacket", "coat", "hoodie", "cardigan", "blazer", "sweater"
 }
 
+# Western shoes that look wrong under a fully traditional outfit (boots or
+# sneakers with a saree). Heels, flats and sandals work with both traditions.
+WESTERN_ONLY_FOOTWEAR = {"boots", "sneakers", "formal shoes", "loafers"}
+
 # Fabrics that clash structurally or sensorially
 HEAVY_LEATHER_OR_WINTER = {"leather", "shearling", "fleece", "heavy wool", "down"}
 DELICATE_SUMMER_FABRICS = {"linen", "chiffon", "georgette", "silk"}
@@ -127,6 +132,8 @@ def slot_of(item: dict[str, Any]) -> str | None:
         return "layer"
     if garment in ACCESSORY_TYPES:
         return "accessory"
+    if garment in FOOTWEAR_TYPES:
+        return "footwear"
     return None
 
 
@@ -324,3 +331,32 @@ def resolve_occasion(pieces: list[dict[str, Any]]) -> tuple[str, bool, list[str]
     everything = set.union(*sets)
     headline = max(everything, key=lambda o: OCCASION_RANK.get(o, 1))
     return headline, False, [headline]
+
+
+def can_wear_footwear(
+    shoe: dict[str, Any],
+    style: str,
+    occasions: list[str],
+    outfit_colors: set[str],
+    season: str | None = None,
+) -> bool:
+    """Whether a pair of shoes can finish an outfit that is already built."""
+    shoe_type = str(shoe.get("type") or "").lower()
+    if style == "traditional" and shoe_type in WESTERN_ONLY_FOOTWEAR:
+        return False
+    if style == "western" and is_ethnic(shoe):
+        return False
+
+    # Shoes logged for specific occasions only go where they were logged for;
+    # untagged shoes are not ruled out.
+    shoe_occasions = occasions_of(shoe)
+    if shoe_occasions and not shoe_occasions & set(occasions):
+        return False
+
+    # Only the season being asked for is checked: an all-season outfit is
+    # still a winter outfit when worn with winter boots.
+    shoe_seasons = seasons_of(shoe) - {"all_season"}
+    if season and shoe_seasons and season not in shoe_seasons:
+        return False
+
+    return not clashes(colors_of(shoe), outfit_colors)

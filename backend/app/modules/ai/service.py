@@ -67,6 +67,17 @@ TYPE_PROMPTS: dict[str, str] = {
     "phiran": "a phiran, a loose Kashmiri woollen overgarment",
     "indo-western gown": "an indo-western gown blending Indian embroidery with a western cut",
     "dupatta": "a dupatta, a long Indian scarf or stole",
+    # Footwear. Without these a photo of boots is forced onto the nearest
+    # garment word and never reaches the outfit builder's footwear slot.
+    "boots": "a pair of boots",
+    "sneakers": "a pair of sneakers",
+    "formal shoes": "a pair of polished leather formal shoes",
+    "loafers": "a pair of loafers",
+    "heels": "a pair of high heels",
+    "flats": "a pair of ballet flats",
+    "sandals": "a pair of sandals",
+    "juttis": "a pair of juttis, embroidered Indian closed-toe slip-on shoes",
+    "kolhapuris": "a pair of kolhapuri chappals, Indian leather sandals",
 }
 
 CANDIDATE_TYPES = list(TYPE_PROMPTS)
@@ -85,6 +96,10 @@ OUTERWEAR_TYPES = {
     "bandhgala", "nehru jacket", "phiran",
 }
 ACCESSORY_TYPES = {"dupatta"}
+FOOTWEAR_TYPES = {
+    "boots", "sneakers", "formal shoes", "loafers", "heels", "flats", "sandals",
+    "juttis", "kolhapuris",
+}
 
 # Where a garment sits on the body. Outfit pairing needs to know that a kurti
 # is a top and a palazzo is a bottom, in both traditions.
@@ -105,6 +120,7 @@ ETHNIC_TYPES = {
     "churidar", "palazzo", "sharara", "gharara", "kurta", "kurti", "angrakha",
     "sherwani", "bandhgala", "nehru jacket", "pathani suit", "dhoti", "lungi",
     "mekhela chador", "pattu pavadai", "phiran", "indo-western gown", "dupatta",
+    "juttis", "kolhapuris",
 }
 
 # Colours. The second block matters for ethnic wear, where maroon, mustard and
@@ -174,7 +190,7 @@ SLEEVELESS_GARMENT_TYPES = {
     "skirt", "pants", "jeans", "shorts",
     "churidar", "palazzo", "sharara", "gharara", "patiala salwar",
     "dhoti", "lungi", "dupatta",
-}
+} | FOOTWEAR_TYPES
 
 # Fabrics. Detection is coarse -- CLIP reads drape and sheen, not fibre -- so
 # the confidence is returned alongside and the UI should treat it as a hint.
@@ -391,7 +407,7 @@ class AIService:
             category = "one_piece"
         elif top_type in OUTERWEAR_TYPES:
             category = "outerwear"
-        elif top_type in ACCESSORY_TYPES:
+        elif top_type in ACCESSORY_TYPES or top_type in FOOTWEAR_TYPES:
             category = "accessories"
         else:
             category = "separates"
@@ -591,7 +607,7 @@ def infer_metadata(filename: str) -> dict[str, object]:
             else "outerwear"
             if item_type in OUTERWEAR_TYPES
             else "accessories"
-            if item_type in ACCESSORY_TYPES
+            if item_type in ACCESSORY_TYPES or item_type in FOOTWEAR_TYPES
             else "separates"
         ),
         "is_ethnic": item_type in ETHNIC_TYPES,

@@ -89,6 +89,12 @@ class OutfitService:
             outfits.sort(key=lambda o: (-o["score"], o["total_wears"]))
 
         outfits_to_return = outfits[: max(limit, 1)]
+        self._add_footwear(
+            outfits_to_return,
+            by_slot.get("footwear", []),
+            items,
+            season if season and season.lower() not in {"", "all"} else None,
+        )
         from app.modules.ai.gemini_service import gemini_service
         if gemini_service.is_configured and not gemini_service.is_paused and outfits_to_return:
             top_outfit = outfits_to_return[0]
@@ -415,6 +421,53 @@ class OutfitService:
             "warnings": warnings,
             "total_wears": total_wears,
         }
+
+    def _add_footwear(
+        self,
+        outfits: list[dict[str, Any]],
+        shoes: list[dict[str, Any]],
+        items: list[dict[str, Any]],
+        season: str | None,
+    ) -> None:
+        """Finish each outfit with the best-suited pair of shoes the user owns.
+
+        Footwear is chosen after the outfit is scored and never changes the
+        score: an outfit is no worse for the wardrobe lacking shoes for it.
+        """
+        if not shoes:
+            return
+        by_id = {str(item.get("id")): item for item in items}
+        # How often each pair has been suggested so far, so equally good pairs
+        # take turns instead of one pair finishing every outfit.
+        used: dict[str, int] = {}
+        for outfit in outfits:
+            pieces = [by_id[str(p["id"])] for p in outfit["pieces"] if str(p["id"]) in by_id]
+            outfit_colors: set[str] = set()
+            for piece in pieces:
+                outfit_colors |= rules.colors_of(piece)
+            usable = [
+                shoe
+                for shoe in shoes
+                if rules.can_wear_footwear(
+                    shoe, outfit["style"], outfit["occasions"], outfit_colors, season
+                )
+            ]
+            if not usable:
+                continue
+            # Shoes made for the headline occasion first, then the pair suggested
+            # least so far, then a neutral pair, then the least worn.
+            usable.sort(
+                key=lambda shoe: (
+                    outfit["occasion"] not in rules.occasions_of(shoe),
+                    used.get(str(shoe.get("id")), 0),
+                    not rules.is_neutral(shoe),
+                    int(shoe.get("wear_count") or 0),
+                )
+            )
+            shoe = usable[0]
+            used[str(shoe.get("id"))] = used.get(str(shoe.get("id")), 0) + 1
+            outfit["pieces"].append(self._piece("footwear", shoe))
+            outfit["reasons"].append(f"{shoe.get('name')} finishes the look.")
 
     def _best_extra(
         self, candidates: list[dict[str, Any]], pieces: list[dict[str, Any]], slot: str
